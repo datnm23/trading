@@ -36,12 +36,15 @@ class CCXTConnector:
             logger.error(f"Failed to connect: {e}")
             raise
 
-    def fetch_ohlcv(self, symbol: str, timeframe: str = "1d", limit: int = 500) -> List[List]:
+    def fetch_ohlcv(self, symbol: str, timeframe: str = "1d", limit: int = 500, since: Optional[int] = None) -> List[List]:
         """Fetch OHLCV candles."""
         if not self.exchange:
             return []
         try:
-            return self.exchange.fetch_ohlcv(symbol, timeframe=timeframe, limit=limit)
+            kwargs = {"timeframe": timeframe, "limit": limit}
+            if since is not None:
+                kwargs["since"] = since
+            return self.exchange.fetch_ohlcv(symbol, **kwargs)
         except Exception as e:
             logger.error(f"fetch_ohlcv error: {e}")
             return []
@@ -70,3 +73,13 @@ class CCXTConnector:
             return self.exchange.fetch_positions()
         except Exception:
             return []
+
+    def fetch_ticker(self, symbol: str) -> Optional[dict]:
+        """Fetch real-time ticker (last price, bid, ask, volume)."""
+        if not self.exchange:
+            return None
+        try:
+            return self.exchange.fetch_ticker(symbol)
+        except Exception as e:
+            logger.error(f"fetch_ticker error: {e}")
+            return None

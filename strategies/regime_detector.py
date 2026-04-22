@@ -70,11 +70,22 @@ class RegimeDetector:
         else:
             regime = "neutral"
 
+        # Directional regime: bull / bear / sideways / neutral
+        close_now = history["close"].iloc[-1]
+        if regime == "trending":
+            directional = "bull" if ema20 >= ema50 else "bear"
+        elif regime == "ranging":
+            directional = "sideways"
+        else:
+            directional = "neutral"
+
         return {
             "regime": regime,
+            "directional_regime": directional,
             "strength": abs(trend_score - 0.45) * 2.2,  # distance from neutral
             "metrics": {
                 "adx": float(adx),
+                "atr": float(atr),
                 "range_atr_ratio": float(range_atr_ratio),
                 "ema_slope": float(ema_slope),
                 "trend_score": float(trend_score),

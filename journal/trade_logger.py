@@ -1,12 +1,22 @@
 """Trade journal and emotional logging system.
 
-Persists every trade decision, reasoning, and optional emotional state
-to a local SQLite database. Supports querying, daily summaries, and export.
+Supports both SQLite (local file) and PostgreSQL (Docker/cloud).
+Auto-detects backend from connection string.
+
+Usage:
+    # SQLite (default)
+    logger = TradeLogger(db_path="./data/journal.db")
+
+    # PostgreSQL
+    logger = TradeLogger(
+        db_url="postgresql://trader:trading123@localhost:5432/trading_journal"
+    )
 
 Schema:
     trades      -> individual trade executions (entry + exit pairs)
     journal     -> free-form daily journal entries with emotion tags
     snapshots   -> periodic equity / position snapshots
+    equity_snapshots -> equity curve points
 """
 
 import sqlite3
@@ -15,10 +25,18 @@ import csv
 from dataclasses import dataclass, asdict, field
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Any
 from contextlib import contextmanager
+from urllib.parse import urlparse
 
 from loguru import logger
+
+try:
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+    POSTGRES_AVAILABLE = True
+except ImportError:
+    POSTGRES_AVAILABLE = False
 
 
 @dataclass
@@ -76,7 +94,7 @@ class EquitySnapshot:
 
 
 class TradeLogger:
-    """SQLite-based trade journal and logger.
+    """Trade journal supporting SQLite and PostgreSQL backends.
 
     Usage:
         logger = TradeLogger()
@@ -85,21 +103,91 @@ class TradeLogger:
         logger.snapshot(EquitySnapshot(equity=105000, ...))
     """
 
-    def __init__(self, db_path: str = "./data/journal.db"):
-        self.db_path = Path(db_path)
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        self._init_tables()
+    def __init__(
+        self,
+        db_path: str = "./data/journal.db",
+        db_url: Optional[str] = None,
+    ):
+        self.db_url = db_url
+        self.db_path = Path(db_path) if db_path else None
+        self.backend = "postgres" if (db_url and db_url.startswith("postgresql://")) else "sqlite"
+
+        if self.backend == "postgres":
+            if not POSTGRES_AVAILABLE:
+                raise ImportError("psycopg2-binary required for PostgreSQL. Run: pip install psycopg2-binary")
+            parsed = urlparse(db_url)
+            self.pg_config = {
+                "host": parsed.hostname or "localhost",
+                "port": parsed.port or 5432,
+                "dbname": parsed.path.lstrip("/") if parsed.path else "trading_journal",
+                "user": parsed.username or "trader",
+                "password": parsed.password or "",
+            }
+            self._init_tables_pg()
+        else:
+            self.db_path.parent.mkdir(parents=True, exist_ok=True)
+            self._init_tables_sqlite()
 
     @contextmanager
     def _connect(self):
-        conn = sqlite3.connect(self.db_path, check_same_thread=False)
-        conn.row_factory = sqlite3.Row
-        try:
-            yield conn
-        finally:
-            conn.close()
+        if self.backend == "postgres":
+            conn = psycopg2.connect(**self.pg_config)
+            try:
+                yield conn
+            finally:
+                conn.close()
+        else:
+            conn = sqlite3.connect(self.db_path, check_same_thread=False)
+            conn.row_factory = sqlite3.Row
+            try:
+                yield conn
+            finally:
+                conn.close()
 
-    def _init_tables(self):
+    def _ph(self) -> str:
+        """Return parameter placeholder for current backend."""
+        return "%s" if self.backend == "postgres" else "?"
+
+    def _exec(self, conn, sql: str, params: tuple = ()):
+        """Execute SQL and return cursor."""
+        cur = conn.cursor()
+        cur.execute(sql, params)
+        return cur
+
+    def _fetchall(self, cur) -> List[Dict[str, Any]]:
+        """Fetch all rows as dicts (uniform for both backends)."""
+        if self.backend == "postgres":
+            rows = cur.fetchall()
+            if not rows:
+                return []
+            cols = [desc[0] for desc in cur.description]
+            return [dict(zip(cols, row)) for row in rows]
+        else:
+            rows = cur.fetchall()
+            return [dict(r) for r in rows]
+
+    def _fetchone(self, cur) -> Optional[Dict[str, Any]]:
+        """Fetch one row as dict."""
+        rows = self._fetchall(cur)
+        return rows[0] if rows else None
+
+    def _dt(self, dt: datetime) -> Any:
+        """Serialize datetime for current backend."""
+        if self.backend == "postgres":
+            return dt
+        return dt.isoformat()
+
+    def _lastrowid(self, cur) -> int:
+        """Get last inserted ID."""
+        if self.backend == "postgres":
+            row = cur.fetchone()
+            return row[0] if row else 0
+        return cur.lastrowid
+
+    # ------------------------------------------------------------------
+    # Table init
+    # ------------------------------------------------------------------
+    def _init_tables_sqlite(self):
         with self._connect() as conn:
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS trades (
@@ -153,54 +241,185 @@ class TradeLogger:
                 )
             """)
             conn.execute("""
-                CREATE INDEX IF NOT EXISTS idx_trades_symbol ON trades(symbol)
+                CREATE TABLE IF NOT EXISTS equity_snapshots (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp TEXT NOT NULL,
+                    equity REAL,
+                    cash REAL,
+                    open_positions INTEGER,
+                    drawdown_pct REAL
+                )
             """)
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_trades_symbol ON trades(symbol)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_trades_date ON trades(timestamp)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_journal_date ON journal(date)")
             conn.execute("""
-                CREATE INDEX IF NOT EXISTS idx_trades_date ON trades(timestamp)
-            """)
-            conn.execute("""
-                CREATE INDEX IF NOT EXISTS idx_journal_date ON journal(date)
+                CREATE TABLE IF NOT EXISTS wiki_feedback (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp TEXT NOT NULL,
+                    symbol TEXT NOT NULL,
+                    regime TEXT,
+                    side TEXT,
+                    strategy TEXT,
+                    wiki_action TEXT,
+                    alignment_score REAL,
+                    min_alignment REAL,
+                    outcome TEXT,
+                    pnl REAL,
+                    pnl_pct REAL,
+                    top_concepts TEXT,
+                    context_summary TEXT
+                )
             """)
             conn.commit()
             logger.info(f"Trade journal initialized at {self.db_path}")
+
+    def _init_tables_pg(self):
+        with self._connect() as conn:
+            cur = conn.cursor()
+            # Tables (use IF NOT EXISTS to be safe)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS trades (
+                    id SERIAL PRIMARY KEY,
+                    timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    symbol VARCHAR(20) NOT NULL,
+                    strategy VARCHAR(50),
+                    side VARCHAR(10),
+                    entry_price NUMERIC(20, 8),
+                    exit_price NUMERIC(20, 8),
+                    size NUMERIC(20, 8),
+                    pnl NUMERIC(20, 2),
+                    pnl_pct NUMERIC(10, 4),
+                    holding_bars INTEGER,
+                    exit_reason VARCHAR(50),
+                    stop_price NUMERIC(20, 8),
+                    target_price NUMERIC(20, 8),
+                    reasoning TEXT,
+                    emotion_before VARCHAR(20),
+                    emotion_after VARCHAR(20),
+                    market_regime VARCHAR(20),
+                    notes TEXT,
+                    tags VARCHAR(255),
+                    raw_metadata JSONB
+                )
+            """)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS journal (
+                    id SERIAL PRIMARY KEY,
+                    date DATE NOT NULL,
+                    timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    entry_type VARCHAR(30),
+                    content TEXT,
+                    emotion VARCHAR(20),
+                    focus_score INTEGER,
+                    discipline_score INTEGER,
+                    lessons TEXT,
+                    tags VARCHAR(255)
+                )
+            """)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS snapshots (
+                    id SERIAL PRIMARY KEY,
+                    timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    equity NUMERIC(20, 2),
+                    cash NUMERIC(20, 2),
+                    open_positions INTEGER,
+                    open_exposure NUMERIC(20, 2),
+                    drawdown_pct NUMERIC(10, 4),
+                    daily_pnl NUMERIC(20, 2)
+                )
+            """)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS equity_snapshots (
+                    id SERIAL PRIMARY KEY,
+                    timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    equity NUMERIC(20, 2),
+                    cash NUMERIC(20, 2),
+                    open_positions INTEGER,
+                    drawdown_pct NUMERIC(10, 4)
+                )
+            """)
+            # Indexes
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_trades_timestamp ON trades(timestamp)")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_trades_symbol ON trades(symbol)")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_journal_date ON journal(date)")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_snapshots_timestamp ON snapshots(timestamp)")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_equity_timestamp ON equity_snapshots(timestamp)")
+            # Wiki feedback table for learning loop
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS wiki_feedback (
+                    id SERIAL PRIMARY KEY,
+                    timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    symbol VARCHAR(20) NOT NULL,
+                    regime VARCHAR(20),
+                    side VARCHAR(10),
+                    strategy VARCHAR(50),
+                    wiki_action VARCHAR(20),      -- 'blocked', 'accepted', 'downgraded'
+                    alignment_score NUMERIC(5, 4),
+                    min_alignment NUMERIC(5, 4),
+                    outcome VARCHAR(10),          -- 'win', 'loss', 'pending'
+                    pnl NUMERIC(20, 2),
+                    pnl_pct NUMERIC(10, 4),
+                    top_concepts TEXT,
+                    context_summary TEXT
+                )
+            """)
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_wiki_outcome ON wiki_feedback(outcome)")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_wiki_symbol ON wiki_feedback(symbol)")
+            conn.commit()
+            logger.info(f"Trade journal initialized at PostgreSQL {self.pg_config['host']}:{self.pg_config['port']}/{self.pg_config['dbname']}")
 
     # ------------------------------------------------------------------
     # Trade logging
     # ------------------------------------------------------------------
     def log_trade(self, record: TradeRecord) -> int:
         """Insert a trade record and return its ID."""
-        with self._connect() as conn:
-            cur = conn.execute("""
+        ph = self._ph()
+        if self.backend == "postgres":
+            sql = f"""
                 INSERT INTO trades (
                     timestamp, symbol, strategy, side, entry_price, exit_price,
                     size, pnl, pnl_pct, holding_bars, exit_reason, stop_price,
                     target_price, reasoning, emotion_before, emotion_after,
                     market_regime, notes, tags, raw_metadata
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                record.timestamp.isoformat(),
-                record.symbol,
-                record.strategy,
-                record.side,
-                record.entry_price,
-                record.exit_price,
-                record.size,
-                record.pnl,
-                record.pnl_pct,
-                record.holding_bars,
-                record.exit_reason,
-                record.stop_price,
-                record.target_price,
-                record.reasoning,
-                record.emotion_before,
-                record.emotion_after,
-                record.market_regime,
-                record.notes,
-                record.tags,
-                record.raw_metadata,
-            ))
+                ) VALUES ({', '.join([ph]*20)})
+                RETURNING id
+            """
+        else:
+            sql = f"""
+                INSERT INTO trades (
+                    timestamp, symbol, strategy, side, entry_price, exit_price,
+                    size, pnl, pnl_pct, holding_bars, exit_reason, stop_price,
+                    target_price, reasoning, emotion_before, emotion_after,
+                    market_regime, notes, tags, raw_metadata
+                ) VALUES ({', '.join([ph]*20)})
+            """
+        params = (
+            self._dt(record.timestamp),
+            record.symbol,
+            record.strategy,
+            record.side,
+            record.entry_price,
+            record.exit_price,
+            record.size,
+            record.pnl,
+            record.pnl_pct,
+            record.holding_bars,
+            record.exit_reason,
+            record.stop_price,
+            record.target_price,
+            record.reasoning,
+            record.emotion_before,
+            record.emotion_after,
+            record.market_regime,
+            record.notes,
+            record.tags,
+            record.raw_metadata,
+        )
+        with self._connect() as conn:
+            cur = self._exec(conn, sql, params)
             conn.commit()
-            record_id = cur.lastrowid
+            record_id = self._lastrowid(cur)
             logger.info(
                 f"Trade logged [{record_id}] {record.symbol} {record.side} "
                 f"P&L=${record.pnl:.2f} ({record.pnl_pct:.2%})"
@@ -216,32 +435,37 @@ class TradeLogger:
         limit: int = 1000,
     ) -> List[TradeRecord]:
         """Query trades with optional filters."""
+        ph = self._ph()
         query = "SELECT * FROM trades WHERE 1=1"
         params: List = []
         if symbol:
-            query += " AND symbol = ?"
+            query += f" AND symbol = {ph}"
             params.append(symbol)
         if strategy:
-            query += " AND strategy = ?"
+            query += f" AND strategy = {ph}"
             params.append(strategy)
         if start:
-            query += " AND timestamp >= ?"
+            query += f" AND timestamp >= {ph}"
             params.append(start)
         if end:
-            query += " AND timestamp <= ?"
+            query += f" AND timestamp <= {ph}"
             params.append(end)
-        query += " ORDER BY timestamp DESC LIMIT ?"
+        query += f" ORDER BY timestamp DESC LIMIT {ph}"
         params.append(limit)
 
         with self._connect() as conn:
-            rows = conn.execute(query, params).fetchall()
+            cur = self._exec(conn, query, tuple(params))
+            rows = self._fetchall(cur)
             return [self._row_to_trade(r) for r in rows]
 
-    def _row_to_trade(self, row: sqlite3.Row) -> TradeRecord:
+    def _row_to_trade(self, row: Dict[str, Any]) -> TradeRecord:
+        ts = row["timestamp"]
+        if isinstance(ts, str):
+            ts = datetime.fromisoformat(ts)
         return TradeRecord(
             id=row["id"],
-            timestamp=datetime.fromisoformat(row["timestamp"]),
-            symbol=row["symbol"],
+            timestamp=ts,
+            symbol=row["symbol"] or "",
             strategy=row["strategy"] or "",
             side=row["side"] or "",
             entry_price=row["entry_price"] or 0.0,
@@ -267,44 +491,61 @@ class TradeLogger:
     # ------------------------------------------------------------------
     def log_journal(self, entry: JournalEntry) -> int:
         """Insert a journal entry and return its ID."""
-        with self._connect() as conn:
-            cur = conn.execute("""
+        ph = self._ph()
+        if self.backend == "postgres":
+            sql = f"""
                 INSERT INTO journal (
                     date, timestamp, entry_type, content, emotion,
                     focus_score, discipline_score, lessons, tags
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                entry.date,
-                entry.timestamp.isoformat(),
-                entry.entry_type,
-                entry.content,
-                entry.emotion,
-                entry.focus_score,
-                entry.discipline_score,
-                entry.lessons,
-                entry.tags,
-            ))
+                ) VALUES ({', '.join([ph]*9)})
+                RETURNING id
+            """
+        else:
+            sql = f"""
+                INSERT INTO journal (
+                    date, timestamp, entry_type, content, emotion,
+                    focus_score, discipline_score, lessons, tags
+                ) VALUES ({', '.join([ph]*9)})
+            """
+        params = (
+            entry.date,
+            self._dt(entry.timestamp),
+            entry.entry_type,
+            entry.content,
+            entry.emotion,
+            entry.focus_score,
+            entry.discipline_score,
+            entry.lessons,
+            entry.tags,
+        )
+        with self._connect() as conn:
+            cur = self._exec(conn, sql, params)
             conn.commit()
-            return cur.lastrowid
+            return self._lastrowid(cur)
 
     def get_journal(self, date: Optional[str] = None, limit: int = 100) -> List[JournalEntry]:
+        ph = self._ph()
         query = "SELECT * FROM journal WHERE 1=1"
         params: List = []
         if date:
-            query += " AND date = ?"
+            query += f" AND date = {ph}"
             params.append(date)
-        query += " ORDER BY timestamp DESC LIMIT ?"
+        query += f" ORDER BY timestamp DESC LIMIT {ph}"
         params.append(limit)
 
         with self._connect() as conn:
-            rows = conn.execute(query, params).fetchall()
+            cur = self._exec(conn, query, tuple(params))
+            rows = self._fetchall(cur)
             return [self._row_to_journal(r) for r in rows]
 
-    def _row_to_journal(self, row: sqlite3.Row) -> JournalEntry:
+    def _row_to_journal(self, row: Dict[str, Any]) -> JournalEntry:
+        ts = row["timestamp"]
+        if isinstance(ts, str):
+            ts = datetime.fromisoformat(ts)
         return JournalEntry(
             id=row["id"],
             date=row["date"],
-            timestamp=datetime.fromisoformat(row["timestamp"]),
+            timestamp=ts,
             entry_type=row["entry_type"] or "daily",
             content=row["content"] or "",
             emotion=row["emotion"],
@@ -319,35 +560,54 @@ class TradeLogger:
     # ------------------------------------------------------------------
     def snapshot(self, snap: EquitySnapshot) -> int:
         """Record an equity snapshot."""
-        with self._connect() as conn:
-            cur = conn.execute("""
+        ph = self._ph()
+        if self.backend == "postgres":
+            sql = f"""
                 INSERT INTO snapshots (
                     timestamp, equity, cash, open_positions, open_exposure,
                     drawdown_pct, daily_pnl
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (
-                snap.timestamp.isoformat(),
-                snap.equity,
-                snap.cash,
-                snap.open_positions,
-                snap.open_exposure,
-                snap.drawdown_pct,
-                snap.daily_pnl,
-            ))
+                ) VALUES ({', '.join([ph]*7)})
+                RETURNING id
+            """
+        else:
+            sql = f"""
+                INSERT INTO snapshots (
+                    timestamp, equity, cash, open_positions, open_exposure,
+                    drawdown_pct, daily_pnl
+                ) VALUES ({', '.join([ph]*7)})
+            """
+        params = (
+            self._dt(snap.timestamp),
+            snap.equity,
+            snap.cash,
+            snap.open_positions,
+            snap.open_exposure,
+            snap.drawdown_pct,
+            snap.daily_pnl,
+        )
+        with self._connect() as conn:
+            cur = self._exec(conn, sql, params)
             conn.commit()
-            return cur.lastrowid
+            return self._lastrowid(cur)
 
     def get_snapshots(self, limit: int = 1000) -> List[EquitySnapshot]:
+        ph = self._ph()
         with self._connect() as conn:
-            rows = conn.execute(
-                "SELECT * FROM snapshots ORDER BY timestamp DESC LIMIT ?", (limit,)
-            ).fetchall()
+            cur = self._exec(
+                conn,
+                f"SELECT * FROM snapshots ORDER BY timestamp DESC LIMIT {ph}",
+                (limit,),
+            )
+            rows = self._fetchall(cur)
             return [self._row_to_snapshot(r) for r in rows]
 
-    def _row_to_snapshot(self, row: sqlite3.Row) -> EquitySnapshot:
+    def _row_to_snapshot(self, row: Dict[str, Any]) -> EquitySnapshot:
+        ts = row["timestamp"]
+        if isinstance(ts, str):
+            ts = datetime.fromisoformat(ts)
         return EquitySnapshot(
             id=row["id"],
-            timestamp=datetime.fromisoformat(row["timestamp"]),
+            timestamp=ts,
             equity=row["equity"] or 0.0,
             cash=row["cash"] or 0.0,
             open_positions=row["open_positions"] or 0,
@@ -361,17 +621,19 @@ class TradeLogger:
     # ------------------------------------------------------------------
     def trade_summary(self, symbol: Optional[str] = None, strategy: Optional[str] = None) -> dict:
         """Compute summary statistics over logged trades."""
+        ph = self._ph()
         query = "SELECT * FROM trades WHERE 1=1"
         params: List = []
         if symbol:
-            query += " AND symbol = ?"
+            query += f" AND symbol = {ph}"
             params.append(symbol)
         if strategy:
-            query += " AND strategy = ?"
+            query += f" AND strategy = {ph}"
             params.append(strategy)
 
         with self._connect() as conn:
-            rows = conn.execute(query, params).fetchall()
+            cur = self._exec(conn, query, tuple(params))
+            rows = self._fetchall(cur)
 
         if not rows:
             return {"count": 0}
@@ -395,9 +657,12 @@ class TradeLogger:
     def emotion_distribution(self) -> Dict[str, int]:
         """Count frequency of emotions recorded before trades."""
         with self._connect() as conn:
-            rows = conn.execute(
-                "SELECT emotion_before, COUNT(*) as cnt FROM trades WHERE emotion_before IS NOT NULL GROUP BY emotion_before"
-            ).fetchall()
+            cur = self._exec(
+                conn,
+                "SELECT emotion_before, COUNT(*) as cnt FROM trades WHERE emotion_before IS NOT NULL GROUP BY emotion_before",
+                (),
+            )
+            rows = self._fetchall(cur)
             return {r["emotion_before"]: r["cnt"] for r in rows}
 
     # ------------------------------------------------------------------
@@ -447,3 +712,105 @@ class TradeLogger:
         with open(path, "w", encoding="utf-8") as f:
             json.dump([asdict(e) for e in entries], f, ensure_ascii=False, indent=2, default=str)
         logger.info(f"Exported {len(entries)} journal entries to {path}")
+
+    # ------------------------------------------------------------------
+    # Wiki feedback logging
+    # ------------------------------------------------------------------
+    def log_wiki_feedback(self, data: dict) -> int:
+        """Log a wiki validation decision for future learning.
+
+        Args:
+            data: dict with keys: symbol, regime, side, strategy,
+                  wiki_action, alignment_score, min_alignment,
+                  top_concepts, context_summary
+        """
+        ph = self._ph()
+        sql = f"""
+            INSERT INTO wiki_feedback (
+                timestamp, symbol, regime, side, strategy,
+                wiki_action, alignment_score, min_alignment,
+                outcome, pnl, pnl_pct, top_concepts, context_summary
+            ) VALUES ({', '.join([ph]*13)})
+        """
+        params = (
+            self._dt(datetime.now()),
+            data.get("symbol", ""),
+            data.get("regime", ""),
+            data.get("side", ""),
+            data.get("strategy", ""),
+            data.get("wiki_action", ""),
+            data.get("alignment_score", 0),
+            data.get("min_alignment", 0),
+            data.get("outcome", "pending"),
+            data.get("pnl", None),
+            data.get("pnl_pct", None),
+            data.get("top_concepts", ""),
+            data.get("context_summary", "")[:500],
+        )
+        with self._connect() as conn:
+            cur = self._exec(conn, sql, params)
+            conn.commit()
+            return self._lastrowid(cur)
+
+    def get_wiki_feedback_stats(self, min_samples: int = 10) -> dict:
+        """Compute wiki validation accuracy from feedback history."""
+        with self._connect() as conn:
+            cur = self._exec(
+                conn,
+                "SELECT wiki_action, outcome FROM wiki_feedback WHERE outcome != 'pending'",
+                (),
+            )
+            rows = self._fetchall(cur)
+
+        if len(rows) < min_samples:
+            return {"samples": len(rows), "accuracy": None}
+
+        # For accepted signals: outcome should be 'win'
+        # For blocked signals: outcome should be 'loss' (wiki was right to block)
+        correct = 0
+        for r in rows:
+            action = r["wiki_action"]
+            outcome = r["outcome"]
+            if action == "accepted" and outcome == "win":
+                correct += 1
+            elif action == "blocked" and outcome == "loss":
+                correct += 1
+            elif action == "downgraded":
+                # Downgraded signals that win = wiki was too conservative
+                # Downgraded signals that lose = wiki was right
+                if outcome == "loss":
+                    correct += 1
+
+        return {
+            "samples": len(rows),
+            "accuracy": correct / len(rows) if rows else 0,
+            "correct": correct,
+        }
+
+    # ------------------------------------------------------------------
+    # Migration helper
+    # ------------------------------------------------------------------
+    def migrate_from_sqlite(self, sqlite_path: str):
+        """Migrate data from SQLite to current backend (PostgreSQL)."""
+        if self.backend != "postgres":
+            raise ValueError("migrate_from_sqlite only works when connected to PostgreSQL")
+        
+        logger.info(f"Migrating data from {sqlite_path} to PostgreSQL...")
+        src = TradeLogger(db_path=sqlite_path)
+        
+        # Migrate trades
+        trades = src.get_trades(limit=100000)
+        for t in trades:
+            self.log_trade(t)
+        
+        # Migrate journal
+        entries = src.get_journal(limit=100000)
+        for e in entries:
+            self.log_journal(e)
+        
+        # Migrate snapshots
+        snaps = src.get_snapshots(limit=100000)
+        for s in snaps:
+            self.snapshot(s)
+        
+        logger.info(f"Migration complete: {len(trades)} trades, {len(entries)} journal entries, {len(snaps)} snapshots")

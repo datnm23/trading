@@ -41,15 +41,20 @@ strategies:
       module: "strategies.ensemble.regime_ensemble"
       class: "RegimeEnsembleStrategy"
       params:
-        wiki_min_alignment: 0.30
+        wiki_min_alignment: 0.45
 
 # Risk management
 risk:
-  max_risk_per_trade: 0.01        # 1% of account
+  max_risk_per_trade: 0.008       # 0.8% base, multiplied by regime
   max_total_exposure: 0.10        # 10% in market
-  max_drawdown_pct: 0.15          # 15% circuit breaker
+  max_drawdown_pct: 0.20          # 20% circuit breaker (neutral)
+  max_drawdown_bull: 0.18         # 18% in bull — tightened from 25% after backtest showed -26.7% net DD
+  max_drawdown_bear: 0.10         # 10% in bear
+  max_drawdown_sideways: 0.10     # 10% in chop
   default_stop_loss_atr: 2.0      # 2x ATR
   position_sizing: "turtle_n"     # fixed_fractional | kelly | atr_based | turtle_n
+  trailing_activation: 0.05       # 5% profit to activate trailing stop
+  trailing_trail_pct: 0.3         # trail at 30% of peak profit
 
 # Psychology / Discipline
 psychology:
@@ -103,14 +108,36 @@ ml:
 # Monitoring
 monitoring:
   enabled: true
-  alert_telegram: false
+  alert_telegram: true
   telegram_bot_token: ""
   telegram_chat_id: ""
   health_port: 8080
 
 # Journal
 journal:
-  db_path: "./data/journal.db"
+  # PostgreSQL (recommended for production)
+  db_url: "postgresql://trader:trading123@localhost:5432/trading_journal"
+  # SQLite (fallback / local dev)
+  # db_path: "./data/journal.db"
+
+# Price Alerts (bilingual EN/VN)
+price_alerts:
+  enabled: true
+  threshold_pct: 0.008          # Alert when within 0.8% of a key level
+  cooldown_hours: 1.0           # 1 hour between alerts for same level
+
+# Drawdown Alerts (warning before circuit breaker)
+drawdown_alerts:
+  enabled: true
+  warning_pct: 0.10             # Alert at 10% drawdown (before 15-20% halt)
+  cooldown_hours: 4.0           # Max 1 warning every 4 hours
+
+# Volume Spike Alerts
+volume_alerts:
+  enabled: true
+  lookback_bars: 20             # Compare vs 20-bar average
+  multiplier: 2.5               # Alert when volume > 2.5x average
+  cooldown_hours: 4.0           # Max 1 alert every 4 hours
 
 # Model Drift Detection
 drift:

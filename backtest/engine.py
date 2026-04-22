@@ -9,7 +9,7 @@ import numpy as np
 from loguru import logger
 
 from strategies.base import BaseStrategy, Signal, StrategyContext
-from risk.manager import RiskManager
+from risk.manager import RiskManager, RegimeAwareRiskManager
 
 
 @dataclass
@@ -85,27 +85,42 @@ class BacktestEngine:
         return self._build_result()
 
     def _process_signal(self, signal: Signal, bar: pd.Series, risk_manager: RiskManager, status: dict):
+        regime = signal.meta.get("directional_regime", "neutral") if signal.meta else "neutral"
+
+        # Update risk manager regime if regime-aware
+        if isinstance(risk_manager, RegimeAwareRiskManager):
+            risk_manager.set_regime(regime)
+
         if signal.side == "buy":
             if not status["exposure_ok"]:
                 return
             entry_price = bar["close"] * (1 + self.slippage)
-            # Use ATR from signal meta if available
             atr = signal.meta.get("atr") if signal.meta else None
-            if atr and atr > 0:
-                stop_price = risk_manager.stop.atr_based(entry_price, "buy", atr, multiplier=2.0)
+
+            if isinstance(risk_manager, RegimeAwareRiskManager) and atr and atr > 0:
+                stop_price, take_price = risk_manager.regime_stop.atr_based_for_regime(entry_price, "buy", atr, regime)
+                size = risk_manager.regime_sizer.size_for_regime(self.equity, entry_price, stop_price, atr=atr, regime=regime)
             else:
-                stop_price = entry_price * 0.95
-            size = risk_manager.sizer.size(self.equity, entry_price, stop_price, atr=atr)
+                if atr and atr > 0:
+                    stop_price = risk_manager.stop.atr_based(entry_price, "buy", atr, multiplier=2.0)
+                else:
+                    stop_price = entry_price * 0.95
+                size = risk_manager.sizer.size(self.equity, entry_price, stop_price, atr=atr)
+
             if size <= 0:
                 return
-            self.positions.append({
+            pos = {
                 "symbol": signal.symbol,
                 "side": "long",
                 "entry_price": entry_price,
                 "size": size,
                 "stop": stop_price,
                 "entry_time": signal.timestamp,
-            })
+                "peak_price": entry_price,
+            }
+            if isinstance(risk_manager, RegimeAwareRiskManager):
+                pos["trailing_active"] = False
+            self.positions.append(pos)
             self.capital -= size * entry_price * (1 + self.commission)
 
         elif signal.side == "sell":
@@ -128,6 +143,42 @@ class BacktestEngine:
                         exit_reason="signal",
                     ))
                     self.positions.remove(pos)
+
+    def _check_stops(self, bar: pd.Series, risk_manager: RiskManager):
+        """Check stop-loss and trailing stops for all open positions."""
+        for pos in list(self.positions):
+            if pos["side"] == "long":
+                # Fixed stop hit
+                stop = pos.get("stop", 0)
+                if stop > 0 and bar["low"] <= stop:
+                    exit_price = bar["open"] if bar["open"] <= stop else stop
+                    self._close_position(pos, bar, exit_price, "stop_loss")
+                    continue
+
+                # Trailing stop (only if RegimeAwareRiskManager)
+                if isinstance(risk_manager, RegimeAwareRiskManager):
+                    triggered = risk_manager.trailing.update(pos, bar)
+                    if triggered:
+                        exit_price = bar["open"] if bar["open"] <= pos["stop"] else pos["stop"]
+                        self._close_position(pos, bar, exit_price, "trailing_stop")
+
+    def _close_position(self, pos: dict, bar: pd.Series, exit_price: float, reason: str):
+        """Close a single position and record the trade."""
+        pnl = (exit_price - pos["entry_price"]) * pos["size"]
+        pnl -= pos["size"] * exit_price * self.commission
+        self.capital += pos["size"] * exit_price * (1 - self.commission)
+        self.trades.append(Trade(
+            entry_time=pos["entry_time"],
+            exit_time=bar.name,
+            symbol=pos["symbol"],
+            side=pos["side"],
+            entry_price=pos["entry_price"],
+            exit_price=exit_price,
+            size=pos["size"],
+            pnl=pnl,
+            exit_reason=reason,
+        ))
+        self.positions.remove(pos)
 
     def _update_equity(self, bar: pd.Series):
         position_value = 0.0

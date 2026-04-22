@@ -28,10 +28,13 @@ from loguru import logger
 from data.feed import DataFeed
 from execution.connectors.ccxt_connector import CCXTConnector
 from execution.order_manager import OrderManager, OrderSide, OrderType
-from risk.manager import RiskManager
+from risk.manager import RiskManager, RegimeAwareRiskManager
 from risk.psychology import PsychologicalEnforcer
 from journal.trade_logger import TradeLogger, TradeRecord, EquitySnapshot
 from monitoring.telegram import TelegramAlerter
+from monitoring.price_alerts import PriceAlertManager
+from monitoring.drawdown_alerts import DrawdownAlertManager
+from monitoring.volume_alerts import VolumeAlertManager
 from monitoring.health_server import HealthServer
 from strategies.base import BaseStrategy, StrategyContext
 from ml.drift_detection import ModelDriftMonitor
@@ -129,7 +132,11 @@ class LiveTradingEngine:
 
         # Risk
         risk_cfg = config.get("risk", {})
-        self.risk = RiskManager(risk_cfg)
+        # Use RegimeAwareRiskManager for regime-based strategies
+        if strategy.__class__.__name__ in ("RegimeEnsembleStrategy", "RegimeEnsemble"):
+            self.risk = RegimeAwareRiskManager(risk_cfg)
+        else:
+            self.risk = RiskManager(risk_cfg)
 
         # Psychology enforcer
         psych_cfg = config.get("psychology", {})
@@ -139,16 +146,16 @@ class LiveTradingEngine:
         exec_cfg = config.get("execution", {})
         self.paper_mode = mode == "paper" or exec_cfg.get("paper", True)
 
+        # Always create a connector for real-time price fetching (even in paper mode)
+        self.connector = CCXTConnector(
+            exchange_id=exec_cfg.get("exchange_id", "binance"),
+            api_key=exec_cfg.get("api_key", ""),
+            api_secret=exec_cfg.get("api_secret", ""),
+            testnet=exec_cfg.get("testnet", True),
+        )
         if self.paper_mode:
-            self.connector = None
-            logger.info("Running in PAPER mode")
+            logger.info("Running in PAPER mode (real-time price feed active)")
         else:
-            self.connector = CCXTConnector(
-                exchange_id=exec_cfg.get("exchange_id", "binance"),
-                api_key=exec_cfg.get("api_key", ""),
-                api_secret=exec_cfg.get("api_secret", ""),
-                testnet=exec_cfg.get("testnet", True),
-            )
             logger.info("Running in LIVE mode")
 
         self.order_manager = OrderManager(
@@ -159,14 +166,46 @@ class LiveTradingEngine:
         # Data
         self.feed = DataFeed()
 
-        # Journal
-        db_path = config.get("journal", {}).get("db_path", "./data/journal.db")
-        self.journal = TradeLogger(db_path=db_path)
+        # Journal (PostgreSQL preferred, SQLite fallback)
+        journal_cfg = config.get("journal", {})
+        if journal_cfg.get("db_url"):
+            self.journal = TradeLogger(db_url=journal_cfg["db_url"])
+        else:
+            db_path = journal_cfg.get("db_path", "./data/journal.db")
+            self.journal = TradeLogger(db_path=db_path)
 
         # Alerts
         alert_cfg = config.get("monitoring", {})
         self.alerter = TelegramAlerter(
             enabled=alert_cfg.get("alert_telegram", False),
+        )
+
+        # Price alerts (bilingual EN/VN, real-time via connector)
+        price_alert_cfg = config.get("price_alerts", {})
+        self.price_alerter = PriceAlertManager(
+            alerter=self.alerter,
+            connector=self.connector,
+            enabled=price_alert_cfg.get("enabled", True),
+            threshold_pct=price_alert_cfg.get("threshold_pct", 0.008),
+        )
+
+        # Drawdown alerts (warning before circuit breaker)
+        dd_alert_cfg = config.get("drawdown_alerts", {})
+        self.drawdown_alerter = DrawdownAlertManager(
+            alerter=self.alerter,
+            enabled=dd_alert_cfg.get("enabled", True),
+            warning_pct=dd_alert_cfg.get("warning_pct", 0.10),
+            cooldown_hours=dd_alert_cfg.get("cooldown_hours", 4.0),
+        )
+
+        # Volume spike alerts
+        vol_alert_cfg = config.get("volume_alerts", {})
+        self.volume_alerter = VolumeAlertManager(
+            alerter=self.alerter,
+            enabled=vol_alert_cfg.get("enabled", True),
+            lookback_bars=vol_alert_cfg.get("lookback_bars", 20),
+            multiplier=vol_alert_cfg.get("multiplier", 2.5),
+            cooldown_hours=vol_alert_cfg.get("cooldown_hours", 4.0),
         )
 
         # Drift monitor (for ML strategies)
@@ -192,6 +231,7 @@ class LiveTradingEngine:
         self.is_running = False
         self.last_bar_times: Dict[str, datetime] = {}
         self.check_interval = 60  # seconds
+        self._was_psych_paused = False  # Track pause→resume transitions
 
     def run(self):
         """Main trading loop."""
@@ -246,24 +286,34 @@ class LiveTradingEngine:
 
     def _process_symbol(self, symbol: str):
         """Process one symbol: fetch data, generate signal, execute."""
-        df = self.feed.fetch(symbol, timeframe=self.timeframe, limit=200, use_cache=False)
+        df = self.feed.fetch(symbol, timeframe=self.timeframe, limit=200, use_cache=True)
         if df.empty or len(df) < 50:
             logger.warning(f"Insufficient data for {symbol}")
             return
 
         latest_bar = df.iloc[-1]
         latest_time = df.index[-1]
+        current_price = latest_bar["close"]
+
+        # Check price alerts (every iteration, not just new bars)
+        self.price_alerter.check(symbol, current_price)
 
         # Skip if bar hasn't updated
         if self.last_bar_times.get(symbol) == latest_time:
             return
         self.last_bar_times[symbol] = latest_time
 
+        # Check volume spike on new bar
+        self.volume_alerter.check(symbol, df)
+
         # Warmup
         if not self.strategy.is_warm:
             self.strategy.warmup(df.iloc[:100])
             if not self.strategy.is_warm:
                 return
+
+        # Drawdown warning (before circuit breaker)
+        self.drawdown_alerter.check(self.equity)
 
         # Risk check
         status = self.risk.check(self.capital, self.equity, list(self.positions.values()))
@@ -290,14 +340,85 @@ class LiveTradingEngine:
         # Get signal
         signal = self.strategy.on_bar(context)
         if not signal:
+            # Send Telegram alert with reasons why no trade
+            if hasattr(self.strategy, "last_status") and self.strategy.last_status:
+                status = self.strategy.last_status
+                reasons = "\n".join([f"  • {r}" for r in status.get("rejection_reasons", [])])
+                sub_signals = status.get("sub_signals", {})
+                sub_text = ", ".join([f"{k}({v})" for k, v in sub_signals.items()]) if sub_signals else "None"
+                wiki_align = status.get("wiki_alignment", 0)
+                wiki_concepts = status.get("wiki_top_concepts", "")
+                wiki_action = status.get("wiki_action", "")
+                wiki_min = status.get("wiki_min_alignment", 0.3)
+                text = (
+                    f"<b>⚪ NO TRADE — {status.get('symbol', symbol)}</b>\n\n"
+                    f"Regime: <code>{status.get('regime', '?')}</code> | "
+                    f"Directional: <code>{status.get('directional_regime', '?')}</code>\n"
+                    f"Sub-signals: <code>{sub_text}</code>\n\n"
+                    f"<b>📚 Wiki:</b>\n"
+                    f"Action: <code>{wiki_action}</code> | "
+                    f"Score: <code>{wiki_align:.2f}</code> (min: <code>{wiki_min:.2f}</code>)\n"
+                    f"Concepts: <code>{wiki_concepts[:100]}</code>\n\n"
+                    f"<b>Reasons:</b>\n{reasons}\n\n"
+                    f"Time: <code>{datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}</code>"
+                )
+                self.alerter._send(text)
             return
 
         # Psychological check
         psych_state = self.psych_enforcer.check_state()
         if psych_state.is_paused:
-            logger.warning(
-                f"🧠 PSYCH BLOCK: {psych_state.blocked_reason}"
+            logger.warning(f"🧠 PSYCH BLOCK: {psych_state.blocked_reason}")
+            if not self._was_psych_paused:
+                # Send bilingual Telegram alert on NEW pause
+                pause_until_str = (
+                    psych_state.pause_until.strftime("%Y-%m-%d %H:%M UTC")
+                    if psych_state.pause_until else "unknown"
+                )
+                text = (
+                    f"🇺🇸 <b>🧠 BOT PAUSED — Psychology</b>\n\n"
+                    f"Reason: <code>{psych_state.blocked_reason}</code>\n"
+                    f"Resume: <code>{pause_until_str}</code>\n"
+                    f"Daily trades: <code>{psych_state.daily_trades}</code>\n"
+                    f"Consecutive losses: <code>{psych_state.consecutive_losses}</code>\n\n"
+                    f"🇻🇳 <b>🧠 BOT TẠM DỪNG — Tâm lý</b>\n\n"
+                    f"Lý do: <code>{psych_state.blocked_reason}</code>\n"
+                    f"Tiếp tục: <code>{pause_until_str}</code>\n"
+                    f"Giao dịch hôm nay: <code>{psych_state.daily_trades}</code>\n"
+                    f"Thua liên tiếp: <code>{psych_state.consecutive_losses}</code>\n\n"
+                    f"🕐 <code>{datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}</code>"
+                )
+                self.alerter._send(text)
+                self._was_psych_paused = True
+            return
+        else:
+            # Was paused before but now resumed (auto-expired or manual)
+            if self._was_psych_paused:
+                text = (
+                    f"🇺🇸 <b>🟢 BOT RESUMED</b>\n\n"
+                    f"Psychological pause has expired.\n"
+                    f"Trading is now active again.\n\n"
+                    f"🇻🇳 <b>🟢 BOT ĐÃ TIẾP TỤC</b>\n\n"
+                    f"Tạm dừng tâm lý đã hết hạn.\n"
+                    f"Giao dịch đang hoạt động trở lại.\n\n"
+                    f"🕐 <code>{datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}</code>"
+                )
+                self.alerter._send(text)
+                self._was_psych_paused = False
+
+        # Daily trade limit alert (not a full pause, but blocks trades)
+        if psych_state.blocked_reason and "Daily trade limit" in psych_state.blocked_reason:
+            logger.warning(f"🧠 PSYCH BLOCK: {psych_state.blocked_reason}")
+            text = (
+                f"🇺🇸 <b>⚠️ DAILY LIMIT REACHED</b>\n\n"
+                f"Trades today: <code>{psych_state.daily_trades}/{self.psych_enforcer.max_daily_trades}</code>\n"
+                f"No more trades until tomorrow.\n\n"
+                f"🇻🇳 <b>⚠️ ĐÃ ĐẠT GIỚI HẠN NGÀY</b>\n\n"
+                f"Giao dịch hôm nay: <code>{psych_state.daily_trades}/{self.psych_enforcer.max_daily_trades}</code>\n"
+                f"Không giao dịch thêm đến ngày mai.\n\n"
+                f"🕐 <code>{datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}</code>"
             )
+            self.alerter._send(text)
             return
 
         # Validate exposure
@@ -313,15 +434,23 @@ class LiveTradingEngine:
         """Convert strategy signal to order and submit."""
         price = bar["close"]
         psych_multiplier = psych_state.size_multiplier if psych_state else 1.0
+        regime = signal.meta.get("directional_regime", "neutral") if signal.meta else "neutral"
+
+        if isinstance(self.risk, RegimeAwareRiskManager):
+            self.risk.set_regime(regime)
 
         if signal.side == "buy":
             # Calculate position size
             atr = signal.meta.get("atr") if signal.meta else None
-            if atr and atr > 0:
+            if isinstance(self.risk, RegimeAwareRiskManager) and atr and atr > 0:
+                stop = self.risk.regime_stop.atr_based_for_regime(price, "buy", atr, regime)[0]
+                size = self.risk.regime_sizer.size_for_regime(self.equity, price, stop, atr=atr, regime=regime)
+            elif atr and atr > 0:
                 stop = self.risk.stop.atr_based(price, "buy", atr, 2.0)
+                size = self.risk.sizer.size(self.equity, price, stop, atr=atr)
             else:
                 stop = price * 0.95
-            size = self.risk.sizer.size(self.equity, price, stop, atr=atr)
+                size = self.risk.sizer.size(self.equity, price, stop)
             if size <= 0:
                 return
 
@@ -333,6 +462,21 @@ class LiveTradingEngine:
                     f"🧠 Size adjusted: {original_size:.6f} → {size:.6f} "
                     f"({psych_multiplier:.0%} due to psychology)"
                 )
+                # Alert size reduction
+                text = (
+                    f"🇺🇸 <b>🧠 SIZE REDUCED — {symbol}</b>\n\n"
+                    f"Original: <code>{original_size:.6f}</code>\n"
+                    f"Adjusted: <code>{size:.6f}</code>\n"
+                    f"Multiplier: <code>{psych_multiplier:.0%}</code>\n"
+                    f"Reason: <code>Psychology safeguard</code>\n\n"
+                    f"🇻🇳 <b>🧠 GIẢM SIZE — {symbol}</b>\n\n"
+                    f"Ban đầu: <code>{original_size:.6f}</code>\n"
+                    f"Điều chỉnh: <code>{size:.6f}</code>\n"
+                    f"Hệ số: <code>{psych_multiplier:.0%}</code>\n"
+                    f"Lý do: <code>Bảo vệ tâm lý</code>\n\n"
+                    f"🕐 <code>{datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}</code>"
+                )
+                self.alerter._send(text)
 
             # Create and submit order
             order = self.order_manager.create_order(
@@ -355,6 +499,18 @@ class LiveTradingEngine:
                     "entry_time": signal.timestamp,
                 }
                 self.capital -= size * price * 1.001
+                # Wiki detail alert
+                wiki_align = signal.meta.get("wiki_alignment", 0) if signal.meta else 0
+                wiki_concepts = signal.meta.get("wiki_top_concepts", "") if signal.meta else ""
+                wiki_action = signal.meta.get("wiki_action", "") if signal.meta else ""
+                wiki_text = (
+                    f"<b>📚 Wiki Validation</b>\n"
+                    f"Action: <code>{wiki_action}</code> | "
+                    f"Alignment: <code>{wiki_align:.2f}</code>\n"
+                    f"Concepts: <code>{wiki_concepts[:120]}</code>"
+                )
+                self.alerter._send(wiki_text)
+
                 self.alerter.send_signal(
                     symbol=symbol,
                     side="buy",
@@ -364,6 +520,24 @@ class LiveTradingEngine:
                     reason=getattr(signal, 'reason', '') or "",
                 )
                 logger.info(f"BUY {symbol} @ {price:.2f} | Size: {size:.6f}")
+
+                # Log wiki feedback for learning loop
+                try:
+                    fb_id = self.journal.log_wiki_feedback({
+                        "symbol": symbol,
+                        "regime": regime,
+                        "side": signal.side,
+                        "strategy": self.strategy.__class__.__name__,
+                        "wiki_action": wiki_action,
+                        "alignment_score": wiki_align,
+                        "min_alignment": signal.meta.get("wiki_min_alignment", 0.3) if signal.meta else 0.3,
+                        "top_concepts": wiki_concepts,
+                        "context_summary": signal.meta.get("wiki_context", "") if signal.meta else "",
+                    })
+                    # Store feedback ID in position for outcome update on close
+                    self.positions[symbol]["wiki_feedback_id"] = fb_id
+                except Exception as e:
+                    logger.warning(f"Failed to log wiki feedback: {e}")
 
         elif signal.side == "sell":
             pos = self.positions.get(symbol)
@@ -415,6 +589,30 @@ class LiveTradingEngine:
 
                 del self.positions[symbol]
                 logger.info(f"SELL {symbol} @ {price:.2f} | P&L: ${pnl:.2f}")
+
+                # Update wiki feedback outcome
+                if "wiki_feedback_id" in pos:
+                    try:
+                        outcome = "win" if pnl > 0 else "loss"
+                        with self.journal._connect() as conn:
+                            cur = conn.cursor()
+                            ph = self.journal._ph()
+                            cur.execute(
+                                f"UPDATE wiki_feedback SET outcome={ph}, pnl={ph}, pnl_pct={ph} WHERE id={ph}",
+                                (outcome, pnl, pnl_pct, pos["wiki_feedback_id"]),
+                            )
+                            conn.commit()
+                        logger.debug(f"Wiki feedback {pos['wiki_feedback_id']} updated: {outcome}")
+                    except Exception as e:
+                        logger.warning(f"Failed to update wiki feedback: {e}")
+
+                # Periodically adjust wiki min_alignment based on feedback
+                try:
+                    stats = self.journal.get_wiki_feedback_stats(min_samples=10)
+                    if stats["accuracy"] is not None and hasattr(self.strategy, "wiki_validator"):
+                        self.strategy.wiki_validator.update_min_alignment_from_feedback(stats)
+                except Exception as e:
+                    logger.debug(f"Wiki feedback stats check failed: {e}")
 
     def _update_equity(self, symbol: str, bar):
         """Recalculate total equity."""

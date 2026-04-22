@@ -18,7 +18,7 @@ import numpy as np
 from data.feed import DataFeed
 from backtest.walkforward import WalkForwardEngine
 from backtest.engine import BacktestEngine
-from risk.manager import RiskManager
+from risk.manager import RiskManager, RegimeAwareRiskManager
 from strategies.ensemble.regime_ensemble import RegimeEnsembleStrategy
 from strategies.benchmarks import BuyHoldStrategy
 from strategies.ml_based import MLStrategy
@@ -31,13 +31,13 @@ def load_config():
 
 
 def run_regime_ensemble_walkforward(df: pd.DataFrame, config: dict, label: str, train_bars: int = 180, test_bars: int = 90):
-    """Run walk-forward for RegimeEnsemble with wiki + psych."""
+    """Run walk-forward for RegimeEnsemble with wiki + psych + regime-aware risk."""
     logger.info(f"\n{'='*80}\nRegimeEnsemble Walk-Forward ({label})\n{'='*80}")
 
     def make_strategy():
         return RegimeEnsembleStrategy(params=config["strategies"]["registry"][2]["params"])
 
-    risk = RiskManager(config["risk"])
+    risk = RegimeAwareRiskManager(config["risk"])
     engine = WalkForwardEngine(
         strategy_factory=make_strategy,
         risk_manager=risk,
@@ -104,14 +104,20 @@ def run_ml_walkforward(df: pd.DataFrame, config: dict, label: str, train_bars: i
         # Train model on train data
         try:
             from ml.pipelines.xgboost_pipeline import MLClassifierPipeline
-            # Step 1: Raise confidence threshold to 0.75 to filter noise
-            pipeline = MLClassifierPipeline(n_splits=3, threshold=0.75)
+            from ml.features.engineering import LONG_TERM_WHITELIST
+            # Phase 3: Long-term whitelist + target horizon 20d + threshold 0.80 + trend filter
+            pipeline = MLClassifierPipeline(
+                n_splits=3,
+                threshold=0.80,
+                feature_whitelist=LONG_TERM_WHITELIST,
+                target_horizon=20,
+            )
             pipeline.train(train_df)
 
             # Save checkpoint
             checkpoint_dir = Path("/home/datnm/projects/trading/ml/models/walkforward")
             checkpoint_dir.mkdir(parents=True, exist_ok=True)
-            cp_path = checkpoint_dir / f"xgb_v2_{label}_{period_label}.pkl"
+            cp_path = checkpoint_dir / f"xgb_p3_{label}_{period_label}.pkl"
             pipeline.save(str(cp_path))
 
             # Run strategy — prepend train tail so BacktestEngine's 100-bar
@@ -119,8 +125,7 @@ def run_ml_walkforward(df: pd.DataFrame, config: dict, label: str, train_bars: i
             train_tail = train_df.iloc[-100:]
             combined = pd.concat([train_tail, test_df])
 
-            # Step 1: Enable trend filter (only buy when ema20 >= ema50)
-            strategy = MLStrategy(pipeline, name="ML-WF-v2", use_trend_filter=True)
+            strategy = MLStrategy(pipeline, name="ML-WF-p3", use_trend_filter=True)
 
             be = BacktestEngine(
                 initial_capital=initial_capital,
@@ -181,7 +186,7 @@ def run_ml_walkforward(df: pd.DataFrame, config: dict, label: str, train_bars: i
             "total_trades": sum(r.metrics["total_trades"] for r in results),
         },
     }
-    with open(f"/home/datnm/projects/trading/data/walkforward_ml_v2_{label}.json", "w") as f:
+    with open(f"/home/datnm/projects/trading/data/walkforward_ml_p3_{label}.json", "w") as f:
         json.dump(data, f, indent=2, default=str)
 
     return results
@@ -292,9 +297,9 @@ def main():
     # 2. Buy&Hold
     results_map["BuyHold"] = run_buyhold_walkforward(df, config, label, train_bars, test_bars)
 
-    # 3. ML-XGBoost v2 (threshold 0.75 + trend filter + cost-aware weights)
+    # 3. ML-XGBoost Phase 3 (whitelist 28 features + target 20d + threshold 0.80 + trend filter)
     if not args.skip_ml:
-        results_map["ML-XGBoost-v2"] = run_ml_walkforward(df, config, label, train_bars, test_bars)
+        results_map["ML-XGBoost-p3"] = run_ml_walkforward(df, config, label, train_bars, test_bars)
 
     # Compare
     compare_results(results_map, label)

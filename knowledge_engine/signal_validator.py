@@ -28,6 +28,10 @@ class WikiValidationResult:
     alignment_score: float   # 0.0 - 1.0
     block_reason: Optional[str] = None
     context_summary: str = ""
+    top_concepts: str = ""   # Comma-separated concept titles
+    regime: str = "neutral"
+    side: str = ""
+    strategy: str = ""
 
 
 class WikiSignalValidator:
@@ -44,8 +48,28 @@ class WikiSignalValidator:
 
     def __init__(self, rag: Optional[WikiRAG] = None, min_alignment: float = 0.3):
         self.rag = rag or WikiRAG()
+        self.base_min_alignment = min_alignment
         self.min_alignment = min_alignment
         self._build_index_if_needed()
+        self._recent_feedback: List[dict] = []
+        self._feedback_window = 50
+
+    def update_min_alignment_from_feedback(self, stats: dict):
+        """Dynamically adjust min_alignment based on feedback accuracy.
+        
+        If accuracy is low (< 0.55), lower threshold to allow more signals.
+        If accuracy is high (> 0.75), raise threshold to be more selective.
+        """
+        acc = stats.get("accuracy")
+        if acc is None:
+            return
+        old = self.min_alignment
+        if acc < 0.55:
+            self.min_alignment = max(0.15, self.min_alignment - 0.05)
+        elif acc > 0.75:
+            self.min_alignment = min(0.50, self.min_alignment + 0.02)
+        if old != self.min_alignment:
+            logger.info(f"Wiki min_alignment adjusted: {old:.2f} → {self.min_alignment:.2f} (accuracy={acc:.2%})")
 
     def _build_index_if_needed(self):
         if not self.rag._is_built:
@@ -60,7 +84,16 @@ class WikiSignalValidator:
             3. Adjust signal strength or block if misaligned
         """
         query = self._build_query(signal, regime)
+        
+        # Get both context string and raw search results for concept tracking
+        search_results = self.rag.search(query)
         context = self.rag.get_context(query, max_chars=2000)
+        
+        # Extract top concept titles
+        top_concepts = ", ".join([r["document"]["title"] for r in search_results[:3]]) if search_results else ""
+        
+        meta = signal.meta or {}
+        strategy = meta.get("ensemble_source", meta.get("strategy", "unknown"))
 
         if not context:
             logger.warning("Wiki context empty, allowing signal with no adjustment")
@@ -69,11 +102,16 @@ class WikiSignalValidator:
                 adjusted_strength=signal.strength,
                 alignment_score=0.5,
                 context_summary="",
+                top_concepts=top_concepts,
+                regime=regime,
+                side=signal.side,
+                strategy=strategy,
             )
 
         alignment = self._compute_alignment(signal, regime, context)
         block_reason = None
         adjusted = signal.strength * alignment
+        wiki_action = "accepted"
 
         # Hard blocks
         if alignment < self.min_alignment:
@@ -82,10 +120,12 @@ class WikiSignalValidator:
                 f"Regime={regime}, side={signal.side}. Context suggests caution."
             )
             adjusted = 0.0
+            wiki_action = "blocked"
             logger.warning(f"BLOCKED by wiki: {block_reason}")
 
         # Downgrade weak alignments
         elif alignment < 0.5:
+            wiki_action = "downgraded"
             logger.info(
                 f"Signal downgraded: strength {signal.strength:.2f} → {adjusted:.2f} "
                 f"(alignment={alignment:.2f})"
@@ -97,6 +137,10 @@ class WikiSignalValidator:
             alignment_score=alignment,
             block_reason=block_reason,
             context_summary=context[:300],
+            top_concepts=top_concepts,
+            regime=regime,
+            side=signal.side,
+            strategy=strategy,
         )
 
     def _build_query(self, signal: Signal, regime: str) -> str:

@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 import numpy as np
+import pandas as pd
 
 
 @dataclass
@@ -156,6 +157,97 @@ class DrawdownGuard:
         self.is_triggered = False
 
 
+class RegimeAwarePositionSizer(PositionSizer):
+    """Position sizer that adjusts risk per trade based on market regime."""
+
+    REGIME_MULTIPLIERS = {
+        "bull": 1.0,      # neutral sizing in bull (was 1.3) — reduces max DD to help pass Graduation Gate
+        "bear": 0.0,      # skip bear
+        "sideways": 0.3,  # very reduced in chop
+        "neutral": 0.8,   # slightly conservative
+    }
+
+    def __init__(self, base_risk_per_trade: float = 0.01, method: str = "fixed_fractional"):
+        super().__init__(risk_per_trade=base_risk_per_trade, method=method)
+        self.base_risk_per_trade = base_risk_per_trade
+
+    def size_for_regime(self, capital: float, entry: float, stop: float, atr: Optional[float] = None, regime: str = "neutral") -> float:
+        multiplier = self.REGIME_MULTIPLIERS.get(regime, 0.75)
+        original_risk = self.risk_per_trade
+        self.risk_per_trade = self.base_risk_per_trade * multiplier
+        size = self.size(capital, entry, stop, atr=atr)
+        self.risk_per_trade = original_risk
+        return size
+
+
+class RegimeAwareStopLossManager(StopLossManager):
+    """Stop-loss manager with regime-specific ATR multipliers."""
+
+    REGIME_SL_MULTIPLIERS = {
+        "bull": 4.0,      # very wide stop to ride strong trends
+        "bear": 2.5,      # moderate stop (but bear trades are skipped)
+        "sideways": 3.0,  # wide enough to avoid chop wicks
+        "neutral": 3.5,   # wide default
+    }
+
+    REGIME_TP_MULTIPLIERS = {
+        "bull": 5.0,      # let winners run far
+        "bear": 2.5,      # modest target
+        "sideways": 2.5,  # modest target
+        "neutral": 4.0,   # default
+    }
+
+    @staticmethod
+    def atr_based_for_regime(price: float, side: str, atr: float, regime: str = "neutral") -> tuple:
+        """Return (stop_price, take_profit_price) for regime."""
+        sl_mult = RegimeAwareStopLossManager.REGIME_SL_MULTIPLIERS.get(regime, 2.0)
+        tp_mult = RegimeAwareStopLossManager.REGIME_TP_MULTIPLIERS.get(regime, 3.0)
+        if side == "buy":
+            stop = price - atr * sl_mult
+            take = price + atr * tp_mult
+        else:
+            stop = price + atr * sl_mult
+            take = price - atr * tp_mult
+        return stop, take
+
+
+class TrailingStopManager:
+    """Manages trailing stops for open positions."""
+
+    def __init__(self, activation_pct: float = 0.05, trail_pct: float = 0.3):
+        self.activation_pct = activation_pct  # e.g. 5% profit to activate
+        self.trail_pct = trail_pct            # e.g. trail at 30% of peak profit
+
+    def update(self, pos: dict, bar: pd.Series) -> bool:
+        """Update trailing stop for position. Return True if triggered."""
+        if pos.get("side") != "long":
+            return False
+        entry = pos["entry_price"]
+        current_high = bar["high"]
+        current_low = bar["low"]
+        peak_price = pos.get("peak_price", entry)
+
+        # Update peak
+        if current_high > peak_price:
+            pos["peak_price"] = current_high
+            peak_price = current_high
+
+        # Check activation
+        profit_pct = (peak_price - entry) / entry
+        if profit_pct >= self.activation_pct:
+            # Set trailing stop at trail_pct below peak
+            trail_distance = (peak_price - entry) * self.trail_pct
+            new_stop = peak_price - trail_distance
+            if new_stop > pos.get("stop", 0):
+                pos["stop"] = new_stop
+                pos["trailing_active"] = True
+
+        # Check if hit
+        if current_low <= pos.get("stop", 0):
+            return True
+        return False
+
+
 class RiskManager:
     """Orchestrates all risk components."""
 
@@ -181,3 +273,33 @@ class RiskManager:
             "total_exposure": total_exposure,
             "drawdown": self.guard.peak and (self.guard.peak - equity) / self.guard.peak,
         }
+
+
+class RegimeAwareRiskManager(RiskManager):
+    """Risk manager with regime-specific position sizing, stops, and trailing stops."""
+
+    def __init__(self, config: dict):
+        super().__init__(config)
+        self.regime_sizer = RegimeAwarePositionSizer(
+            base_risk_per_trade=config.get("max_risk_per_trade", 0.01),
+            method=config.get("position_sizing", "fixed_fractional")
+        )
+        self.regime_stop = RegimeAwareStopLossManager()
+        self.trailing = TrailingStopManager(
+            activation_pct=config.get("trailing_activation", 0.02),
+            trail_pct=config.get("trailing_trail_pct", 0.5),
+        )
+        # Regime-specific drawdown limits
+        self.regime_drawdown_limits = {
+            "bull": config.get("max_drawdown_bull", 0.30),
+            "bear": config.get("max_drawdown_bear", 0.10),
+            "sideways": config.get("max_drawdown_sideways", 0.10),
+            "neutral": config.get("max_drawdown_pct", 0.20),
+        }
+        self.current_regime = "neutral"
+
+    def set_regime(self, regime: str):
+        self.current_regime = regime
+        # Update drawdown guard limit
+        limit = self.regime_drawdown_limits.get(regime, 0.15)
+        self.guard.max_drawdown_pct = limit

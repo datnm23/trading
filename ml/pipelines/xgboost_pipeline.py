@@ -30,9 +30,11 @@ def _get_classifier(n_estimators: int = 200, max_depth: int = 5, learning_rate: 
 class MLClassifierPipeline:
     """Classifier for price direction prediction."""
 
-    def __init__(self, n_splits: int = 5, threshold: float = 0.55):
+    def __init__(self, n_splits: int = 5, threshold: float = 0.55, feature_whitelist: list = None, target_horizon: int = 5):
         self.n_splits = n_splits
         self.threshold = threshold  # probability threshold for signal generation
+        self.feature_whitelist = feature_whitelist
+        self.target_horizon = target_horizon
         self.model = None
         self.scaler = StandardScaler()
         self.feature_names = None
@@ -45,18 +47,16 @@ class MLClassifierPipeline:
         """
         # Feature engineering
         features_df = compute_features(df)
-        X, y, self.feature_names = prepare_train_data(features_df)
+        target_col = f"target_direction_{self.target_horizon}d" if self.target_horizon != 5 else "target_direction"
+        target_return_col = f"target_return_{self.target_horizon}d" if self.target_horizon != 5 else "target_return_5d"
+        X, y, self.feature_names, sample_weight = prepare_train_data(
+            features_df,
+            whitelist=self.feature_whitelist,
+            target_col=target_col,
+            target_return_col=target_return_col,
+        )
 
         logger.info(f"Training data: {len(X)} samples, {len(self.feature_names)} features")
-
-        # Cost-aware sample weights: up-weight large moves, down-weight small noise
-        # Must align with X,y (same dropped-NaN rows)
-        feature_cols = self.feature_names
-        weight_data = features_df[feature_cols + ["target_return_5d"]].copy()
-        weight_data = weight_data.dropna()
-        returns_5d = weight_data["target_return_5d"].abs().values
-        mean_ret = np.mean(returns_5d) if len(returns_5d) else 1e-6
-        sample_weight = np.clip(returns_5d / mean_ret, 0.3, 3.0)
 
         # Walk-forward CV
         tscv = TimeSeriesSplit(n_splits=self.n_splits)
@@ -120,14 +120,15 @@ class MLClassifierPipeline:
             raise RuntimeError("Model not trained. Call train() first.")
 
         # Detect if model was trained with advanced features
-        advanced_cols = {"nvt_ma7", "fed_rate", "social_volume_ma7", "fear_greed_ema7", 
-                         "exchange_inflow_ma7", "rate_change_30d", "active_addresses", 
+        advanced_cols = {"nvt_ma7", "fed_rate", "social_volume_ma7", "fear_greed_ema7",
+                         "exchange_inflow_ma7", "rate_change_30d", "active_addresses",
                          "dxy_index", "risk_off_proxy"}
         use_advanced = bool(advanced_cols.intersection(set(self.feature_names or [])))
         features_df = compute_features(df, advanced=use_advanced)
         feature_cols = self.feature_names or [c for c in features_df.columns if c not in [
             "open", "high", "low", "close", "volume",
-            "target_return_5d", "target_direction"
+            "target_return_5d", "target_direction",
+            "target_return_20d", "target_direction_20d",
         ]]
 
         # Forward fill NaN for prediction

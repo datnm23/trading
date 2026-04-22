@@ -10,7 +10,7 @@ from loguru import logger
 
 from data.feed import DataFeed
 from strategies.base import BaseStrategy
-from risk.manager import RiskManager
+from risk.manager import RiskManager, RegimeAwareRiskManager
 
 
 @dataclass
@@ -50,11 +50,12 @@ class PaperTradingEngine:
         self.trades = []
         self.is_running = False
         self.last_bar_time = None
+        self._is_regime_aware = isinstance(risk_manager, RegimeAwareRiskManager)
 
     def run_once(self) -> Optional[dict]:
         """Execute one trading cycle. Returns trade info if any."""
         # Fetch latest data
-        df = self.feed.fetch(self.symbol, timeframe=self.timeframe, limit=200, use_cache=False)
+        df = self.feed.fetch(self.symbol, timeframe=self.timeframe, limit=200, use_cache=True)
         if df.empty or len(df) < 50:
             logger.warning("Insufficient data")
             return None
@@ -107,15 +108,25 @@ class PaperTradingEngine:
 
     def _execute(self, signal, bar) -> dict:
         price = bar["close"]
+        regime = signal.meta.get("directional_regime", "neutral") if signal.meta else "neutral"
+
+        if self._is_regime_aware:
+            self.risk.set_regime(regime)
 
         if signal.side == "buy":
             # Calculate position size
             atr = signal.meta.get("atr") if signal.meta else None
-            if atr and atr > 0:
-                stop = self.risk.stop.atr_based(price, "buy", atr, 2.0)
+
+            if self._is_regime_aware and atr and atr > 0:
+                stop_price = self.risk.regime_stop.atr_based_for_regime(price, "buy", atr, regime)[0]
+                size = self.risk.regime_sizer.size_for_regime(self.equity, price, stop_price, atr=atr, regime=regime)
+            elif atr and atr > 0:
+                stop_price = self.risk.stop.atr_based(price, "buy", atr, 2.0)
+                size = self.risk.sizer.size(self.equity, price, stop_price, atr=atr)
             else:
-                stop = price * 0.95
-            size = self.risk.sizer.size(self.equity, price, stop, atr=atr)
+                stop_price = price * 0.95
+                size = self.risk.sizer.size(self.equity, price, stop_price)
+
             if size <= 0:
                 return {}
 
@@ -124,7 +135,7 @@ class PaperTradingEngine:
                 "side": "long",
                 "entry_price": price,
                 "size": size,
-                "stop": stop,
+                "stop": stop_price,
                 "entry_time": signal.timestamp,
             })
             self.capital -= size * price * 1.001  # include commission

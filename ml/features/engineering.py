@@ -3,6 +3,23 @@
 import pandas as pd
 import numpy as np
 
+# Phase 2 whitelist: long-term macro/trend features only (drops short-term noise)
+LONG_TERM_WHITELIST = [
+    "log_returns",
+    "returns_20d", "returns_50d", "returns_100d",
+    "volatility_20d", "volatility_50d", "volatility_100d",
+    "ema_50", "ema_100", "ema_200",
+    "sma_50", "sma_100", "sma_200",
+    "close_to_ema_50", "close_to_ema_100", "close_to_ema_200",
+    "close_to_sma_50", "close_to_sma_100", "close_to_sma_200",
+    "ema_slope_20", "ema_slope_50",
+    "rsi_14",
+    "macd", "macd_signal", "macd_hist",
+    "atr_ratio",
+    "bb_position",
+    "obv_ema",
+]
+
 
 def compute_features(df: pd.DataFrame, advanced: bool = False, symbol: str = "BTC/USDT") -> pd.DataFrame:
     """Compute technical and statistical features from OHLCV data.
@@ -109,9 +126,11 @@ def compute_features(df: pd.DataFrame, advanced: bool = False, symbol: str = "BT
         data[f"close_lag_{lag}"] = close.shift(lag)
         data[f"returns_lag_{lag}"] = data["returns_1d"].shift(lag)
 
-    # --- Target: future return direction ---
+    # --- Targets: future return direction ---
     data["target_return_5d"] = close.shift(-5) / close - 1
     data["target_direction"] = (data["target_return_5d"] > 0).astype(int)
+    data["target_return_20d"] = close.shift(-20) / close - 1
+    data["target_direction_20d"] = (data["target_return_20d"] > 0).astype(int)
 
     # --- Advanced features ---
     if advanced:
@@ -121,20 +140,48 @@ def compute_features(df: pd.DataFrame, advanced: bool = False, symbol: str = "BT
     return data
 
 
-def prepare_train_data(df: pd.DataFrame, dropna: bool = True) -> tuple:
+def prepare_train_data(
+    df: pd.DataFrame,
+    dropna: bool = True,
+    whitelist: list = None,
+    target_col: str = "target_direction",
+    target_return_col: str = "target_return_5d",
+) -> tuple:
     """Prepare X, y for training from feature-engineered DataFrame.
-    
-    Returns (X, y, feature_names)
-    """
-    feature_cols = [c for c in df.columns if c not in [
-        "open", "high", "low", "close", "volume",
-        "target_return_5d", "target_direction"
-    ]]
 
-    data = df[feature_cols + ["target_direction"]].copy()
+    Args:
+        whitelist: If provided, only keep these feature columns (ignores missing).
+        target_col: Binary target column name (e.g. 'target_direction' or 'target_direction_20d').
+        target_return_col: Continuous return column for sample weights (e.g. 'target_return_5d' or 'target_return_20d').
+
+    Returns (X, y, feature_names, sample_weight)
+    """
+    exclude = {
+        "open", "high", "low", "close", "volume",
+        "target_return_5d", "target_direction",
+        "target_return_20d", "target_direction_20d",
+    }
+    feature_cols = [c for c in df.columns if c not in exclude]
+    if whitelist is not None:
+        feature_cols = [c for c in feature_cols if c in whitelist]
+
+    cols = feature_cols + [target_col]
+    has_weight = target_return_col in df.columns
+    if has_weight:
+        cols.append(target_return_col)
+
+    data = df[cols].copy()
     if dropna:
         data = data.dropna()
 
     X = data[feature_cols].values
-    y = data["target_direction"].values
-    return X, y, feature_cols
+    y = data[target_col].values
+
+    if has_weight:
+        returns = data[target_return_col].abs().values
+        mean_ret = np.mean(returns) if len(returns) else 1e-6
+        sample_weight = np.clip(returns / mean_ret, 0.3, 3.0)
+    else:
+        sample_weight = np.ones(len(y))
+
+    return X, y, feature_cols, sample_weight
