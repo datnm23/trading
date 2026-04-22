@@ -1,0 +1,14 @@
+{
+  "meta": {
+    "strategy": "ML-XGBoost",
+    "label": "BTC_USDT_4h",
+    "periods": 0
+  },
+  "periods": [],
+  "aggregate": {
+    "total_return": 0,
+    "avg_sharpe": 0,
+    "avg_max_dd": 0,
+    "total_trades": 0
+  }
+}

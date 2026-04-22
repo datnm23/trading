@@ -1,0 +1,163 @@
+{
+  "meta": {
+    "train_window_bars": 180,
+    "test_window_bars": 90,
+    "initial_capital": 100000,
+    "commission": 0.001,
+    "slippage": 0.0005,
+    "periods_count": 9,
+    "generated_at": "2026-04-22T09:26:16.643622"
+  },
+  "periods": [
+    {
+      "period_label": "2024-01-23_2024-04-21",
+      "train_start": "2023-07-27T00:00:00",
+      "train_end": "2024-01-22T00:00:00",
+      "test_start": "2024-01-23T00:00:00",
+      "test_end": "2024-04-21T00:00:00",
+      "metrics": {
+        "total_return": 0.047878061171376274,
+        "sharpe": 1.446147971116662,
+        "max_drawdown": -0.035176471624383344,
+        "winrate": 0,
+        "profit_factor": Infinity,
+        "total_trades": 1
+      },
+      "model_checkpoint": null
+    },
+    {
+      "period_label": "2024-04-22_2024-07-20",
+      "train_start": "2023-10-25T00:00:00",
+      "train_end": "2024-04-21T00:00:00",
+      "test_start": "2024-04-22T00:00:00",
+      "test_end": "2024-07-20T00:00:00",
+      "metrics": {
+        "total_return": 0.0,
+        "sharpe": 0,
+        "max_drawdown": 0.0,
+        "winrate": 0,
+        "profit_factor": Infinity,
+        "total_trades": 0
+      },
+      "model_checkpoint": null
+    },
+    {
+      "period_label": "2024-07-21_2024-10-18",
+      "train_start": "2024-01-23T00:00:00",
+      "train_end": "2024-07-20T00:00:00",
+      "test_start": "2024-07-21T00:00:00",
+      "test_end": "2024-10-18T00:00:00",
+      "metrics": {
+        "total_return": -0.027594232703199717,
+        "sharpe": -3.215889946279393,
+        "max_drawdown": -0.02880067834261346,
+        "winrate": 0.0,
+        "profit_factor": 0.0,
+        "total_trades": 1
+      },
+      "model_checkpoint": null
+    },
+    {
+      "period_label": "2024-10-19_2025-01-16",
+      "train_start": "2024-04-22T00:00:00",
+      "train_end": "2024-10-18T00:00:00",
+      "test_start": "2024-10-19T00:00:00",
+      "test_end": "2025-01-16T00:00:00",
+      "metrics": {
+        "total_return": 0.07524254195666247,
+        "sharpe": 2.3902800689003736,
+        "max_drawdown": -0.03131373558356736,
+        "winrate": 0,
+        "profit_factor": Infinity,
+        "total_trades": 1
+      },
+      "model_checkpoint": null
+    },
+    {
+      "period_label": "2025-01-17_2025-04-16",
+      "train_start": "2024-07-21T00:00:00",
+      "train_end": "2025-01-16T00:00:00",
+      "test_start": "2025-01-17T00:00:00",
+      "test_end": "2025-04-16T00:00:00",
+      "metrics": {
+        "total_return": 0.0,
+        "sharpe": 0,
+        "max_drawdown": 0.0,
+        "winrate": 0,
+        "profit_factor": Infinity,
+        "total_trades": 0
+      },
+      "model_checkpoint": null
+    },
+    {
+      "period_label": "2025-04-17_2025-07-15",
+      "train_start": "2024-10-19T00:00:00",
+      "train_end": "2025-04-16T00:00:00",
+      "test_start": "2025-04-17T00:00:00",
+      "test_end": "2025-07-15T00:00:00",
+      "metrics": {
+        "total_return": 0.06226296807461318,
+        "sharpe": 2.1720149035886815,
+        "max_drawdown": -0.033919770312720664,
+        "winrate": 0,
+        "profit_factor": Infinity,
+        "total_trades": 2
+      },
+      "model_checkpoint": null
+    },
+    {
+      "period_label": "2025-07-16_2025-10-13",
+      "train_start": "2025-01-17T00:00:00",
+      "train_end": "2025-07-15T00:00:00",
+      "test_start": "2025-07-16T00:00:00",
+      "test_end": "2025-10-13T00:00:00",
+      "metrics": {
+        "total_return": -0.02510071205668074,
+        "sharpe": -1.965222438550776,
+        "max_drawdown": -0.026101807329626463,
+        "winrate": 0.0,
+        "profit_factor": 0.0,
+        "total_trades": 1
+      },
+      "model_checkpoint": null
+    },
+    {
+      "period_label": "2025-10-14_2026-01-11",
+      "train_start": "2025-04-17T00:00:00",
+      "train_end": "2025-10-13T00:00:00",
+      "test_start": "2025-10-14T00:00:00",
+      "test_end": "2026-01-11T00:00:00",
+      "metrics": {
+        "total_return": 0.0,
+        "sharpe": 0,
+        "max_drawdown": 0.0,
+        "winrate": 0,
+        "profit_factor": Infinity,
+        "total_trades": 0
+      },
+      "model_checkpoint": null
+    },
+    {
+      "period_label": "2026-01-12_2026-04-11",
+      "train_start": "2025-07-16T00:00:00",
+      "train_end": "2026-01-11T00:00:00",
+      "test_start": "2026-01-12T00:00:00",
+      "test_end": "2026-04-11T00:00:00",
+      "metrics": {
+        "total_return": -0.012415375768266124,
+        "sharpe": -2.262704479845683,
+        "max_drawdown": -0.014374453052752941,
+        "winrate": 0.0,
+        "profit_factor": 0.0,
+        "total_trades": 1
+      },
+      "model_checkpoint": null
+    }
+  ],
+  "aggregate": {
+    "total_return": 0.12027325067450534,
+    "avg_sharpe": -0.15948599123001495,
+    "avg_max_dd": -0.018854101805073808,
+    "total_trades": 7
+  }
+}

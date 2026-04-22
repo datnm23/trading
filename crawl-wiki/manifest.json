@@ -1,0 +1,3482 @@
+[
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/3_tang_he_thong_giao_dich",
+    "status": "ok",
+    "title": "3 tầng hệ thống giao dịch"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ai_gan_het_tri_thuc",
+    "status": "ok",
+    "title": "AI gần như chứa tri thức"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/am_duong",
+    "status": "ok",
+    "title": "Âm dương"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/antifragile",
+    "status": "ok",
+    "title": "Antifragile"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ao_anh_gia_tri",
+    "status": "ok",
+    "title": "Ảo ảnh giá trị"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ai_khong_thiet_ke",
+    "status": "ok",
+    "title": "AI không thiết kế kiến trúc"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/annual_return_max_drawdown",
+    "status": "ok",
+    "title": "Lợi nhuận hằng năm / Mức sụt giảm tối đa"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ai_llm_trong_trading",
+    "status": "ok",
+    "title": "AI LLM trong trading"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ai_keo_moi_lien_he_mo_hoang",
+    "status": "ok",
+    "title": "AI kéo mối liên hệ mơ hồ"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/",
+    "status": "ok",
+    "title": "Mục lục Wiki"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ao_tuong_co_hoi_giao_dich",
+    "status": "ok",
+    "title": "Ảo tưởng cơ hội giao dịch"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ao_tuong_tap_the",
+    "status": "ok",
+    "title": "Ảo tưởng tập thể"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ao_tuong_niem_tin",
+    "status": "ok",
+    "title": "Ảo tưởng niềm tin"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ao_tuong_da_hieu",
+    "status": "ok",
+    "title": "Ảo tưởng đã hiểu"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ao_tuong_kiem_soat",
+    "status": "ok",
+    "title": "Ảo tưởng kiểm soát"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ao_tuong_thang_gioi",
+    "status": "ok",
+    "title": "Ảo tưởng thắng vì giỏi"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ao_tuong_trinh_do_tu_so_lieu",
+    "status": "ok",
+    "title": "Ảo tưởng trình độ từ số liệu"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ao_tuong_trat_tu",
+    "status": "ok",
+    "title": "Ảo tưởng trật tự"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ao_ve_gia_ca",
+    "status": "ok",
+    "title": "Ảo ảnh giá cả"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ao_tuong_warren_buffett",
+    "status": "ok",
+    "title": "Ảo tưởng Warren Buffett"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ap_luc_ban_thao",
+    "status": "ok",
+    "title": "Áp lực bán tháo"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ap_luc_tam_ly_khi_theo_doi_bieu_do",
+    "status": "ok",
+    "title": "Áp lực tâm lý khi theo dõi biểu đồ"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/atr",
+    "status": "ok",
+    "title": "ATR"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/backtest",
+    "status": "ok",
+    "title": "Backtest"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ban_thao_tai_san",
+    "status": "ok",
+    "title": "Bán tháo tài sản"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/backtest_chinh_xac",
+    "status": "ok",
+    "title": "Backtest chính xác"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/backtest_la_gi",
+    "status": "ok",
+    "title": "Backtest là gì"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ban_khi_gia_cao",
+    "status": "ok",
+    "title": "Bán khi giá cao"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/bao_cao_luu_chuyen_tien_te",
+    "status": "ok",
+    "title": "Báo cáo lưu chuyển tiền tệ"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/bank_run_vang",
+    "status": "ok",
+    "title": "Bank-run vàng"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/bao_cao_tai_chinh",
+    "status": "ok",
+    "title": "Báo cáo tài chính"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/backtest_khong_bao_dam",
+    "status": "ok",
+    "title": "Backtest không bảo đảm"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/barbell_strategy",
+    "status": "ok",
+    "title": "Barbell strategy"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/bat_chanh_dao",
+    "status": "ok",
+    "title": "Bát chánh đạo"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/bao_chi_giat_tit",
+    "status": "ok",
+    "title": "Báo chí giật tít"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/bat_chuoc_giao_dich",
+    "status": "ok",
+    "title": "Bắt chước giao dịch"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/bat_cua_theo_mua",
+    "status": "ok",
+    "title": "Bắt cua theo mùa"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/bat_doi_xung_payoff",
+    "status": "ok",
+    "title": "Bất đối xứng payoff"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/bien_an_toan",
+    "status": "ok",
+    "title": "Biên an toàn"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/bien_do_dao_dong_uoc_luong",
+    "status": "ok",
+    "title": "Biên độ dao động ước lượng"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/beta_danh_muc",
+    "status": "ok",
+    "title": "Beta danh mục"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/bay_tin_nhiem",
+    "status": "ok",
+    "title": "Bẫy niềm tin"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/black_swan",
+    "status": "ok",
+    "title": "Thiên nga đen (Black Swan)"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/bitcoin_miner",
+    "status": "ok",
+    "title": "Bitcoin miner"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/bitcoin_halving",
+    "status": "ok",
+    "title": "Bitcoin halving"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/biet_tu_bo_dung_luc",
+    "status": "ok",
+    "title": "Biết từ bỏ đúng lúc"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/block_reward",
+    "status": "ok",
+    "title": "Block reward"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/bitcoin_store_of_value",
+    "status": "ok",
+    "title": "Bitcoin store of value"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/blockchain",
+    "status": "ok",
+    "title": "Blockchain"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/blockchain_trilemma",
+    "status": "ok",
+    "title": "Blockchain trilemma"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/bo_loc_trang_thai",
+    "status": "ok",
+    "title": "Bộ lọc trạng thái thị trường"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/bo_dieu_phoi_lenh",
+    "status": "ok",
+    "title": "Bộ điều phối lệnh"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/boJ_lai_suat_thap",
+    "status": "ok",
+    "title": "BoJ lãi suất thấp"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/bong_gia_tri",
+    "status": "ok",
+    "title": "Cái bóng giá (giá chỉ là bề mặt)"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/bong_bong_ai",
+    "status": "ok",
+    "title": "Bong bóng AI"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/bot_khong_thay_cam_xuc",
+    "status": "ok",
+    "title": "Bot không thay cảm xúc"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/broken_leg_exception",
+    "status": "ok",
+    "title": "Ngoại lệ gãy chân (OOD)"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/breakout_monthly",
+    "status": "ok",
+    "title": "Breakout monthly"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/bong_bong_tai_san_cuc_bo",
+    "status": "ok",
+    "title": "Bong bóng tài sản cục bộ"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/buoc_nhay_vi_the",
+    "status": "ok",
+    "title": "Bước nhảy vị thế"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/buong_bo_that_bai",
+    "status": "ok",
+    "title": "Buông bỏ thất bại"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ca_cuoc_an_tien",
+    "status": "ok",
+    "title": "Cá cược ăn tiền"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/cach_ket_noi_tri_thuc",
+    "status": "ok",
+    "title": "Cách kết nối tri thức"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/cai_chet_nhiet",
+    "status": "ok",
+    "title": "Cái chết nhiệt"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/bull_trap",
+    "status": "ok",
+    "title": "Bull trap"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/cai_to_vi_te_trong_trading",
+    "status": "ok",
+    "title": "Cái tôi vi tế trong trading"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/cash_settlement",
+    "status": "ok",
+    "title": "Cash-settlement"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/cai_toi_vi_te",
+    "status": "ok",
+    "title": "Cái tôi vi tế"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/cat_lo_nghiem_ngat",
+    "status": "ok",
+    "title": "Cắt lỗ nghiêm ngặt"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/carry_trade",
+    "status": "ok",
+    "title": "Carry trade"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/cat_lo_khi_sai",
+    "status": "ok",
+    "title": "Cắt lỗ khi sai"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/cay_comm",
+    "status": "ok",
+    "title": "Cày comm"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/cau_noi_san_giao_dich",
+    "status": "ok",
+    "title": "Cầu nối sàn giao dịch"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/chan_ly_khong_giam_cam",
+    "status": "ok",
+    "title": "Chân lý không giam cầm"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/cau_truc_thi_truong",
+    "status": "ok",
+    "title": "Cấu trúc thị trường"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/chanh_niem",
+    "status": "ok",
+    "title": "Chánh niệm"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/chaotic_nhay_cam",
+    "status": "ok",
+    "title": "Tính hỗn loạn nhạy cảm"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/chat_luong_lenh",
+    "status": "ok",
+    "title": "Chất lượng lệnh"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/chi_phi_cat_lo",
+    "status": "ok",
+    "title": "Chi phí cắt lỗ"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/chap_nhan_khong_biet",
+    "status": "ok",
+    "title": "Chấp nhận không biết"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/chay_tai_khoan",
+    "status": "ok",
+    "title": "Cháy tài khoản"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/chi_phi_chim",
+    "status": "ok",
+    "title": "Chi phí chìm trong học giao dịch"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/chi_phi_giao_dich_an",
+    "status": "ok",
+    "title": "Chi phí giao dịch ẩn"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/chi_phi_giao_dich",
+    "status": "ok",
+    "title": "Chi phí giao dịch"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/chap_nhan_thi_truong",
+    "status": "ok",
+    "title": "Chấp nhận thị trường"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/chi_phi_thuc_te_backtest",
+    "status": "ok",
+    "title": "Chi phí thực tế trong backtest"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/chi_so_dong_tien_tu_do",
+    "status": "ok",
+    "title": "Chỉ số dòng tiền tự do"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/chien_luoc_cat_lo_chay_loi",
+    "status": "ok",
+    "title": "Chiến lược cắt lỗ chạy lời"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/chien_luoc_gong_lo",
+    "status": "ok",
+    "title": "Chiến lược gồng lỗ"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/chien_luoc_tao_tin_hieu",
+    "status": "ok",
+    "title": "Chiến lược tạo tín hiệu"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/chien_luoc_theo_xac_suat",
+    "status": "ok",
+    "title": "Chiến lược theo xác suất"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/chien_luoc_trung_dao",
+    "status": "ok",
+    "title": "Chiến lược trung đạo"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/chien_luoc_theo_xu_huong",
+    "status": "ok",
+    "title": "Chiến lược theo xu hướng"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/chien_luoc_tu_te",
+    "status": "ok",
+    "title": "Chiến lược tử tế"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/chien_luoc_khong_cat_lo",
+    "status": "ok",
+    "title": "Chiến lược không cắt lỗ"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/chien_thang_ban_than",
+    "status": "ok",
+    "title": "Chiến thắng bản thân"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/cho_dung_khong_tinh_toan",
+    "status": "ok",
+    "title": "Cho đúng không tính toán"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/chon_loc_ke_song_sot",
+    "status": "ok",
+    "title": "Chọn lọc kẻ sống sót"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/chon_loc_tu_nhien",
+    "status": "ok",
+    "title": "Chọn lọc tự nhiên"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/chu_ky_cam_xuc",
+    "status": "ok",
+    "title": "Chu kỳ cảm xúc"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/chu_ky_4_nam_bitcoin",
+    "status": "ok",
+    "title": "Chu kỳ 4 năm Bitcoin"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/chuyen_tien_phi_tap_trung",
+    "status": "ok",
+    "title": "Chuyển tiền phi tập trung"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/compound_thoi_gian_kha_nang_nhan_rong",
+    "status": "ok",
+    "title": "Compound thời gian khả năng nhân rộng"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/con_hao_kinh_te",
+    "status": "ok",
+    "title": "Con hào kinh tế"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/co_may_tao_tien",
+    "status": "ok",
+    "title": "Cỗ máy tạo tiền"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/con_khi_may",
+    "status": "ok",
+    "title": "Con khỉ và máy đánh chữ"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/con_rua_thu_nghiem",
+    "status": "ok",
+    "title": "Con Rùa thử nghiệm"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/chuoi_thua_lo",
+    "status": "ok",
+    "title": "Chuỗi thua lỗ"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/con_khi_may_danh_chu",
+    "status": "ok",
+    "title": "Con khỉ và máy đánh chữ"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/covid_19",
+    "status": "ok",
+    "title": "COVID-19"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/crowding_setup",
+    "status": "ok",
+    "title": "crowding_setup"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/crypto_phan_bo_chien_luoc",
+    "status": "ok",
+    "title": "Phân bổ crypto theo chiến lược"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/crypto_kho_phat_hien",
+    "status": "ok",
+    "title": "Crypto khó phát hiện"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/crypto_dau_tu_gia_tri",
+    "status": "ok",
+    "title": "Crypto đầu tư giá trị"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/cuc_tri_va_dao_chieu",
+    "status": "ok",
+    "title": "Cực trị và đảo chiều"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/crypto_hang_dong_huong_phan_thuong",
+    "status": "ok",
+    "title": "Crypto phần thưởng bất đối xứng"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/crypto_tai_san_luu_tru",
+    "status": "ok",
+    "title": "Crypto tài sản lưu trữ"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/da_dang_hoa_qua_muc",
+    "status": "ok",
+    "title": "Đa dạng hóa quá mức"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/crypto_tien_di_chuyen_gia_tri",
+    "status": "ok",
+    "title": "Crypto di chuyển giá trị"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/crypto_danh_muc_chien_luoc",
+    "status": "ok",
+    "title": "Crypto trong danh mục chiến lược"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/da_khung_thoi_gian",
+    "status": "ok",
+    "title": "Đa khung thời gian"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/da_dang_hoa_danh_muc",
+    "status": "ok",
+    "title": "Đa dạng hóa danh mục"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/danh_gia_token_onchain",
+    "status": "ok",
+    "title": "Đánh giá token bằng dữ liệu onchain"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/danh_muc_chien_luoc",
+    "status": "ok",
+    "title": "Danh mục chiến lược"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/danh_gia_do_tin_cay",
+    "status": "ok",
+    "title": "Đánh giá độ tin cậy"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/danh_tinh_xac_suat",
+    "status": "ok",
+    "title": "Danh tính xác suất"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dao_chieu_dong_von",
+    "status": "ok",
+    "title": "Đảo chiều dòng vốn"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dao_cua_nuoc",
+    "status": "ok",
+    "title": "Đạo của nước"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dao",
+    "status": "ok",
+    "title": "Đạo"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dao_dong_va_nhieu",
+    "status": "ok",
+    "title": "Dao động và nhiễu"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dao_dong_ngau_nhien",
+    "status": "ok",
+    "title": "Dao động ngẫu nhiên"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dao_hoat_dong_dao",
+    "status": "ok",
+    "title": "DAO vận hành"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dao_dong_xac_suat",
+    "status": "ok",
+    "title": "Dao động xác suất"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dao_duc_khi_copy",
+    "status": "ok",
+    "title": "Đạo đức khi copy"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dao_trading_kien_truc",
+    "status": "ok",
+    "title": "Đạo trading kiến trúc"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dat_cuoc_bat_doi_xung",
+    "status": "ok",
+    "title": "Đặt cược bất đối xứng"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dao_trading",
+    "status": "ok",
+    "title": "Đạo của trading"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dat_dung_lo_cung",
+    "status": "ok",
+    "title": "Đặt dừng lỗ cứng"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dau_co_vs_dau_tu",
+    "status": "ok",
+    "title": "Đầu cơ vs đầu tư"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dau_tu_gia_tri",
+    "status": "ok",
+    "title": "Đầu tư giá trị"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dca",
+    "status": "ok",
+    "title": "DCA"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dau_tu_truc_tiep_gia_tri",
+    "status": "ok",
+    "title": "Đầu tư trực tiếp giá trị"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dau_tu_thuc_su",
+    "status": "ok",
+    "title": "Đầu tư thực sự"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dau_tu_gian_tiep",
+    "status": "ok",
+    "title": "Đầu tư gián tiếp"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/decentralized_defi_duoc_cho_phep",
+    "status": "ok",
+    "title": "DeFi/Web3 được cho phép"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/defi_analytics_onchain",
+    "status": "ok",
+    "title": "Công cụ analytics onchain"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/di_nguoc_dam_dong",
+    "status": "ok",
+    "title": "Đi ngược đám đông"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dinh_lam_phat_mem",
+    "status": "ok",
+    "title": "Đình lạm phát mềm"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/diem_bao_hoa_cua_chien_luoc",
+    "status": "ok",
+    "title": "Điểm bão hòa của chiến lược"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dinh_gia_tren_so",
+    "status": "ok",
+    "title": "Định giá trên sổ"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dich_chuyen_niem_tin",
+    "status": "ok",
+    "title": "Dịch chuyển niềm tin"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dinh_gia_coin",
+    "status": "ok",
+    "title": "Định giá coin theo on-chain"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/digital_gold_narrative",
+    "status": "ok",
+    "title": "Narrative “vàng kỹ thuật số”"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dinh_ly_bat_toan_godel",
+    "status": "ok",
+    "title": "Định lý bất toàn Gödel"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dinh_gia_dcf",
+    "status": "ok",
+    "title": "Định giá DCF"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/do_co_hop_ket_qua",
+    "status": "ok",
+    "title": "Độ co hẹp kết quả"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/do_li_cho_co_den_tay",
+    "status": "ok",
+    "title": "Độ lì chờ cờ đến tay"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/do_truoc_thong_tin",
+    "status": "ok",
+    "title": "Độ trễ thông tin"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/do_rong_mau_backtest",
+    "status": "ok",
+    "title": "Độ rộng mẫu backtest"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/doi_thu_so_voi_ca_nhan",
+    "status": "ok",
+    "title": "Đối thủ so với cá nhân"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/doanh_nghiep_ban_giay",
+    "status": "ok",
+    "title": "Doanh nghiệp bán giấy"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/don_bay",
+    "status": "ok",
+    "title": "Đòn bẩy"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dong_hanh_thau_hieu",
+    "status": "ok",
+    "title": "Đồng hành thấu hiểu"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/doi_dung_lo_theo_vung_gia_buon",
+    "status": "ok",
+    "title": "Dời dừng lỗ theo vùng giá buôn"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dong_phi_den_holder",
+    "status": "ok",
+    "title": "Dòng phí đến holder"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/don_bay_khong_phai_cong_cu_ma_thuat",
+    "status": "ok",
+    "title": "Đòn bẩy không phải công cụ ma thuật"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dong_thuan_cao",
+    "status": "ok",
+    "title": "Đồng thuận cao"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dong_tien_chay_tron",
+    "status": "ok",
+    "title": "Dòng tiền chạy trốn khỏi rủi ro"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dong_tien_hang_nam",
+    "status": "ok",
+    "title": "Dòng tiền hàng năm"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dong_tien_lon",
+    "status": "ok",
+    "title": "Dòng tiền lớn"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dong_tien_moi_thang",
+    "status": "ok",
+    "title": "Dòng tiền mỗi tháng"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dong_tien_thong_minh",
+    "status": "ok",
+    "title": "Dòng tiền thông minh"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/drawdown",
+    "status": "ok",
+    "title": "Drawdown"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dong_yen_mat_gia",
+    "status": "ok",
+    "title": "Đồng Yên mất giá"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/duc_phat_khong_than_thanh",
+    "status": "ok",
+    "title": "Đức Phật không thần thánh"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/duc_luc_duy_tri_cau_truc",
+    "status": "ok",
+    "title": "Đức lực duy trì cấu trúc"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dung_lo",
+    "status": "ok",
+    "title": "Dừng lỗ"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/drawdown_keo_dai",
+    "status": "ok",
+    "title": "Drawdown kéo dài"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dung_lo_keo_theo_muc_cuc_tri",
+    "status": "ok",
+    "title": "Dừng lỗ kéo theo mức cực trị"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dopamine_tang_khi_view_like",
+    "status": "ok",
+    "title": "Dopamine tăng khi view like"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dung_lo_theo_atr",
+    "status": "ok",
+    "title": "Dừng lỗ theo ATR"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dung_lo_theo_bien_dong",
+    "status": "ok",
+    "title": "Dừng lỗ theo biến động"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/dung_tin_xac_minh",
+    "status": "ok",
+    "title": "Đừng tin, xác minh"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/duoi_bat_dinh",
+    "status": "ok",
+    "title": "Đuôi bất định"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/duoi_bat_doi_xung",
+    "status": "ok",
+    "title": "Đuôi bất đối xứng"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/duoi_beo_thoi_gian",
+    "status": "ok",
+    "title": "Đuôi béo theo thời gian"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/duoi_beo",
+    "status": "ok",
+    "title": "Đuôi béo"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/duoi_theo_dong_tien_ngoc_nghech",
+    "status": "ok",
+    "title": "Truy vết dòng tiền ngốc nghếch"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/duyen_khoi_trong_trading",
+    "status": "ok",
+    "title": "Duyên khởi trong trading"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/duoi_beo_xu_huong",
+    "status": "ok",
+    "title": "Đuôi béo và xu hướng"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/duoi_beo_trong_giao_dich",
+    "status": "ok",
+    "title": "Đuôi béo trong giao dịch"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/duoi_phai",
+    "status": "ok",
+    "title": "Đuôi phải"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/duyen_khoi",
+    "status": "ok",
+    "title": "Duyên khởi"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/edge_bien_mat",
+    "status": "ok",
+    "title": "Edge biến mất"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/edge_cau_truc",
+    "status": "ok",
+    "title": "Edge và cấu trúc"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/edge_decay",
+    "status": "ok",
+    "title": "Edge decay"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ema_100",
+    "status": "ok",
+    "title": "EMA 100"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/edge_phan_phoi",
+    "status": "ok",
+    "title": "Edge phân phối"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/entropy_tang_len",
+    "status": "ok",
+    "title": "Entropy tăng lên"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ev_am",
+    "status": "ok",
+    "title": "EV âm"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/estimation_error",
+    "status": "ok",
+    "title": "Sai số ước lượng"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ev_duong_khong_dam_bao",
+    "status": "ok",
+    "title": "EV dương không đảm bảo từng lệnh"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/edge_phu_thuoc_thi_truong",
+    "status": "ok",
+    "title": "Edge phụ thuộc thị trường"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/extremistan",
+    "status": "ok",
+    "title": "Extremistan"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/extremistan_vs_mediocristan",
+    "status": "ok",
+    "title": "Extremistan vs Mediocristan"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/gaap",
+    "status": "ok",
+    "title": "GAAP"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/fomo_mua_dua",
+    "status": "ok",
+    "title": "FOMO mua đuổi"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/game_theory",
+    "status": "ok",
+    "title": "Game theory"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/gaussian_assumption",
+    "status": "ok",
+    "title": "Giả định Gaussian"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/gia_bid_ask",
+    "status": "ok",
+    "title": "Giá bid ask"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/gia_dinh_qua_khu_se_lap_lai",
+    "status": "ok",
+    "title": "Giả định quá khứ sẽ lặp lại"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/gia_tri_khong_noi_tai",
+    "status": "ok",
+    "title": "Giá trị không nội tại"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/gia_tri_ky_vong_ev",
+    "status": "ok",
+    "title": "Giá trị kỳ vọng (EV)"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/gia_tri_noi_tai",
+    "status": "ok",
+    "title": "Giá trị nội tại"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/giai_doan_bear_market",
+    "status": "ok",
+    "title": "Giai đoạn bear market"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/giai_doan_bull_market",
+    "status": "ok",
+    "title": "Giai đoạn bull market"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/giac_quan_thu_6",
+    "status": "ok",
+    "title": "Giác quan thứ 6"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/giai_doan_tich_luy",
+    "status": "ok",
+    "title": "Giai đoạn tích lũy"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/giai_doan_phuc_hoi",
+    "status": "ok",
+    "title": "Giai đoạn phục hồi"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/giai_doan_tieu_cuc_trader",
+    "status": "ok",
+    "title": "Giai đoạn tiêu cực của trader"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/giam_giao_dich_qua_muc",
+    "status": "ok",
+    "title": "Giảm giao dịch quá mức"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/giam_gia_phan_tram",
+    "status": "ok",
+    "title": "Giảm giá theo phần trăm"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/giam_sat_phan_hoi",
+    "status": "ok",
+    "title": "Giám sát phản hồi"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/giam_toc_tang_truong",
+    "status": "ok",
+    "title": "Giảm tốc tăng trưởng"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/giao_dich_boi_canh",
+    "status": "ok",
+    "title": "Giao dịch bối cảnh"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/giao_dich_hanh_dong_gia",
+    "status": "ok",
+    "title": "Giao dịch hành động giá"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/giao_dich_khung_thoi_gian_lon",
+    "status": "ok",
+    "title": "Giao dịch khung thời gian lớn"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/giao_dich_noi_gian",
+    "status": "ok",
+    "title": "Giao dịch nội gián"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/giao_dich_phi_tap_trung",
+    "status": "ok",
+    "title": "Giao dịch phi tập trung"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/giao_dich_tu_dong",
+    "status": "ok",
+    "title": "Giao dịch tự động"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/giao_dich_tuy_y",
+    "status": "ok",
+    "title": "Giao dịch tùy ý"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/gioi_han_duoi_giam_gia",
+    "status": "ok",
+    "title": "Giới hạn dưới giảm giá"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/giau_tren_giay",
+    "status": "ok",
+    "title": "Giàu trên giấy"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/gioi_han_logic",
+    "status": "ok",
+    "title": "Giới hạn logic"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/equity_balance",
+    "status": "ok",
+    "title": "Equity và Balance"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/gioi_va_tue",
+    "status": "ok",
+    "title": "Giới và tuệ"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/fee_vs_reward",
+    "status": "ok",
+    "title": "Tỷ trọng phí vs block reward"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/gray_swan",
+    "status": "ok",
+    "title": "Thiên nga xám (Gray Swan)"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/grid_mean_reversion",
+    "status": "ok",
+    "title": "Grid mean reversion"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/fee_capture",
+    "status": "ok",
+    "title": "Fee capture"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/fade_breakout",
+    "status": "ok",
+    "title": "Fade breakout"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/hashpower_suy_giam",
+    "status": "ok",
+    "title": "Hashpower suy giảm"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/he_bat_dinh",
+    "status": "ok",
+    "title": "Hệ bất định"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/he_ngau_nhien_thuan_tuy",
+    "status": "ok",
+    "title": "Hệ ngẫu nhiên thuần túy"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/he_niem_tin_tu_cung_co",
+    "status": "ok",
+    "title": "Hệ niềm tin từ cung cố"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/he_phi_tuyen",
+    "status": "ok",
+    "title": "Hệ phi tuyến"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/he_phan_than",
+    "status": "ok",
+    "title": "Hệ phản thân"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/he_thong_giao_dich_tuy_y_dua_dinh_luong",
+    "status": "ok",
+    "title": "Hệ thống giao dịch tùy ý dựa định lượng"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/hedging",
+    "status": "ok",
+    "title": "Hedging (phòng vệ rủi ro)"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/hedging_khong_zero_sum",
+    "status": "ok",
+    "title": "Hedging và tính không hoàn toàn zero-sum"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/hedge_danh_muc",
+    "status": "ok",
+    "title": "Hedge danh mục"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/hidden_markov_state",
+    "status": "ok",
+    "title": "Hidden Markov state"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/hanh_dong_hien_tai",
+    "status": "ok",
+    "title": "Hành động trong hiện tại"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/hieu_ung_placebo",
+    "status": "ok",
+    "title": "Hiệu ứng placebo"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/hieu_ung_hoi_quy",
+    "status": "ok",
+    "title": "Hồi quy về trung bình"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/hieu_vs_biet",
+    "status": "ok",
+    "title": "Hiểu vs biết"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/history_price",
+    "status": "ok",
+    "title": "Giá lịch sử"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/hoa_nhip_thi_truong",
+    "status": "ok",
+    "title": "Hòa nhịp với thị trường"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/hoan_doi_tai_san",
+    "status": "ok",
+    "title": "Hoán đổi tài sản"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/hoc_dao",
+    "status": "ok",
+    "title": "Học đạo"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/hop_ly_hoa_sau_khi_xay_ra",
+    "status": "ok",
+    "title": "Hợp lý hóa sau khi xảy ra"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/hoi_tu_trung_binh",
+    "status": "ok",
+    "title": "Hồi tụ về trung bình"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/implicit_function",
+    "status": "ok",
+    "title": "Hàm ẩn"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/hoc_tu_sai_lam",
+    "status": "ok",
+    "title": "Học từ sai lầm"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/insider_prediction_market",
+    "status": "ok",
+    "title": "Giao dịch nội gián trên prediction market"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ket_qua_dep_nhung_ket_luan_sai",
+    "status": "ok",
+    "title": "Kết quả đẹp nhưng kết luận sai"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/insider_thong_tin_nhay_cam",
+    "status": "ok",
+    "title": "Insider thông tin nhạy cảm"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ket_qua_dep_sai",
+    "status": "ok",
+    "title": "Kết quả đẹp nhưng kết luận sai"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ket_thuc_xu_huong_tang",
+    "status": "ok",
+    "title": "Dấu hiệu kết thúc xu hướng tăng"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ke_hoach_giao_dich_chi_tiet",
+    "status": "ok",
+    "title": "Kế hoạch giao dịch chi tiết"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/incentive_dong_tien_ao",
+    "status": "ok",
+    "title": "Incentive dòng tiền ảo"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/kha_nang_tich_hop_tin_hieu",
+    "status": "ok",
+    "title": "Khả năng tích hợp tín hiệu vi tế"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/kha_nang_dang_thua",
+    "status": "ok",
+    "title": "Kịch bản xấu trong phân phối ngẫu nhiên"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/kha_nang_ket_noi_tri_thuc",
+    "status": "ok",
+    "title": "Khả năng kết nối tri thức"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/khang_cu_ho_tro",
+    "status": "ok",
+    "title": "Kháng cự và hỗ trợ"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/khau_hao",
+    "status": "ok",
+    "title": "Khấu hao"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/khoa_hoc_thuc_nghiem",
+    "status": "ok",
+    "title": "Khoa học thực nghiệm"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/khoi_du_lieu_giao_dich",
+    "status": "ok",
+    "title": "Khối dữ liệu giao dịch"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/khoang_trong_he_thong",
+    "status": "ok",
+    "title": "Khoảng trống hệ thống"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/khoang_tin_cay_ty_le_thang",
+    "status": "ok",
+    "title": "Khoảng tin cậy tỉ lệ thắng"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/khong_can_thanh_nhan",
+    "status": "ok",
+    "title": "Không cần thánh nhân"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/khong",
+    "status": "ok",
+    "title": "Không"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/khong_biet_minh_biet",
+    "status": "ok",
+    "title": "Không biết mình thực sự biết gì"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/khong_co_he_thong_hoan_hao",
+    "status": "ok",
+    "title": "Không có hệ thống hoàn hảo"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/khong_co_tac_gia_doc_quyen",
+    "status": "ok",
+    "title": "Không có tác giả độc quyền"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/khong_lam_gi_la_lenh",
+    "status": "ok",
+    "title": "Không làm gì cũng là một quyết định"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/khong_phan_hoi_thi_truong",
+    "status": "ok",
+    "title": "Không phản hồi thị trường"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/khong_tao_cashflow",
+    "status": "ok",
+    "title": "Không tạo cashflow"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/khong_the_bao_dam_tuong_lai",
+    "status": "ok",
+    "title": "Không thể bảo đảm tương lai"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/khong_ergodic_trading",
+    "status": "ok",
+    "title": "Tính không-ergodic trong trading"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/khung_hoang_2008",
+    "status": "ok",
+    "title": "Khủng hoảng 2008"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/khong_the_tien_doan",
+    "status": "ok",
+    "title": "Không thể tiên đoán"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/khung_thoi_gian_nho",
+    "status": "ok",
+    "title": "Khung thời gian nhỏ"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/khong_the_day_bang_cong_thuc",
+    "status": "ok",
+    "title": "Không thể dạy bằng công thức"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/khung_xuong_truc_giac",
+    "status": "ok",
+    "title": "Khung xương cho trực giác"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/kich_thuoc_lenh",
+    "status": "ok",
+    "title": "Kích thước lệnh"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/kiem_chung_bang_du_lieu",
+    "status": "ok",
+    "title": "Kiểm chứng bằng dữ liệu"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/kiem_chung_thich_nghi",
+    "status": "ok",
+    "title": "Kiểm chứng và thích nghi"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/kiem_chung_thu_nghiem",
+    "status": "ok",
+    "title": "Kiểm chứng bằng backtest"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/kiem_dinh_kha_nang_backtest",
+    "status": "ok",
+    "title": "Kiểm định khả năng backtest"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/kiem_dinh_mu_doi",
+    "status": "ok",
+    "title": "Kiểm định mù đôi"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/kiem_duyet_du_lieu",
+    "status": "ok",
+    "title": "Kiểm duyệt dữ liệu"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/kiem_dinh_nghiem_ngat",
+    "status": "ok",
+    "title": "Kiểm định nghiêm ngặt"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/kiem_soat_nguon_tri_thuc",
+    "status": "ok",
+    "title": "Kiểm soát nguồn tri thức"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/kiem_soat_rua_tien",
+    "status": "ok",
+    "title": "Kiểm soát rửa tiền"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/kiem_tien_tu_chia_se_tin_hieu",
+    "status": "ok",
+    "title": "Kiếm tiền từ chia sẻ tín hiệu"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/know_how",
+    "status": "ok",
+    "title": "Know-how"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ky_luat_trading",
+    "status": "ok",
+    "title": "Kỷ luật trading"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ky_nang_thuc_hanh_can_trai_nghiem",
+    "status": "ok",
+    "title": "Kỹ năng thực hành cần trải nghiệm"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/kien_truc_edge",
+    "status": "ok",
+    "title": "Kiến trúc của edge"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ky_luat_ao",
+    "status": "ok",
+    "title": "Kỷ luật ảo"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ky_nang_trading",
+    "status": "ok",
+    "title": "Kỹ năng trading"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ky_quy_phan_tram",
+    "status": "ok",
+    "title": "Ký quỹ phần trăm"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ky_luat_khong_lam_gi",
+    "status": "ok",
+    "title": "Kỷ luật không làm gì"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ky_thuat_dinh_danh_vi",
+    "status": "ok",
+    "title": "Kỹ thuật định danh ví"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ky_vong_am",
+    "status": "ok",
+    "title": "Kỳ vọng âm"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ky_vong_am_trong_dai_han",
+    "status": "ok",
+    "title": "Kỳ vọng âm trong dài hạn"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ky_vong_duong",
+    "status": "ok",
+    "title": "Kỳ vọng dương"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ky_vong_gia_ca",
+    "status": "ok",
+    "title": "Kỳ vọng giá cả"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ky_vong_loi_nhuan_ben_vung",
+    "status": "ok",
+    "title": "Lợi nhuận bền vững"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ky_vong_hoi_tu_trung_binh",
+    "status": "ok",
+    "title": "Kỳ vọng hội tụ về trung bình"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ky_vong_loi_nhuan_ev_duong",
+    "status": "ok",
+    "title": "Kỳ vọng lợi nhuận EV dương"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ky_vong_loi_nhuan_qua_cao",
+    "status": "ok",
+    "title": "Kỳ vọng lợi nhuận quá cao"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ky_vong_tao_gia_tri",
+    "status": "ok",
+    "title": "Tạo giá trị trong hệ thống"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ky_vong_tich_luy",
+    "status": "ok",
+    "title": "Kỳ vọng tích lũy"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ky_vong_loi_nhuan_qua_tu_duy",
+    "status": "ok",
+    "title": "Kỳ vọng lợi nhuận quá tự duy"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/lai_kep",
+    "status": "ok",
+    "title": "Lãi kép"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/lai_suat_0-percent",
+    "status": "ok",
+    "title": "Lãi suất 0%"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/lai_suat_am",
+    "status": "ok",
+    "title": "Lãi suất âm"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/lai_suat_thuc",
+    "status": "ok",
+    "title": "Lãi suất thực"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/lam_phat_tien_de",
+    "status": "ok",
+    "title": "Lạm phát tiền để"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/lam_phat_dich_vu",
+    "status": "ok",
+    "title": "Lạm phát dịch vụ"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/lenh_cat_lo",
+    "status": "ok",
+    "title": "Lệnh cắt lỗ"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/lenh_chu_dong",
+    "status": "ok",
+    "title": "Lệnh chủ động"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/loai_bo_lenh_thang_lon",
+    "status": "ok",
+    "title": "Loại bỏ lệnh thắng lớn"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/loai_bo_nen_dang_hinh_thanh",
+    "status": "ok",
+    "title": "Loại bỏ nến đang hình thành"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/loi_hua",
+    "status": "ok",
+    "title": "Lời hứa"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/loi_the_ca_nhan",
+    "status": "ok",
+    "title": "Lợi thế cá nhân"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/logic_va_truc_giac",
+    "status": "ok",
+    "title": "Logic và trực giác"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/loi_nhuan_chua_chung_minh",
+    "status": "ok",
+    "title": "Lợi nhuận chưa chứng minh"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/loi_the_edge",
+    "status": "ok",
+    "title": "Lợi thế (Edge)"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/loi_the_he_thong",
+    "status": "ok",
+    "title": "Lợi thế hệ thống"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/loi_the_phan_tich_ky_thuat",
+    "status": "ok",
+    "title": "Lợi thế phân tích kỹ thuật"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/loi_the_nen_tang",
+    "status": "ok",
+    "title": "Lợi thế nền tảng"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/loi_the_thoi_vu",
+    "status": "ok",
+    "title": "Lợi thế thời vụ"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/loi_the_duoc_kiem_chung",
+    "status": "ok",
+    "title": "Lợi thế được kiểm chứng"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/loi_the_thu_cong",
+    "status": "ok",
+    "title": "Lợi thế thủ công"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/long_memory_momentum",
+    "status": "ok",
+    "title": "Long memory & momentum"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/long_memory_momentum_volatility",
+    "status": "ok",
+    "title": "Long memory momentum volatility"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/kiem_soat_thoi_gian_rut",
+    "status": "ok",
+    "title": "Kiểm soát thời gian rút"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/loi_the_tu_dong_kiem_chung",
+    "status": "ok",
+    "title": "Lợi thế kiểm chứng của tự động"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/luat_choi",
+    "status": "ok",
+    "title": "Luật chơi"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/look_ahead_bias",
+    "status": "ok",
+    "title": "Look-ahead bias"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/luc_mua_ban_chu_dong",
+    "status": "ok",
+    "title": "Lực mua bán chủ động"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/luat_so_lon",
+    "status": "ok",
+    "title": "Luật số lớn"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/lui_duoi_phai",
+    "status": "ok",
+    "title": "Đuôi phải trong chiến lược"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/luc_mua_luc_ban",
+    "status": "ok",
+    "title": "Lực mua lực bán"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ma_hoa_nhi_phan",
+    "status": "ok",
+    "title": "Mã hóa nhị phân"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ma_sat_va_do_tri_hoan",
+    "status": "ok",
+    "title": "Ma sát và độ trễ"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/machine_economy",
+    "status": "ok",
+    "title": "Machine economy"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/maker",
+    "status": "ok",
+    "title": "Maker"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/martingale_tang_gap_doi_rui_ro",
+    "status": "ok",
+    "title": "Martingale tăng gấp đôi rủi ro"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/macro",
+    "status": "ok",
+    "title": "Macro"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/martingale",
+    "status": "ok",
+    "title": "Martingale"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/markowitz_optimization",
+    "status": "ok",
+    "title": "Tối ưu Markowitz"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/max_drawdown",
+    "status": "ok",
+    "title": "Max drawdown"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/mediocristan",
+    "status": "ok",
+    "title": "Mediocristan"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/may_man",
+    "status": "ok",
+    "title": "May mắn"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/mediocristan_micro_time",
+    "status": "ok",
+    "title": "Mediocristan vi mô"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/mediocristan_trap",
+    "status": "ok",
+    "title": "Bẫy Mediocristan"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/meta_think",
+    "status": "ok",
+    "title": "Meta-think"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/monte_carlo",
+    "status": "ok",
+    "title": "Mô phỏng Monte Carlo"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/monte_carlo_backtest",
+    "status": "ok",
+    "title": "Backtest Monte Carlo"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/mua_va_giu_lau",
+    "status": "ok",
+    "title": "Mua và giữ lâu"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/monthly_breakout_fade_bay",
+    "status": "ok",
+    "title": "Bẫy fade breakout monthly"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/mua_vuon_tao",
+    "status": "ok",
+    "title": "Mua vườn táo"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/mvrv",
+    "status": "ok",
+    "title": "MVRV"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/mvrv_onchain",
+    "status": "ok",
+    "title": "Chỉ số MVRV (on-chain)"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/muc_tieu_khong_co_hoi",
+    "status": "ok",
+    "title": "Mục tiêu không có cơ hội"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/nam_vung_tam_ly_trading",
+    "status": "ok",
+    "title": "Nền tảng tâm lý trading"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/mua_thap_ban_cao",
+    "status": "ok",
+    "title": "Mua thấp bán cao"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/nang_luc_tai_chinh",
+    "status": "ok",
+    "title": "Năng lực tạo dòng tiền"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/nen_tang_dau_tu",
+    "status": "ok",
+    "title": "Nền đỡ đầu tư cho trading"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/nen_dong_xac_nhan",
+    "status": "ok",
+    "title": "Nến đóng xác nhận"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/neo_duoi_beo",
+    "status": "ok",
+    "title": "Nỗi sợ thua lỗ"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/nen_nen_dong_hoan_toan",
+    "status": "ok",
+    "title": "Nến đóng hoàn toàn"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/nghien_dat_muc_tieu",
+    "status": "ok",
+    "title": "Nghiện đặt mục tiêu"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/neo_tin_vao_cau_truc",
+    "status": "ok",
+    "title": "Neo niềm tin vào cấu trúc"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ngu_am_ma",
+    "status": "ok",
+    "title": "Ngũ ấm ma"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/nghich_ly_con_tau_theseus",
+    "status": "ok",
+    "title": "Nghịch lý con tàu Theseus"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ngua_ngay_tho_trading",
+    "status": "ok",
+    "title": "Ngây thơ trong trading"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ngoai_le_gay_chan",
+    "status": "ok",
+    "title": "Ngoại lệ gãy chân"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/nguoi_dung_tra_phi_thuc",
+    "status": "ok",
+    "title": "Người dùng trả phí thực"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ngua_ngon_cai_hang",
+    "status": "ok",
+    "title": "Ngụ ngôn cái hang"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/nguon_thu_nhap_ben_ngoai",
+    "status": "ok",
+    "title": "Nguồn thu nhập bên ngoài"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/nham_lan_ban_do_dia_hinh",
+    "status": "ok",
+    "title": "Nhầm lẫn bản đồ địa hình"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/nguyen_tac_occam",
+    "status": "ok",
+    "title": "Nguyên tắc lưỡi dao Occam"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/nguoi_thang_va_nguoi_chet",
+    "status": "ok",
+    "title": "Người thắng và người chết"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/nhan_qua",
+    "status": "ok",
+    "title": "Nhân quả"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/nhat_ky_giao_dich",
+    "status": "ok",
+    "title": "Nhật ký giao dịch"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/nhan_thuc_bi_meo_mo",
+    "status": "ok",
+    "title": "Nhận thức bị méo mó"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/nhieu_thi_truong",
+    "status": "ok",
+    "title": "Nhiễu thị trường"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/nhieu_thi_truong_nhieu_goc_nhin",
+    "status": "ok",
+    "title": "Nhiều thị trường, nhiều góc nhìn"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/nhat_the_thuc_tai",
+    "status": "ok",
+    "title": "Nhất thể thực tại"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/nhiu_ngan_han",
+    "status": "ok",
+    "title": "Nhiễu ngắn hạn"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/nhom_niem_tin_trader_nha_dau_tu",
+    "status": "ok",
+    "title": "Niềm tin trader và nhà đầu tư"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/nhiu_niem_tu_duy",
+    "status": "ok",
+    "title": "Nhiễu niềm tin và suy nghĩ"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/nhom_phong_ve",
+    "status": "ok",
+    "title": "Nhóm phòng vệ rủi ro"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/niem_tin_ca_nhan",
+    "status": "ok",
+    "title": "Niềm tin cá nhân"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/niem_tin_cang_lon_rui_ro_cang_cao",
+    "status": "ok",
+    "title": "Niềm tin càng lớn rủi ro càng cao"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/nhu_cau_so_huu_phi_tap_trung",
+    "status": "ok",
+    "title": "Nhu cầu sở hữu phi tập trung"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/net_liquidity",
+    "status": "ok",
+    "title": "Net liquidity"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/niem_tin_he_thong",
+    "status": "ok",
+    "title": "Niềm tin hệ thống"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/niem_tin_ky_vong",
+    "status": "ok",
+    "title": "Niềm tin & kỳ vọng"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/niem_tin_lung_lay",
+    "status": "ok",
+    "title": "Niềm tin lung lay"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/niem_tin_tap_the",
+    "status": "ok",
+    "title": "Niềm tin tập thể"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/noi_suy_tu_du_lieu_cu",
+    "status": "ok",
+    "title": "Nội suy từ dữ liệu cũ"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/occam_trading",
+    "status": "ok",
+    "title": "Lưỡi dao Occam trong trading"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/odds_tien_cuoc",
+    "status": "ok",
+    "title": "Odds và tiền cược"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/off_chain_on_chain",
+    "status": "ok",
+    "title": "Off-chain on-chain"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/one_over_n_portfolio",
+    "status": "ok",
+    "title": "Danh mục 1/N"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/optimizing_in_extremistan",
+    "status": "ok",
+    "title": "Tối ưu hóa trong Extremistan"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/oracle",
+    "status": "ok",
+    "title": "Oracle"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/non_stationarity",
+    "status": "ok",
+    "title": "Non-stationarity"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/order_flow",
+    "status": "ok",
+    "title": "Order flow"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/order_flow_de_doc",
+    "status": "ok",
+    "title": "Order flow dễ đọc"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/otc_giao_dich",
+    "status": "ok",
+    "title": "Giao dịch OTC"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/otc_p2p",
+    "status": "ok",
+    "title": "OTC P2P"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/overfitting_backtest",
+    "status": "ok",
+    "title": "Quá khớp backtest"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/out_of_distribution",
+    "status": "ok",
+    "title": "Out of distribution (OOD)"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/overtrading",
+    "status": "ok",
+    "title": "Overtrading"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/passive_income_onchain",
+    "status": "ok",
+    "title": "Passive income on-chain"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/overfit_vao_qua_khu",
+    "status": "ok",
+    "title": "Overfit vào quá khứ"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/pha_vo_kienh",
+    "status": "ok",
+    "title": "Phá vỡ kênh"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/path_dependence",
+    "status": "ok",
+    "title": "Path dependence"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/pha_vo_trang_thai_di_ngang",
+    "status": "ok",
+    "title": "Phá vỡ trạng thái đi ngang"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/phai_sinh",
+    "status": "ok",
+    "title": "Phái sinh"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/phan_bo_nguon_von",
+    "status": "ok",
+    "title": "Phân bổ nguồn vốn"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/phan_phoi_bien_doi_theo_thoi_gian",
+    "status": "ok",
+    "title": "Phân phối biến đổi theo thời gian"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/pha_vo_cau_truc_xu_huong",
+    "status": "ok",
+    "title": "Phá vỡ cấu trúc xu hướng"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/phan_phoi_co_dieu_kien",
+    "status": "ok",
+    "title": "Phân phối có điều kiện"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/phan_dang_fractal_thi_truong",
+    "status": "ok",
+    "title": "Phân dạng fractal của thị trường"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/phan_phoi_duoi_beo_dau_giam",
+    "status": "ok",
+    "title": "Phân phối đuôi béo đuôi giảm"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/phan_phoi_duoi_beo",
+    "status": "ok",
+    "title": "Phân phối đuôi béo"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/phan_phoi_khong_dieu_kien",
+    "status": "ok",
+    "title": "Phân phối không điều kiện"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/phan_phoi_loi_nhuan",
+    "status": "ok",
+    "title": "Phân phối lợi nhuận"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/phan_phoi_duoi_beo_trong_doi_song",
+    "status": "ok",
+    "title": "Phân phối đuôi béo trong đời sống"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/phan_phoi_loi_nhuan_khong_on_dinh",
+    "status": "ok",
+    "title": "Phân phối lợi nhuận không ổn định"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/phan_phoi_duoi_beo_trong_thi_truong",
+    "status": "ok",
+    "title": "Phân phối đuôi béo trong thị trường"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/phan_phoi_ngau_nhien",
+    "status": "ok",
+    "title": "Phân phối ngẫu nhiên"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/phan_phoi_ngau_nhien_kich_ban_xau",
+    "status": "ok",
+    "title": "Phân phối ngẫu nhiên kịch bản xấu"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/phan_tich_cau_truc_tao_gia_tri",
+    "status": "ok",
+    "title": "Phân tích cấu trúc tạo giá trị"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/phan_ung_sai_khi_ngoai_phan_phoi",
+    "status": "ok",
+    "title": "Phản ứng sai khi ngoài phân phối"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/phan_tich_khoi_luong",
+    "status": "ok",
+    "title": "Phân tích khối lượng"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/phan_phoi_prediction_market",
+    "status": "ok",
+    "title": "Prediction market"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/phan_ung_sai_lam_con_nguoi",
+    "status": "ok",
+    "title": "Phản ứng sai lầm con người"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/phan_phoi_ngau_nhien_tao_thang",
+    "status": "ok",
+    "title": "Phân phối ngẫu nhiên tạo thắng"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/phi_tuyen_gia",
+    "status": "ok",
+    "title": "Phi tuyến giá"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/phi_thuc_dung_mang",
+    "status": "ok",
+    "title": "Phí thực dùng mạng"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/phan_xa_trong_hanh_dong",
+    "status": "ok",
+    "title": "Phản xạ trong hành động"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/policy_function",
+    "status": "ok",
+    "title": "Policy function"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/phat_giao_nguyen_thuy",
+    "status": "ok",
+    "title": "Phật giáo nguyên thủy"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/pump_and_dump",
+    "status": "ok",
+    "title": "Pump and dump"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/phi_vao_cua_song",
+    "status": "ok",
+    "title": "Phí vào cửa sòng"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/profit_factor",
+    "status": "ok",
+    "title": "Yếu tố lợi nhuận (Profit Factor)"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/qua_khu_se_lap_lai",
+    "status": "ok",
+    "title": "Quá khứ sẽ lặp lại"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/qua_khu_khong_lap_lai",
+    "status": "ok",
+    "title": "Quá khứ không lặp lại"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/qua_trinh_tuong_tac_dac_ket",
+    "status": "ok",
+    "title": "Quá trình tương tác đúc kết"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/quan_ly_drawdown",
+    "status": "ok",
+    "title": "Quản lý drawdown"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/pow",
+    "status": "ok",
+    "title": "PoW"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/quan_ly_rui_ro",
+    "status": "ok",
+    "title": "Quản lý rủi ro"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/quan_ly_rui_ro_he_thong",
+    "status": "ok",
+    "title": "Quản trị rủi ro hệ thống"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/quan_ly_rui_ro_quy_nap",
+    "status": "ok",
+    "title": "Quản lý rủi ro khi quy nạp"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/quan_ly_rui_ro_truoc",
+    "status": "ok",
+    "title": "Quản lý rủi ro trước"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/quan_ly_vi_the_khong_chot_lo",
+    "status": "ok",
+    "title": "Quản lý vị thế không chốt lời"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/quan_ly_von",
+    "status": "ok",
+    "title": "Quản lý vốn"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/quan_ly_von_quy_cap_von",
+    "status": "ok",
+    "title": "Quỹ cấp vốn"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/quan_ly_von_pamm_mam",
+    "status": "ok",
+    "title": "PAMM và MAM"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/quy_darwinex_phat_hanh_von",
+    "status": "ok",
+    "title": "Quỹ phân bổ vốn dài hạn"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/quan_tri_drawdown",
+    "status": "ok",
+    "title": "Quản trị drawdown"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/quy_luat_so_lon",
+    "status": "ok",
+    "title": "Quy luật số lớn"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/quy_cap_von_ftmo",
+    "status": "ok",
+    "title": "Quỹ cấp vốn dạng FTMO"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/quy_nap_ngay_tho",
+    "status": "ok",
+    "title": "Quy nạp ngây thơ"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/quy_scale_vong_the5ers",
+    "status": "ok",
+    "title": "Quỹ scale theo nhiều vòng"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/random_walk",
+    "status": "ok",
+    "title": "Random walk"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/quyen_luc_thiet_ke_he",
+    "status": "ok",
+    "title": "Quyền lực thiết kế hệ"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ranh_gioi_rui_ro",
+    "status": "ok",
+    "title": "Ranh giới rủi ro"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/quy_thu_thach_ftmo",
+    "status": "ok",
+    "title": "Quỹ thử thách FTMO"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/random_walk_hieu_qua",
+    "status": "ok",
+    "title": "Random walk hiệu quả"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/regime_shift",
+    "status": "ok",
+    "title": "Regime shift"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/risk_of_ruin",
+    "status": "ok",
+    "title": "Risk of ruin"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/repaint",
+    "status": "ok",
+    "title": "Repaint"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/risk_on_gia",
+    "status": "ok",
+    "title": "Risk on giả"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/robustness_simple_strategy",
+    "status": "ok",
+    "title": "Tính robust nhờ đơn giản"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/roi_facebook",
+    "status": "ok",
+    "title": "Rời Facebook"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/roi_nguon_loi_nhuan",
+    "status": "ok",
+    "title": "Nguồn gốc lợi nhuận theo thời gian"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/roic",
+    "status": "ok",
+    "title": "ROIC"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/rui_ro_bo_lo",
+    "status": "ok",
+    "title": "Rủi ro bỏ lỡ cơ hội"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ru_bo",
+    "status": "ok",
+    "title": "Rũ bỏ"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/rrp",
+    "status": "ok",
+    "title": "RRP"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/rui_ro_bo_lo_lenh",
+    "status": "ok",
+    "title": "Rủi ro bỏ lỡ lệnh"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/rui_ro_chien_luoc",
+    "status": "ok",
+    "title": "Rủi ro chiến lược"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/rui_ro_dau_tu",
+    "status": "ok",
+    "title": "Rủi ro đầu tư tài chính"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/rui_ro_duoi_trai",
+    "status": "ok",
+    "title": "Rủi ro đuôi trái"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/rui_ro_khong_the_luong_truoc",
+    "status": "ok",
+    "title": "Rủi ro không thể lường trước"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/rui_ro_he_thong",
+    "status": "ok",
+    "title": "Rủi ro hệ thống"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/rui_ro_loi_thoi",
+    "status": "ok",
+    "title": "Rủi ro lỗi thời"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/rui_ro_lam_phat",
+    "status": "ok",
+    "title": "Rủi ro lạm phát"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/rui_ro_phong_toa_tai_san",
+    "status": "ok",
+    "title": "Rủi ro phong tỏa tài sản"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/rui_ro_thuc_thi",
+    "status": "ok",
+    "title": "Rủi ro thực thi"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/rui_ro_thien_nga_den",
+    "status": "ok",
+    "title": "Rủi ro thiên nga đen"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/rui_ro_tren_moi_lenh",
+    "status": "ok",
+    "title": "Rủi ro trên mỗi lệnh"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/rui_ro_viec_lam",
+    "status": "ok",
+    "title": "Rủi ro việc làm"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/rung_sa_mo_hinh",
+    "status": "ok",
+    "title": "Bản đồ trên sa mạc"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/rwa_defi",
+    "status": "ok",
+    "title": "DeFi RWA"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/san_duoc_cap_phep",
+    "status": "ok",
+    "title": "Sàn được cấp phép"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/san_pham_thuc",
+    "status": "ok",
+    "title": "Sản phẩm thực"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/self_custody",
+    "status": "ok",
+    "title": "Self-custody"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/shock_jump_tail",
+    "status": "ok",
+    "title": "Shock jump tail risk"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/short",
+    "status": "ok",
+    "title": "Short"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/skin_in_the_game",
+    "status": "ok",
+    "title": "Skin in the game"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/so_lenh",
+    "status": "ok",
+    "title": "Sổ lệnh"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/so_mau_du_lon",
+    "status": "ok",
+    "title": "Số mẫu đủ lớn"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/so_mau_du_lon_ti_le_thang",
+    "status": "ok",
+    "title": "Số mẫu đủ lớn tỉ lệ thắng"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/so_sanh_tren_mang_xa_hoi",
+    "status": "ok",
+    "title": "So sánh trên mạng xã hội"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/song_sot_quan_trong",
+    "status": "ok",
+    "title": "Sống sót quan trọng"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/song_sot_truoc_tang_truong",
+    "status": "ok",
+    "title": "Sống sót trước tăng trưởng"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/spread",
+    "status": "ok",
+    "title": "Spread"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tai_bien_doi_theo_thoi_gian",
+    "status": "ok",
+    "title": "Biến đổi theo thời gian"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/sup_do_xac_suat",
+    "status": "ok",
+    "title": "Sụp đổ xác suất"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/stablecoin_neo_usd",
+    "status": "ok",
+    "title": "Stablecoin neo USD"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tac_dong_he_thong",
+    "status": "ok",
+    "title": "Tác động hệ thống"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tai_chinh_hanh_vi",
+    "status": "ok",
+    "title": "Tài chính hành vi"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tai_bien_doi_theo_timeframe",
+    "status": "ok",
+    "title": "Biến đổi theo timeframe"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/stablecoin",
+    "status": "ok",
+    "title": "Stablecoin"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tai_khoan_ngan_hang_dung_ten_that",
+    "status": "ok",
+    "title": "Tài khoản ngân hàng đứng tên thật"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tai_san_khong_tao_cashflow",
+    "status": "ok",
+    "title": "Tài sản không tạo cashflow"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tai_san_dong_bang",
+    "status": "ok",
+    "title": "Tài sản đóng băng"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tai_san_tao_cashflow",
+    "status": "ok",
+    "title": "Tài sản tạo cashflow"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tai_san_tap_trung_ket_qua",
+    "status": "ok",
+    "title": "Tài sản tập trung kết quả"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tam_ly_bam_viu_hy_vong",
+    "status": "ok",
+    "title": "Tâm lý bám víu hy vọng"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tail_risk",
+    "status": "ok",
+    "title": "Tail risk"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tail_event",
+    "status": "ok",
+    "title": "Tail event"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tai_san_tru_an",
+    "status": "ok",
+    "title": "Tài sản trú ẩn"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/taker",
+    "status": "ok",
+    "title": "Taker"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tam_ly_it_nhieu",
+    "status": "ok",
+    "title": "Tâm lý ít nhiễu"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tan_so_tri_thuc",
+    "status": "ok",
+    "title": "Tần số tri thức"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tam_ly_trading",
+    "status": "ok",
+    "title": "Tâm lý trading"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tang_kien_truc",
+    "status": "ok",
+    "title": "Tầng kiến trúc"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tang_rui_ro_theo_giai_doan",
+    "status": "ok",
+    "title": "Tăng rủi ro theo giai đoạn"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tang_truong_nguon_von_nhanh",
+    "status": "ok",
+    "title": "Tăng trưởng nguồn vốn nhanh"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tap_trung_du_lieu_xac_nhan",
+    "status": "ok",
+    "title": "Tập trung dữ liệu xác nhận"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tap_trung_hoa",
+    "status": "ok",
+    "title": "Tập trung hóa"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/te_nguyen_tac_ky_vong",
+    "status": "ok",
+    "title": "Lý thuyết triển vọng"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tap_trung_hoa_hop_ly",
+    "status": "ok",
+    "title": "Tập trung hóa hợp lý"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tga",
+    "status": "ok",
+    "title": "TGA"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tang_thi_cong",
+    "status": "ok",
+    "title": "Tầng thi công"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tham_gia_du_lau",
+    "status": "ok",
+    "title": "Tham gia đủ lâu"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/thanh_khoan_bi_dong",
+    "status": "ok",
+    "title": "Thanh khoản bị động"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/thanh_khoan_ky_vong",
+    "status": "ok",
+    "title": "Thanh khoản của kỳ vọng"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/thanh_khoan_mong",
+    "status": "ok",
+    "title": "Thanh khoản mỏng"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/thanh_khoan_thap",
+    "status": "ok",
+    "title": "Thanh khoản thấp"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/thau_tom_vuon_tao",
+    "status": "ok",
+    "title": "Thâu tóm vườn táo"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/thay_doi_phan_phoi",
+    "status": "ok",
+    "title": "Thay đổi phân phối"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/the_luong_dan_tu_nhan",
+    "status": "ok",
+    "title": "Thế lưỡng nan tù nhân"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/thi_truong_hieu_qua",
+    "status": "ok",
+    "title": "Thị trường hiệu quả"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/thi_truong_di_ngang",
+    "status": "ok",
+    "title": "Thị trường đi ngang"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/thi_truong_khong_danh_cho_nguoi_thieu_nguon_luc",
+    "status": "ok",
+    "title": "Thị trường không dành cho người thiếu nguồn lực"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/thi_truong_khong_du_doan_het",
+    "status": "ok",
+    "title": "Thị trường không dự đoán hết"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/thi_truong_hieu_qua_khong_tuyet_doi",
+    "status": "ok",
+    "title": "Thị trường hiệu quả không tuyệt đối"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/thi_truong_ngau_nhien",
+    "status": "ok",
+    "title": "Thị trường ngẫu nhiên"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/thi_truong_ngau_nhien_khong_the_du_doan",
+    "status": "ok",
+    "title": "Thị trường ngẫu nhiên không thể dự đoán hết"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/thi_truong_phan_dang",
+    "status": "ok",
+    "title": "Thị trường phân dạng"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/thi_truong_phan_ung_cuc_nhanh",
+    "status": "ok",
+    "title": "Thị trường phản ứng cực nhanh"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/thi_truong_random_walk",
+    "status": "ok",
+    "title": "Thị trường random walk"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/thich_nghi_thi_truong",
+    "status": "ok",
+    "title": "Thích nghi thị trường"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/thi_truong_thien_nga_den",
+    "status": "ok",
+    "title": "Thiên nga đen"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/thi_truong_tien_hoa",
+    "status": "ok",
+    "title": "Thị trường tiến hóa"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/thiet_lap_giao_dich_theo_hanh_dong_gia",
+    "status": "ok",
+    "title": "Thiết lập giao dịch theo hành động giá"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/thien_kien_xac_nhan",
+    "status": "ok",
+    "title": "Thiên kiến xác nhận"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/thu_thach_dong_thuan",
+    "status": "ok",
+    "title": "Thử thách đồng thuận"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/thu_thue_ngoai_hoi",
+    "status": "ok",
+    "title": "Thu thuế ngoại hối"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/thu_tu_tiep_can",
+    "status": "ok",
+    "title": "Thứ tự tiếp cận"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/thuat_toan_toi_uu_dopamine",
+    "status": "ok",
+    "title": "Thuật toán tối ưu dopamine"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/thuc_tai_ma_hoa_giac_quan",
+    "status": "ok",
+    "title": "Thực tại mã hóa qua giác quan"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/thuong_hai_vo_y",
+    "status": "ok",
+    "title": "Gây sát thương vô ý"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tich_luy_va_bung_no",
+    "status": "ok",
+    "title": "Tích lũy và bùng nổ"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tin_hieu_gia",
+    "status": "ok",
+    "title": "Tín hiệu giá"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tinh_bat_bien",
+    "status": "ok",
+    "title": "Tính bất biến"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tinh_tu_hoc",
+    "status": "ok",
+    "title": "Tính tự học"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tinh_thanh_khoan",
+    "status": "ok",
+    "title": "Tính thanh khoản"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/toan_bo_kiem_tra_do_on_dinh",
+    "status": "ok",
+    "title": "Kiểm tra độ ổn định toàn phần"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tit_for_tat",
+    "status": "ok",
+    "title": "Tit for Tat"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/token_fee_thuc",
+    "status": "ok",
+    "title": "Token có phí thực"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/toi_uu_ao_giac",
+    "status": "ok",
+    "title": "Tối ưu hóa ảo giác"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/token_value_vs_price",
+    "status": "ok",
+    "title": "Giá trị token so với giá"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/token_hoa_tai_san",
+    "status": "ok",
+    "title": "Token hóa tài sản"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/traceable_onchain_offramp",
+    "status": "ok",
+    "title": "Off-ramp truy vết theo ví định danh"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/trader_nguoc_dong_thuan",
+    "status": "ok",
+    "title": "Niềm tin trader không cần đồng thuận"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tokenomics_unlock_rui_ro",
+    "status": "ok",
+    "title": "Rủi ro unlock token"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tokenomics_minh_bach",
+    "status": "ok",
+    "title": "Tokenomics minh bạch"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/trading_khong_phai_dau_tu",
+    "status": "ok",
+    "title": "Trading không phải đầu tư"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/trading_khong_zero_sum",
+    "status": "ok",
+    "title": "Trading không hoàn toàn zero-sum"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/trend_detector",
+    "status": "ok",
+    "title": "Trend detector"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tran_meta_think",
+    "status": "ok",
+    "title": "Trần meta-think"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/trend_detector_ema",
+    "status": "ok",
+    "title": "Bộ lọc xu hướng theo EMA"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/trend_following",
+    "status": "ok",
+    "title": "Trend following"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tri_thuc_lan_truyen",
+    "status": "ok",
+    "title": "Tri thức lan truyền"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tri_thuc_phi_ngon_ngu",
+    "status": "ok",
+    "title": "Tri thức phi ngôn ngữ"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tri_thuc_trai_nghiem",
+    "status": "ok",
+    "title": "Tri thức trải nghiệm"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tro_choi_hop_tac",
+    "status": "ok",
+    "title": "Trò chơi hợp tác"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tro_choi_phi_hop_tac",
+    "status": "ok",
+    "title": "Trò chơi phi hợp tác"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tro_choi_lap_lai",
+    "status": "ok",
+    "title": "Trò chơi lặp lại"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/truc_giac_trading",
+    "status": "ok",
+    "title": "Trực giác trading"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/truc_giac_duoc_ren",
+    "status": "ok",
+    "title": "Trực giác được rèn"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/truc_giac_pattern",
+    "status": "ok",
+    "title": "Trực giác pattern"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/trung_dao_trong_trading",
+    "status": "ok",
+    "title": "Trung đạo trong trading"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/trung_hop",
+    "status": "ok",
+    "title": "Trùng hợp"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/truot_gia",
+    "status": "ok",
+    "title": "Trượt giá"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/trung_dao_ky_vong",
+    "status": "ok",
+    "title": "Kỳ vọng vừa đủ, không cần cực đoan"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/trung_dao_trong_dau_tu",
+    "status": "ok",
+    "title": "Trung đạo trong đầu tư"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/trust_layer",
+    "status": "ok",
+    "title": "Trust layer"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/trustless_computation",
+    "status": "ok",
+    "title": "Trustless computation"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tu_do_tai_chinh",
+    "status": "ok",
+    "title": "Tự do tài chính"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/truy_vet_minh_bach",
+    "status": "ok",
+    "title": "Truy vết minh bạch"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tu_dieu_de",
+    "status": "ok",
+    "title": "Tứ diệu đế"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/trustless",
+    "status": "ok",
+    "title": "Trustless"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tu_do_tai_chinh_dong_tien",
+    "status": "ok",
+    "title": "Tự do tài chính dựa trên dòng tiền"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tu_duy_doc_lap",
+    "status": "ok",
+    "title": "Tư duy độc lập"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tu_duy_kien_truc_he_thong",
+    "status": "ok",
+    "title": "Tư duy kiến trúc hệ thống"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tu_duy_biet_minh_khong_biet",
+    "status": "ok",
+    "title": "Tư duy biết mình không biết"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tu_duy_nguoc",
+    "status": "ok",
+    "title": "Tư duy ngược"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tu_duy_nhi_phan",
+    "status": "ok",
+    "title": "Tư duy nhị nguyên"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tu_duy_phan_phoi",
+    "status": "ok",
+    "title": "Tư duy theo phân phối"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tu_duy_thuc_chung",
+    "status": "ok",
+    "title": "Tự thực chứng"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tu_duy_rui_ro",
+    "status": "ok",
+    "title": "Tư duy rủi ro"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tu_duy_truc_giac",
+    "status": "ok",
+    "title": "Tư duy trực giác"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tu_duy_trung_binh",
+    "status": "ok",
+    "title": "Tư duy trung bình"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tu_duy_xac_suat",
+    "status": "ok",
+    "title": "Tư duy xác suất"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tu_duy_tuyen_tinh",
+    "status": "ok",
+    "title": "Tư duy tuyến tính"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tu_hoc_ky_luat",
+    "status": "ok",
+    "title": "Tự học kỷ luật"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tu_duy_thuc_nghiem",
+    "status": "ok",
+    "title": "Tư duy tự suy nghiệm"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tu_sai",
+    "status": "ok",
+    "title": "Tu sai"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tu_tham_chieu",
+    "status": "ok",
+    "title": "Tự tham chiếu"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tue",
+    "status": "ok",
+    "title": "Tuệ"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tu_thuc_hanh",
+    "status": "ok",
+    "title": "Tu thực hành"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/tuong_quan",
+    "status": "ok",
+    "title": "Tương quan"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ty_le_loi_lo_rr",
+    "status": "ok",
+    "title": "Tỉ lệ lợi nhuận/lỗ (R:R)"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ty_le_thang",
+    "status": "ok",
+    "title": "Tỉ lệ thắng"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/ty_le_thang_va_rr",
+    "status": "ok",
+    "title": "Tỷ lệ thắng và R:R"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/uoc_luong_tu_mau_nho",
+    "status": "ok",
+    "title": "Ước lượng từ mẫu nhỏ"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/van_hanh_theo_dieu_kien",
+    "status": "ok",
+    "title": "Vận hành theo điều kiện"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/vao_khi_co_loi_the",
+    "status": "ok",
+    "title": "Vào khi có lợi thế"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/vao_lenh_dau_song",
+    "status": "ok",
+    "title": "Vào lệnh ở đầu sóng"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/vo_nga",
+    "status": "ok",
+    "title": "Vô ngã"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/vo_nga_nhu_tien_trinh",
+    "status": "ok",
+    "title": "Vô ngã như tiến trình"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/vo_nga_khong_phai_muc_tieu",
+    "status": "ok",
+    "title": "Vô ngã không phải mục tiêu"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/vo_nga_trong_thuc_chien",
+    "status": "ok",
+    "title": "Vô ngã trong thực chiến"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/vo_ngai_trong_trading",
+    "status": "ok",
+    "title": "Vô ngã trong trading"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/vo_thuong_sinh_diet",
+    "status": "ok",
+    "title": "Vô thường sinh diệt"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/vo_vi_trong_he_thong",
+    "status": "ok",
+    "title": "Vô vi trong hệ thống"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/vo_vi_trong_trading",
+    "status": "ok",
+    "title": "Vô vi trong trading"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/vo_thuong",
+    "status": "ok",
+    "title": "Vô thường"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/von_hoa_thi_truong",
+    "status": "ok",
+    "title": "Vốn hóa thị trường"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/vong_lap_tim_chen_thanh",
+    "status": "ok",
+    "title": "Vòng lặp tìm “chén thánh”"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/vong_lap_tu_cung_co",
+    "status": "ok",
+    "title": "Vòng lặp tự củng cố"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/vong_lap_thay_doi_chien_luoc",
+    "status": "ok",
+    "title": "Vòng lặp thay đổi chiến lược"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/vong_lap_phan_ung_chuoi",
+    "status": "ok",
+    "title": "Vòng lặp phản ứng khi bị chê chửi"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/uy_tin",
+    "status": "ok",
+    "title": "Uy tín"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/vong_phan_hoi_phi_tuyen",
+    "status": "ok",
+    "title": "Vòng phản hồi phi tuyến"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/vong_phan_hoi_tich_cuc",
+    "status": "ok",
+    "title": "Vòng phản hồi tích cực"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/wacc",
+    "status": "ok",
+    "title": "WACC"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/worldline",
+    "status": "ok",
+    "title": "Worldline"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/xa_bam_chap",
+    "status": "ok",
+    "title": "Xả bám chấp"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/xac_dinh_trang_thai",
+    "status": "ok",
+    "title": "Xác định trạng thái thị trường"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/worldline_danh_tinh",
+    "status": "ok",
+    "title": "Worldline danh tính"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/walcl",
+    "status": "ok",
+    "title": "WALCL"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/xay_dung_ban_nga_vi_te",
+    "status": "ok",
+    "title": "Xây dựng bản ngã vi tế"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/xu_huong_gia",
+    "status": "ok",
+    "title": "Xu hướng giá"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/zero_knowledge_proof",
+    "status": "ok",
+    "title": "Zero-knowledge proof"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/xung_dot_loi_ich",
+    "status": "ok",
+    "title": "Xung đột lợi ích"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/xung_luc_dong_luong",
+    "status": "ok",
+    "title": "Xung lực và động lượng"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/hubs/hub_crypto_blockchain",
+    "status": "ok",
+    "title": "Crypto & Blockchain"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/hubs/hub_backtest_validation",
+    "status": "ok",
+    "title": "Backtest & Kiểm định"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/zero_sum",
+    "status": "ok",
+    "title": "Zero-sum"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/hubs/hub_macro_economics",
+    "status": "ok",
+    "title": "Vĩ mô & Kinh tế"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/hubs/hub_meta",
+    "status": "ok",
+    "title": "Meta & Tư duy hệ thống"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/hubs/hub_investing",
+    "status": "ok",
+    "title": "Đầu tư"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/hubs/hub_game_theory",
+    "status": "ok",
+    "title": "Lý thuyết Trò chơi"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/hubs/hub_market_structure",
+    "status": "ok",
+    "title": "Cấu trúc Thị trường"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/hubs/hub_philosophy",
+    "status": "ok",
+    "title": "Triết học & Đạo"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/hubs/hub_statistics",
+    "status": "ok",
+    "title": "Thống kê & Xác suất"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/hubs/hub_risk_management",
+    "status": "ok",
+    "title": "Quản lý Rủi ro"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/hubs/hub_trading_psychology",
+    "status": "ok",
+    "title": "Tâm lý Giao dịch"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/hubs/hub_trading_systems",
+    "status": "ok",
+    "title": "Hệ thống Giao dịch"
+  },
+  {
+    "url": "https://wiki.turtletrading.vn/concepts/xac_suat_vs_kha_nang",
+    "status": "ok",
+    "title": "Xác suất và khả năng (Likelihood)"
+  }
+]

@@ -1,0 +1,60 @@
+version: "3.8"
+
+services:
+  trading-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hybrid-trading-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - TZ=UTC
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./data:/app/data
+      - ./ml/models:/app/ml/models
+      - ./journal:/app/journal
+      - ./logs:/app/logs
+      - ./config:/app/config
+    ports:
+      - "8080:8080"
+      - "8501:8501"
+    command: >
+      python3 -m execution.live_trading
+      --config /app/config/system.yaml
+      --mode ${TRADING_MODE:-paper}
+    networks:
+      - trading-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Optional: Streamlit dashboard
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: trading-dashboard
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./ml/models:/app/ml/models
+      - ./journal:/app/journal
+    ports:
+      - "8501:8501"
+    command: >
+      streamlit run knowledge_engine/ui.py
+      --server.port=8501
+      --server.address=0.0.0.0
+    networks:
+      - trading-network
+
+networks:
+  trading-network:
+    driver: bridge

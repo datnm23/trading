@@ -1,0 +1,121 @@
+# System Configuration
+# Copy this file to local.yaml and customize
+
+system:
+  name: "hybrid-trading-system"
+  mode: "paper"  # paper | live
+  timezone: "UTC"
+  log_level: "INFO"
+
+# Data configuration
+data:
+  exchange: "binance"
+  timeframe: "1d"
+  symbols:
+    - "BTC/USDT"
+    - "ETH/USDT"
+    - "SOL/USDT"
+  start_date: "2020-01-01"
+  end_date: "2026-04-21"
+  data_dir: "./data/raw"
+  processed_dir: "./data/processed"
+
+# Strategy configuration
+strategies:
+  active: "EMA-Trend"
+  registry:
+    - name: "EMA-Trend"
+      module: "strategies.rule_based.ema_trend"
+      class: "EMATrendStrategy"
+      params:
+        fast_ema: 20
+        slow_ema: 50
+        atr_period: 14
+    - name: "Monthly-Breakout"
+      module: "strategies.rule_based.monthly_breakout"
+      class: "MonthlyBreakoutStrategy"
+      params:
+        lookback_months: 3
+        atr_period: 14
+    - name: "RegimeEnsemble"
+      module: "strategies.ensemble.regime_ensemble"
+      class: "RegimeEnsembleStrategy"
+      params:
+        wiki_min_alignment: 0.30
+
+# Risk management
+risk:
+  max_risk_per_trade: 0.01        # 1% of account
+  max_total_exposure: 0.10        # 10% in market
+  max_drawdown_pct: 0.15          # 15% circuit breaker
+  default_stop_loss_atr: 2.0      # 2x ATR
+  position_sizing: "turtle_n"     # fixed_fractional | kelly | atr_based | turtle_n
+
+# Psychology / Discipline
+psychology:
+  max_consecutive_losses: 3
+  pause_after_losses_hours: 24
+  max_daily_trades: 10
+  revenge_emotions: ["revenge", "fomo", "panic", "angry"]
+  revenge_size_multiplier: 0.5
+  win_streak_cooldown: 5
+  win_streak_multiplier: 0.8
+  large_loss_threshold: 2.0
+  large_loss_cooldown_hours: 12
+
+# Backtest configuration
+backtest:
+  initial_capital: 100000
+  commission: 0.001               # 0.1%
+  slippage: 0.0005                # 0.05%
+  fractional_size: true
+
+# Execution
+execution:
+  paper: true
+  exchange_id: "binance"
+  api_key: ""                     # Set in local.yaml or env var
+  api_secret: ""                  # Set in local.yaml or env var
+  testnet: true
+
+# Knowledge Engine
+knowledge:
+  wiki_dir: "./crawl-wiki/concepts"
+  vector_db_path: "./knowledge/vector_store"
+  embedding_model: "sentence-transformers/all-MiniLM-L6-v2"
+  llm_provider: "openai"          # openai | anthropic | local
+  llm_model: "gpt-4o-mini"
+  top_k_retrieval: 5
+
+# ML Configuration
+ml:
+  enabled: false
+  model_dir: "./ml/models"
+  retrain_frequency_days: 30
+  features:
+    - "returns"
+    - "volatility"
+    - "rsi"
+    - "macd"
+    - "atr"
+    - "volume_ma_ratio"
+
+# Monitoring
+monitoring:
+  enabled: true
+  alert_telegram: false
+  telegram_bot_token: ""
+  telegram_chat_id: ""
+  health_port: 8080
+
+# Journal
+journal:
+  db_path: "./data/journal.db"
+
+# Model Drift Detection
+drift:
+  enabled: false
+  confidence_window: 30
+  psi_threshold: 0.2
+  error_threshold: 0.55
+  cooldown_days: 7

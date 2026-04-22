@@ -1,0 +1,67 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hybrid-trading-system"
+version = "0.1.0"
+description = "Hybrid trading system with rule-based, ML, and knowledge anchor"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "Trader"}
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+]
+
+dependencies = [
+    "pandas>=2.0",
+    "numpy>=1.24",
+    "polars>=0.20",
+    "pydantic>=2.0",
+    "pyyaml>=6.0",
+    "loguru>=0.7",
+    "ccxt>=4.0",
+    "websockets>=12.0",
+    "requests>=2.31",
+    "pandas-ta>=0.3",
+    "scikit-learn>=1.3",
+    "xgboost>=2.0",
+    "torch>=2.0",
+    "chromadb>=0.4",
+    "sentence-transformers>=2.2",
+    "openai>=1.0",
+    "streamlit>=1.28",
+    "plotly>=5.18",
+    "pytest>=7.4",
+    "ruff>=0.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest-cov>=4.1",
+    "jupyter>=1.0",
+    "notebook>=7.0",
+    "matplotlib>=3.8",
+    "seaborn>=0.13",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["strategies*", "risk*", "backtest*", "execution*", "ml*", "knowledge_engine*", "data*", "config*", "journal*", "monitoring*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

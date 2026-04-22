@@ -1,0 +1,123 @@
+{
+  "meta": {
+    "strategy": "ML-XGBoost",
+    "label": "BTC_USDT_1d",
+    "periods": 9
+  },
+  "periods": [
+    {
+      "period_label": "2024-01-23_2024-04-21",
+      "metrics": {
+        "total_return": 0.004463923134373271,
+        "sharpe": 1.1962842036860222,
+        "max_drawdown": -0.0028860557874833465,
+        "winrate": 0.5,
+        "profit_factor": 3.0375562654266712,
+        "total_trades": 2
+      },
+      "model_checkpoint": "/home/datnm/projects/trading/ml/models/walkforward/xgb_BTC_USDT_1d_2024-01-23_2024-04-21.pkl"
+    },
+    {
+      "period_label": "2024-04-22_2024-07-20",
+      "metrics": {
+        "total_return": 0.02772489818976198,
+        "sharpe": 1.1133426371493718,
+        "max_drawdown": -0.038523349572415155,
+        "winrate": 0.5714285714285714,
+        "profit_factor": 1.4106524496626138,
+        "total_trades": 7
+      },
+      "model_checkpoint": "/home/datnm/projects/trading/ml/models/walkforward/xgb_BTC_USDT_1d_2024-04-22_2024-07-20.pkl"
+    },
+    {
+      "period_label": "2024-07-21_2024-10-18",
+      "metrics": {
+        "total_return": 0.0036552411879027247,
+        "sharpe": 0.1646454392778161,
+        "max_drawdown": -0.04594469981354522,
+        "winrate": 0.5,
+        "profit_factor": 1.1003730823725988,
+        "total_trades": 6
+      },
+      "model_checkpoint": "/home/datnm/projects/trading/ml/models/walkforward/xgb_BTC_USDT_1d_2024-07-21_2024-10-18.pkl"
+    },
+    {
+      "period_label": "2024-10-19_2025-01-16",
+      "metrics": {
+        "total_return": 0.0,
+        "sharpe": 0,
+        "max_drawdown": 0.0,
+        "winrate": 0,
+        "profit_factor": Infinity,
+        "total_trades": 0
+      },
+      "model_checkpoint": "/home/datnm/projects/trading/ml/models/walkforward/xgb_BTC_USDT_1d_2024-10-19_2025-01-16.pkl"
+    },
+    {
+      "period_label": "2025-01-17_2025-04-16",
+      "metrics": {
+        "total_return": -0.053318167653013226,
+        "sharpe": -2.200633816212474,
+        "max_drawdown": -0.07822595996579979,
+        "winrate": 0.3,
+        "profit_factor": 0.116409713656247,
+        "total_trades": 10
+      },
+      "model_checkpoint": "/home/datnm/projects/trading/ml/models/walkforward/xgb_BTC_USDT_1d_2025-01-17_2025-04-16.pkl"
+    },
+    {
+      "period_label": "2025-04-17_2025-07-15",
+      "metrics": {
+        "total_return": 0.0,
+        "sharpe": 0,
+        "max_drawdown": 0.0,
+        "winrate": 0,
+        "profit_factor": Infinity,
+        "total_trades": 0
+      },
+      "model_checkpoint": "/home/datnm/projects/trading/ml/models/walkforward/xgb_BTC_USDT_1d_2025-04-17_2025-07-15.pkl"
+    },
+    {
+      "period_label": "2025-07-16_2025-10-13",
+      "metrics": {
+        "total_return": 0.028106528634871397,
+        "sharpe": 2.8115737901919142,
+        "max_drawdown": -0.008736541884322692,
+        "winrate": 0.7142857142857143,
+        "profit_factor": 4.6635274703290435,
+        "total_trades": 7
+      },
+      "model_checkpoint": "/home/datnm/projects/trading/ml/models/walkforward/xgb_BTC_USDT_1d_2025-07-16_2025-10-13.pkl"
+    },
+    {
+      "period_label": "2025-10-14_2026-01-11",
+      "metrics": {
+        "total_return": -0.027169039963241493,
+        "sharpe": -1.4537711019538024,
+        "max_drawdown": -0.05526956776602467,
+        "winrate": 0.5,
+        "profit_factor": 0.4995660066634543,
+        "total_trades": 8
+      },
+      "model_checkpoint": "/home/datnm/projects/trading/ml/models/walkforward/xgb_BTC_USDT_1d_2025-10-14_2026-01-11.pkl"
+    },
+    {
+      "period_label": "2026-01-12_2026-04-11",
+      "metrics": {
+        "total_return": -0.043905103375172616,
+        "sharpe": -1.5377808495875538,
+        "max_drawdown": -0.07815106504555093,
+        "winrate": 0.5,
+        "profit_factor": 0.3999604989256793,
+        "total_trades": 10
+      },
+      "model_checkpoint": "/home/datnm/projects/trading/ml/models/walkforward/xgb_BTC_USDT_1d_2026-01-12_2026-04-11.pkl"
+    }
+  ],
+  "aggregate": {
+    "total_return": -0.06044171984451796,
+    "avg_sharpe": 0.010406700283477122,
+    "avg_max_dd": -0.034193026648349084,
+    "total_trades": 50
+  }
+}
