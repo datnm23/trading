@@ -28,7 +28,7 @@ class WikiRAG:
         self._is_built = False
 
         # Try to load existing index
-        if (self.persist_dir / "vectors.npy").exists():
+        if (self.persist_dir / "vectors.npy").exists() and (self.persist_dir / "embedder.pkl").exists():
             self.store.load()
             self.embedder.load(self.persist_dir / "embedder.pkl")
             self._is_built = True

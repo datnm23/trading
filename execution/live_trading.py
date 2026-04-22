@@ -22,8 +22,14 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, List, Dict
 
+from dotenv import load_dotenv
 import pandas as pd
 from loguru import logger
+
+# Load .env for Telegram tokens, DB URLs, etc.
+_dotenv_path = Path(__file__).parent.parent / ".env"
+if _dotenv_path.exists():
+    load_dotenv(_dotenv_path)
 
 from data.feed import DataFeed
 from execution.connectors.ccxt_connector import CCXTConnector
@@ -36,8 +42,14 @@ from monitoring.price_alerts import PriceAlertManager
 from monitoring.drawdown_alerts import DrawdownAlertManager
 from monitoring.volume_alerts import VolumeAlertManager
 from monitoring.health_server import HealthServer
+from monitoring.daily_report import DailyReportGenerator
 from strategies.base import BaseStrategy, StrategyContext
 from ml.drift_detection import ModelDriftMonitor
+from execution.trailing_stop import TrailingStopManager, TrailingStopConfig
+from execution.partial_exit import PartialExitManager
+from execution.order_retry import OrderRetryManager, RetryConfig
+from execution.slippage_tracker import SlippageTracker
+from risk.correlation_guard import CorrelationGuard
 
 
 class GraduationGate:
@@ -217,6 +229,45 @@ class LiveTradingEngine:
             drift_cooldown_days=drift_cfg.get("cooldown_days", 7),
         ) if drift_cfg.get("enabled", False) else None
 
+        # New: Trailing Stop Manager
+        trail_cfg = config.get("risk", {})
+        self.trailing_stop = TrailingStopManager(
+            TrailingStopConfig(
+                activation_pct=trail_cfg.get("trailing_activation", 0.05),
+                trail_pct=trail_cfg.get("trailing_trail_pct", 0.30),
+                min_profit_lock=trail_cfg.get("trailing_min_profit", 0.02),
+            )
+        )
+
+        # New: Partial Exit Manager
+        self.partial_exit = PartialExitManager()
+
+        # New: Correlation Guard
+        self.correlation_guard = CorrelationGuard(
+            max_correlation=trail_cfg.get("max_correlation", 0.80),
+            lookback_days=trail_cfg.get("correlation_lookback", 90),
+        )
+
+        # New: Order Retry Manager
+        self.order_retry = OrderRetryManager(
+            RetryConfig(
+                max_retries=exec_cfg.get("max_retries", 3),
+                base_delay=exec_cfg.get("retry_base_delay", 1.0),
+                max_delay=exec_cfg.get("retry_max_delay", 30.0),
+            )
+        )
+
+        # New: Slippage Tracker
+        self.slippage_tracker = SlippageTracker(
+            warning_threshold_pct=exec_cfg.get("slippage_warning_pct", 0.001)
+        )
+
+        # New: Daily Report Generator
+        self.daily_report = DailyReportGenerator(
+            db_url=journal_cfg.get("db_url"),
+            db_path=journal_cfg.get("db_path"),
+        )
+
         # Health server
         health_port = config.get("monitoring", {}).get("health_port", 8080)
         self.health_server = HealthServer(
@@ -305,6 +356,25 @@ class LiveTradingEngine:
 
         # Check volume spike on new bar
         self.volume_alerter.check(symbol, df)
+
+        # Update correlation guard with latest data
+        self.correlation_guard.update_data(symbol, df)
+
+        # Check trailing stop for existing positions
+        if symbol in self.positions:
+            self.trailing_stop.update(symbol, current_price)
+            if self.trailing_stop.should_exit(symbol, current_price):
+                stop_level = self.trailing_stop.get_stop(symbol)
+                logger.info(f"🛑 TRAILING STOP HIT for {symbol} at {current_price:.2f} (stop: {stop_level:.2f})")
+                self._execute_signal(symbol, type('obj', (object,), {'side': 'sell', 'timestamp': latest_time, 'meta': {'reason': 'trailing_stop'}})(), latest_bar)
+                self.trailing_stop.remove_position(symbol)
+                self.partial_exit.remove_position(symbol)
+                return
+
+            # Check partial exit (scale-out)
+            exits = self.partial_exit.check(symbol, current_price)
+            for exit_info in exits:
+                self._execute_partial_exit(symbol, exit_info, latest_bar)
 
         # Warmup
         if not self.strategy.is_warm:
@@ -426,6 +496,16 @@ class LiveTradingEngine:
             logger.warning(f"Max exposure reached. Ignoring {signal.side} signal on {symbol}")
             return
 
+        # Check correlation risk before opening new position
+        if signal.side == "buy" and symbol not in self.positions:
+            held = [s for s in self.positions.keys()]
+            is_safe, corr_reason = self.correlation_guard.check_new_position(symbol, held)
+            if not is_safe:
+                logger.warning(f"CORRELATION BLOCK: {corr_reason}")
+                self.alerter.send_error(f"Correlation guard blocked {symbol}: {corr_reason}", context="CorrelationGuard")
+                return
+            logger.info(f"Correlation check passed: {corr_reason}")
+
         # Execute (psychological size multiplier applied inside)
         self._execute_signal(symbol, signal, latest_bar, psych_state)
         self._update_equity(symbol, latest_bar)
@@ -487,7 +567,7 @@ class LiveTradingEngine:
                 strategy_name=self.strategy.__class__.__name__,
                 reason=getattr(signal, 'reason', '') or "signal",
             )
-            result = self.order_manager.submit(order, last_price=price)
+            result = self.order_retry.execute(self.order_manager.submit, order, last_price=price)
 
             if result.success:
                 self.positions[symbol] = {
@@ -521,6 +601,14 @@ class LiveTradingEngine:
                 )
                 logger.info(f"BUY {symbol} @ {price:.2f} | Size: {size:.6f}")
 
+                # Register trailing stop and partial exit for new position
+                self.trailing_stop.add_position(symbol, price, stop)
+                self.partial_exit.add_position(symbol, price, size)
+
+                # Track slippage (expected vs filled)
+                filled_price = getattr(result, 'filled_price', price) or price
+                self.slippage_tracker.record(symbol, "buy", price, filled_price, size)
+
                 # Log wiki feedback for learning loop
                 try:
                     fb_id = self.journal.log_wiki_feedback({
@@ -552,12 +640,20 @@ class LiveTradingEngine:
                 strategy_name=self.strategy.__class__.__name__,
                 reason=getattr(signal, 'reason', '') or "signal",
             )
-            result = self.order_manager.submit(order, last_price=price)
+            result = self.order_retry.execute(self.order_manager.submit, order, last_price=price)
 
             if result.success:
+                # Track slippage on exit
+                filled_price = getattr(result, 'filled_price', price) or price
+                self.slippage_tracker.record(symbol, "sell", price, filled_price, pos["size"])
+
                 pnl = (price - pos["entry_price"]) * pos["size"]
                 pnl_pct = (price - pos["entry_price"]) / pos["entry_price"]
                 self.capital += pos["size"] * price * 0.999
+
+                # Remove from trailing stop / partial exit tracking
+                self.trailing_stop.remove_position(symbol)
+                self.partial_exit.remove_position(symbol)
 
                 # Log trade
                 self.journal.log_trade(TradeRecord(
@@ -569,7 +665,7 @@ class LiveTradingEngine:
                     size=pos["size"],
                     pnl=pnl,
                     pnl_pct=pnl_pct,
-                    exit_reason="signal",
+                    exit_reason=getattr(signal, 'meta', {}).get('reason', 'signal') if hasattr(signal, 'meta') and signal.meta else 'signal',
                     reasoning=getattr(signal, 'reason', '') or "",
                 ))
 
@@ -614,6 +710,47 @@ class LiveTradingEngine:
                 except Exception as e:
                     logger.debug(f"Wiki feedback stats check failed: {e}")
 
+    def _execute_partial_exit(self, symbol: str, exit_info: dict, bar):
+        """Execute a partial exit (scale-out) order."""
+        price = bar["close"]
+        size = exit_info["size"]
+        pos = self.positions.get(symbol)
+        if not pos or pos["side"] != "long" or size <= 0:
+            return
+
+        order = self.order_manager.create_order(
+            symbol=symbol,
+            side=OrderSide.SELL,
+            amount=size,
+            order_type=OrderType.MARKET,
+            strategy_name=self.strategy.__class__.__name__,
+            reason=f"partial_exit_{exit_info['label']}",
+        )
+        result = self.order_retry.execute(self.order_manager.submit, order, last_price=price)
+
+        if result.success:
+            pnl = (price - pos["entry_price"]) * size
+            pos["size"] -= size
+            self.capital += size * price * 0.999
+            logger.info(
+                f"📐 PARTIAL EXIT {symbol} | {exit_info['label']} | "
+                f"Size: {size:.6f} | P&L: ${pnl:.2f} | Remaining: {pos['size']:.6f}"
+            )
+            self.alerter.send_trade_closed(
+                symbol=symbol,
+                side="long",
+                entry=pos["entry_price"],
+                exit_price=price,
+                pnl=pnl,
+                pnl_pct=(price - pos["entry_price"]) / pos["entry_price"],
+                exit_reason=f"partial_{exit_info['label']}",
+            )
+            # Remove position if fully exited
+            if pos["size"] <= 0:
+                del self.positions[symbol]
+                self.trailing_stop.remove_position(symbol)
+                self.partial_exit.remove_position(symbol)
+
     def _update_equity(self, symbol: str, bar):
         """Recalculate total equity."""
         position_value = sum(
@@ -640,20 +777,24 @@ class LiveTradingEngine:
         ))
 
     def _send_daily_summary(self):
-        """Send daily P&L summary via Telegram."""
-        today = datetime.now().strftime("%Y-%m-%d")
-        trades = self.journal.get_trades(start=f"{today}T00:00:00")
-        pnl = sum(t.pnl for t in trades)
-        wins = [t for t in trades if t.pnl > 0]
-        winrate = len(wins) / len(trades) if trades else 0
-
-        self.alerter.send_daily_summary(
-            trades_today=len(trades),
-            pnl_today=pnl,
-            winrate_today=winrate,
-            equity=self.equity,
-            open_positions=len(self.positions),
-        )
+        """Send daily P&L summary via Telegram using DailyReportGenerator."""
+        try:
+            report = self.daily_report.generate_and_notify(alerter=self.alerter)
+            logger.info("Daily report sent")
+        except Exception as e:
+            # Fallback to simple summary
+            today = datetime.now().strftime("%Y-%m-%d")
+            trades = self.journal.get_trades(start=f"{today}T00:00:00")
+            pnl = sum(t.pnl for t in trades)
+            wins = [t for t in trades if t.pnl > 0]
+            winrate = len(wins) / len(trades) if trades else 0
+            self.alerter.send_daily_summary(
+                trades_today=len(trades),
+                pnl_today=pnl,
+                winrate_today=winrate,
+                equity=self.equity,
+                open_positions=len(self.positions),
+            )
 
     def stop(self):
         self.is_running = False
@@ -684,6 +825,19 @@ class LiveTradingEngine:
             "equity": self.equity,
             "capital": self.capital,
             "open_positions": len(self.positions),
+            "positions": [
+                {
+                    "symbol": p.symbol,
+                    "side": p.side,
+                    "entry_price": p.entry_price,
+                    "size": p.size,
+                    "current_price": getattr(p, 'current_price', None),
+                    "unrealized_pnl": getattr(p, 'unrealized_pnl', None),
+                    "stop_price": getattr(p, 'stop_price', None),
+                    "strategy": self.strategy.__class__.__name__,
+                }
+                for p in self.positions
+            ],
             "symbols": self.symbols,
             "strategy": self.strategy.__class__.__name__,
             "paper_mode": self.paper_mode,
@@ -695,6 +849,16 @@ class LiveTradingEngine:
         # Add drift summary
         if self.drift_monitor:
             status["drift"] = self.drift_monitor.get_summary()
+        # Add trailing stops
+        status["trailing_stops"] = self.trailing_stop.summary()
+        # Add partial exits
+        status["partial_exits"] = self.partial_exit.summary()
+        # Add slippage summary
+        status["slippage"] = self.slippage_tracker.summary()
+        # Add order retry stats
+        status["order_retry"] = self.order_retry.get_stats()
+        # Add correlation guard
+        status["correlation"] = self.correlation_guard.summary()
         return status
 
 
@@ -708,7 +872,9 @@ def main():
     parser.add_argument("--config", default="config/system.yaml")
     parser.add_argument("--mode", choices=["paper", "live"], default="paper")
     parser.add_argument("--symbol", default="BTC/USDT")
-    parser.add_argument("--strategy", default="RegimeEnsemble", choices=["RegimeEnsemble", "EMA-Trend"])
+    parser.add_argument("--symbols", nargs="+", default=None, help="List of trading pairs (overrides config)")
+    parser.add_argument("--strategy", default="RegimeEnsemble", choices=["RegimeEnsemble", "EMA-Trend", "Monthly-Breakout"])
+    parser.add_argument("--health-port", type=int, default=None, help="Override health server port")
     args = parser.parse_args()
 
     config = load_config(args.config)
@@ -716,19 +882,43 @@ def main():
     # Override mode from CLI
     config["system"]["mode"] = args.mode
 
-    # Import strategy dynamically
-    if args.strategy == "RegimeEnsemble":
-        from strategies.ensemble.regime_ensemble import RegimeEnsembleStrategy
-        strategy = RegimeEnsembleStrategy(params=config["strategies"]["registry"][2]["params"])
-    else:
-        from strategies.rule_based.ema_trend import EMATrendStrategy
-        strategy = EMATrendStrategy()
+    # Override symbols if provided
+    symbols = args.symbols
+    if symbols is None:
+        symbols = [args.symbol]
+
+    # Override health port if provided
+    if args.health_port is not None:
+        config.setdefault("monitoring", {})
+        config["monitoring"]["health_port"] = args.health_port
+
+    # Import strategy dynamically from registry
+    strategy = None
+    if config.get("strategies") and config["strategies"].get("registry"):
+        for entry in config["strategies"]["registry"]:
+            if entry["name"] == args.strategy:
+                module_path = entry["module"]
+                class_name = entry["class"]
+                params = entry.get("params", {})
+                module = __import__(module_path, fromlist=[class_name])
+                strategy_class = getattr(module, class_name)
+                strategy = strategy_class(params=params) if params else strategy_class()
+                break
+
+    if strategy is None:
+        # Fallback for backward compatibility
+        if args.strategy == "RegimeEnsemble":
+            from strategies.ensemble.regime_ensemble import RegimeEnsembleStrategy
+            strategy = RegimeEnsembleStrategy(params=config["strategies"]["registry"][2]["params"])
+        else:
+            from strategies.rule_based.ema_trend import EMATrendStrategy
+            strategy = EMATrendStrategy()
 
     engine = LiveTradingEngine(
         config=config,
         strategy=strategy,
         mode=args.mode,
-        symbols=[args.symbol],
+        symbols=symbols,
     )
 
     try:

@@ -1,7 +1,14 @@
 """Streamlit dashboard for backtest visualization and wiki chat."""
 
-import json
+import sys
 from pathlib import Path
+
+# Add project root to path so imports work when run via `streamlit run`
+project_root = Path(__file__).parent.parent.resolve()
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
+import json
 
 import pandas as pd
 import numpy as np
@@ -27,7 +34,7 @@ def run_dashboard():
 
     # --- Sidebar ---
     st.sidebar.title("Navigation")
-    page = st.sidebar.radio("Go to", ["Backtest", "Wiki Chat", "Live Status", "ML Models"])
+    page = st.sidebar.radio("Go to", ["Backtest", "Wiki Chat", "Live Status", "Strategy Comparison", "ML Models"])
 
     # --- Page: Backtest ---
     if page == "Backtest":
@@ -132,6 +139,71 @@ def run_dashboard():
             "P&L": [0, 1840.0],
         })
         st.dataframe(trades_df)
+
+    # --- Page: Strategy Comparison ---
+    elif page == "Strategy Comparison":
+        st.title("Real-Time Strategy Comparison")
+
+        from monitoring.comparison_engine import StrategyComparison
+
+        @st.cache_resource
+        def get_comparison_engine():
+            return StrategyComparison()
+
+        comp = get_comparison_engine()
+
+        if st.button("🔄 Refresh"):
+            st.rerun()
+
+        with st.spinner("Polling strategy bots..."):
+            comp.poll_all()
+
+        leaderboard = comp.leaderboard()
+
+        if not leaderboard:
+            st.warning("No strategy bots are currently running. Start bots with `python3 -m execution.live_trading`.")
+        else:
+            # Metrics row
+            cols = st.columns(len(leaderboard))
+            for idx, row in enumerate(leaderboard):
+                delta_color = "normal" if row["return_pct"] >= 0 else "inverse"
+                cols[idx].metric(
+                    label=row["strategy"],
+                    value=f"${row['equity']:,.2f}",
+                    delta=f"{row['return_pct']:+.2%}",
+                    delta_color=delta_color,
+                )
+
+            # Leaderboard table
+            st.subheader("Leaderboard")
+            df = pd.DataFrame(leaderboard)
+            df["return_pct"] = df["return_pct"].apply(lambda x: f"{x:+.2%}")
+            df["daily_pnl"] = df["daily_pnl"].apply(lambda x: f"${x:,.2f}")
+            df["equity"] = df["equity"].apply(lambda x: f"${x:,.2f}")
+            st.dataframe(df, use_container_width=True)
+
+            # Equity curves
+            st.subheader("Equity Curves")
+            curves = comp.get_equity_curves()
+            if curves and any(curves.values()):
+                fig = go.Figure()
+                for name, points in curves.items():
+                    if points:
+                        times = [p[0] for p in points]
+                        equities = [p[1] for p in points]
+                        fig.add_trace(go.Scatter(
+                            x=times, y=equities,
+                            mode='lines',
+                            name=name,
+                        ))
+                fig.update_layout(
+                    xaxis_title="Time",
+                    yaxis_title="Equity ($)",
+                    height=400,
+                )
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("Equity curves will appear after multiple polling cycles.")
 
     # --- Page: ML Models ---
     elif page == "ML Models":

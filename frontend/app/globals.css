@@ -1,0 +1,169 @@
+@import "tailwindcss";
+
+/* Neobrutalism Design Tokens */
+:root {
+  /* Light mode */
+  --neo-bg: #F4F4F0;
+  --neo-surface: #FFFFFF;
+  --neo-stroke: #000000;
+  --neo-primary: #FDC800;
+  --neo-bullish: #B9FF66;
+  --neo-bearish: #FF6B6B;
+  --neo-text: #000000;
+  --neo-muted: #666666;
+  
+  /* Shadows */
+  --neo-shadow: 4px 4px 0 0 #000000;
+  --neo-shadow-hover: 6px 6px 0 0 #000000;
+  --neo-shadow-pressed: 2px 2px 0 0 #000000;
+}
+
+[data-theme="dark"] {
+  --neo-bg: #1C293C;
+  --neo-surface: #000000;
+  --neo-stroke: #F4F4F0;
+  --neo-primary: #FDC800;
+  --neo-bullish: #B9FF66;
+  --neo-bearish: #FF6B6B;
+  --neo-text: #F4F4F0;
+  --neo-muted: #8899AA;
+  
+  --neo-shadow: 4px 4px 0 0 #F4F4F0;
+  --neo-shadow-hover: 6px 6px 0 0 #F4F4F0;
+  --neo-shadow-pressed: 2px 2px 0 0 #F4F4F0;
+}
+
+@theme inline {
+  --color-neo-bg: var(--neo-bg);
+  --color-neo-surface: var(--neo-surface);
+  --color-neo-stroke: var(--neo-stroke);
+  --color-neo-primary: var(--neo-primary);
+  --color-neo-bullish: var(--neo-bullish);
+  --color-neo-bearish: var(--neo-bearish);
+  --color-neo-text: var(--neo-text);
+  --color-neo-muted: var(--neo-muted);
+  
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* Base styles */
+body {
+  background: var(--neo-bg);
+  color: var(--neo-text);
+  font-family: var(--font-sans);
+}
+
+/* Neo Card */
+.neo-card {
+  background: var(--neo-surface);
+  border: 3px solid var(--neo-stroke);
+  box-shadow: var(--neo-shadow);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.neo-card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--neo-shadow-hover);
+}
+
+/* Neo Button */
+.neo-button {
+  background: var(--neo-primary);
+  color: var(--neo-stroke);
+  border: 3px solid var(--neo-stroke);
+  box-shadow: var(--neo-shadow);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: transform 0.1s, box-shadow 0.1s;
+  cursor: pointer;
+}
+
+.neo-button:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--neo-shadow-hover);
+}
+
+.neo-button:active {
+  transform: translate(2px, 2px);
+  box-shadow: var(--neo-shadow-pressed);
+}
+
+/* Neo Metric */
+.neo-metric {
+  border-left: 6px solid var(--neo-primary);
+  padding-left: 1rem;
+}
+
+.neo-metric.bullish {
+  border-left-color: var(--neo-bullish);
+}
+
+.neo-metric.bearish {
+  border-left-color: var(--neo-bearish);
+}
+
+/* Neo Table */
+.neo-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.neo-table th {
+  background: var(--neo-stroke);
+  color: var(--neo-bg);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.75rem 1rem;
+  border: 3px solid var(--neo-stroke);
+}
+
+.neo-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 2px solid var(--neo-stroke);
+  font-family: var(--font-mono);
+}
+
+.neo-table tr:hover td {
+  background: rgba(253, 200, 0, 0.1);
+}
+
+/* Neo Badge */
+.neo-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border: 2px solid var(--neo-stroke);
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.neo-badge.running {
+  background: var(--neo-bullish);
+}
+
+.neo-badge.halted {
+  background: var(--neo-bearish);
+}
+
+.neo-badge.paper {
+  background: var(--neo-primary);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--neo-bg);
+  border: 2px solid var(--neo-stroke);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--neo-stroke);
+}
+
+/* Fonts loaded via @import at top */
