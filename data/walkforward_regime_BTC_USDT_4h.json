@@ -6,7 +6,7 @@
     "commission": 0.001,
     "slippage": 0.0005,
     "periods_count": 9,
-    "generated_at": "2026-04-22T10:09:53.834756"
+    "generated_at": "2026-04-22T12:54:04.888982"
   },
   "periods": [
     {
@@ -16,14 +16,14 @@
       "test_start": "2024-01-23T00:00:00",
       "test_end": "2024-04-21T20:00:00",
       "metrics": {
-        "total_return": 0.22723118536031572,
-        "gross_return": 0.23133082362890384,
-        "total_cost": 409.96382685881144,
-        "avg_cost_per_trade": 136.65460895293714,
-        "sharpe": 1.2314561785453284,
-        "max_drawdown": -0.0993792231815534,
-        "winrate": 0.3333333333333333,
-        "profit_factor": 7.049008381786557,
+        "total_return": 0.46114185905652305,
+        "gross_return": 0.4660283587055652,
+        "total_cost": 488.6499649042138,
+        "avg_cost_per_trade": 162.88332163473794,
+        "sharpe": 0.9799385990505923,
+        "max_drawdown": -0.2133974064109193,
+        "winrate": 0,
+        "profit_factor": Infinity,
         "total_trades": 3
       },
       "model_checkpoint": null
@@ -35,13 +35,13 @@
       "test_start": "2024-04-22T00:00:00",
       "test_end": "2024-07-20T20:00:00",
       "metrics": {
-        "total_return": 0.0650553668557512,
-        "gross_return": 0.07027352698669273,
-        "total_cost": 521.8160130941537,
-        "avg_cost_per_trade": 104.36320261883074,
-        "sharpe": 0.40269189245028525,
-        "max_drawdown": -0.1294520078296896,
-        "winrate": 1.0,
+        "total_return": -0.2231295831304465,
+        "gross_return": -0.2170253153747152,
+        "total_cost": 610.4267755731312,
+        "avg_cost_per_trade": 122.08535511462624,
+        "sharpe": -0.8146050972870325,
+        "max_drawdown": -0.3093442260078682,
+        "winrate": 0,
         "profit_factor": Infinity,
         "total_trades": 5
       },
@@ -54,14 +54,14 @@
       "test_start": "2024-07-21T00:00:00",
       "test_end": "2024-10-18T20:00:00",
       "metrics": {
-        "total_return": -0.024208763008733314,
-        "gross_return": -0.017991146240326612,
-        "total_cost": 621.7616768406704,
-        "avg_cost_per_trade": 103.62694614011173,
-        "sharpe": -0.3321144576592519,
-        "max_drawdown": -0.08423091405937527,
-        "winrate": 0.25,
-        "profit_factor": 0.09473825921215968,
+        "total_return": 0.1435691878912977,
+        "gross_return": 0.15022661417382524,
+        "total_cost": 665.7426282527554,
+        "avg_cost_per_trade": 110.95710470879256,
+        "sharpe": 0.47823510713876527,
+        "max_drawdown": -0.1745580922226638,
+        "winrate": 0,
+        "profit_factor": Infinity,
         "total_trades": 6
       },
       "model_checkpoint": null
@@ -73,14 +73,14 @@
       "test_start": "2024-10-19T00:00:00",
       "test_end": "2025-01-16T20:00:00",
       "metrics": {
-        "total_return": 0.2454028328573732,
-        "gross_return": 0.2512384008726678,
-        "total_cost": 583.5568015294598,
-        "avg_cost_per_trade": 194.51893384315326,
-        "sharpe": 0.9702166835952276,
-        "max_drawdown": -0.11413147428523344,
-        "winrate": 0.3333333333333333,
-        "profit_factor": 6.303269597592745,
+        "total_return": 0.4381068382052631,
+        "gross_return": 0.4435522728727578,
+        "total_cost": 544.5434667494702,
+        "avg_cost_per_trade": 181.51448891649008,
+        "sharpe": 1.0435803149618357,
+        "max_drawdown": -0.17180573363364826,
+        "winrate": 0,
+        "profit_factor": Infinity,
         "total_trades": 3
       },
       "model_checkpoint": null
@@ -92,15 +92,15 @@
       "test_start": "2025-01-17T00:00:00",
       "test_end": "2025-04-16T20:00:00",
       "metrics": {
-        "total_return": -0.05931750786908785,
-        "gross_return": -0.05678446593575889,
-        "total_cost": 253.3041933328956,
-        "avg_cost_per_trade": 126.6520966664478,
-        "sharpe": -0.823595725231085,
-        "max_drawdown": -0.0718332899735155,
-        "winrate": 0.0,
-        "profit_factor": 0.0,
-        "total_trades": 2
+        "total_return": -0.2901943440352408,
+        "gross_return": -0.28645093317307285,
+        "total_cost": 374.34108621679457,
+        "avg_cost_per_trade": 93.58527155419864,
+        "sharpe": -0.9626071954798354,
+        "max_drawdown": -0.30001084372988357,
+        "winrate": 0,
+        "profit_factor": Infinity,
+        "total_trades": 4
       },
       "model_checkpoint": null
     },
@@ -111,13 +111,13 @@
       "test_start": "2025-04-17T00:00:00",
       "test_end": "2025-07-15T20:00:00",
       "metrics": {
-        "total_return": 0.1520952474016728,
-        "gross_return": 0.15576402548173496,
-        "total_cost": 366.87780800621647,
-        "avg_cost_per_trade": 183.43890400310823,
-        "sharpe": 1.1757801621938706,
-        "max_drawdown": -0.05476428513491571,
-        "winrate": 1.0,
+        "total_return": 0.24580388778832596,
+        "gross_return": 0.2493505186544105,
+        "total_cost": 354.6630866084543,
+        "avg_cost_per_trade": 177.33154330422715,
+        "sharpe": 1.3277779370174292,
+        "max_drawdown": -0.07114318862574955,
+        "winrate": 0,
         "profit_factor": Infinity,
         "total_trades": 2
       },
@@ -130,15 +130,15 @@
       "test_start": "2025-07-16T00:00:00",
       "test_end": "2025-10-13T20:00:00",
       "metrics": {
-        "total_return": -0.04730872423002774,
-        "gross_return": -0.0407630896549973,
-        "total_cost": 654.5634575030444,
-        "avg_cost_per_trade": 163.6408643757611,
-        "sharpe": -0.33214905653433363,
-        "max_drawdown": -0.11816944461589074,
-        "winrate": 0.25,
-        "profit_factor": 0.041487274571463006,
-        "total_trades": 4
+        "total_return": -0.016761415042479078,
+        "gross_return": -0.013264571084908992,
+        "total_cost": 349.6843957570086,
+        "avg_cost_per_trade": 174.8421978785043,
+        "sharpe": -0.07129444919288887,
+        "max_drawdown": -0.13910452490130507,
+        "winrate": 0,
+        "profit_factor": Infinity,
+        "total_trades": 2
       },
       "model_checkpoint": null
     },
@@ -149,15 +149,15 @@
       "test_start": "2025-10-14T00:00:00",
       "test_end": "2026-01-11T20:00:00",
       "metrics": {
-        "total_return": -0.015287425910203933,
-        "gross_return": -0.01175357101565358,
-        "total_cost": 353.3854894550353,
-        "avg_cost_per_trade": 117.79516315167844,
-        "sharpe": -0.18195979626179265,
-        "max_drawdown": -0.03988065877660127,
-        "winrate": 0.0,
-        "profit_factor": 0.0,
-        "total_trades": 3
+        "total_return": 0.0032667904855259167,
+        "gross_return": 0.006374952285632993,
+        "total_cost": 310.8161800107076,
+        "avg_cost_per_trade": 155.4080900053538,
+        "sharpe": 0.055290603786676565,
+        "max_drawdown": -0.04958897034475142,
+        "winrate": 0,
+        "profit_factor": Infinity,
+        "total_trades": 2
       },
       "model_checkpoint": null
     },
@@ -168,23 +168,23 @@
       "test_start": "2026-01-12T00:00:00",
       "test_end": "2026-04-11T20:00:00",
       "metrics": {
-        "total_return": -0.006757695303851063,
-        "gross_return": -0.0012878315238181674,
-        "total_cost": 546.9863780032896,
-        "avg_cost_per_trade": 109.39727560065792,
-        "sharpe": -0.10697857586691095,
-        "max_drawdown": -0.04260255550140623,
-        "winrate": 0.3333333333333333,
-        "profit_factor": 0.04043936736771869,
-        "total_trades": 5
+        "total_return": -0.05395981005277539,
+        "gross_return": -0.049766902436895015,
+        "total_cost": 419.2907615880375,
+        "avg_cost_per_trade": 104.82269039700938,
+        "sharpe": -0.2263849123850771,
+        "max_drawdown": -0.17120108610782792,
+        "winrate": 0,
+        "profit_factor": Infinity,
+        "total_trades": 4
       },
       "model_checkpoint": null
     }
   ],
   "aggregate": {
-    "total_return": 0.536904516153209,
-    "avg_sharpe": 0.22259414502570418,
-    "avg_max_dd": -0.08382709481757569,
-    "total_trades": 33
+    "total_return": 0.7078434111659939,
+    "avg_sharpe": 0.20110343417894055,
+    "avg_max_dd": -0.1777948968871797,
+    "total_trades": 31
   }
 }

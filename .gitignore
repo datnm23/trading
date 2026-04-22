@@ -65,3 +65,4 @@ models/
 *.key
 *.pem
 credentials.json
+.gitnexus

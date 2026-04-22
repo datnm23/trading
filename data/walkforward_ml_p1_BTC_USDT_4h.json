@@ -1,0 +1,150 @@
+{
+  "meta": {
+    "strategy": "ML-XGBoost",
+    "label": "BTC_USDT_4h",
+    "periods": 9
+  },
+  "periods": [
+    {
+      "period_label": "2024-01-23_2024-04-21",
+      "metrics": {
+        "total_return": 0.004267425181663231,
+        "gross_return": 0.004874434546190282,
+        "total_cost": 60.70093645270502,
+        "avg_cost_per_trade": 60.70093645270502,
+        "sharpe": 0.7918516933701617,
+        "max_drawdown": -0.0007862658182776068,
+        "winrate": 1.0,
+        "profit_factor": Infinity,
+        "total_trades": 1
+      },
+      "model_checkpoint": "/home/datnm/projects/trading/ml/models/walkforward/xgb_p1_BTC_USDT_4h_2024-01-23_2024-04-21.pkl"
+    },
+    {
+      "period_label": "2024-04-22_2024-07-20",
+      "metrics": {
+        "total_return": 0.015195393966822568,
+        "gross_return": 0.021762097935565623,
+        "total_cost": 656.6703968743054,
+        "avg_cost_per_trade": 59.69730880675504,
+        "sharpe": 0.3563221287061623,
+        "max_drawdown": -0.026061914931964344,
+        "winrate": 0.45454545454545453,
+        "profit_factor": 1.2624640370541098,
+        "total_trades": 11
+      },
+      "model_checkpoint": "/home/datnm/projects/trading/ml/models/walkforward/xgb_p1_BTC_USDT_4h_2024-04-22_2024-07-20.pkl"
+    },
+    {
+      "period_label": "2024-07-21_2024-10-18",
+      "metrics": {
+        "total_return": -0.0053867630148064505,
+        "gross_return": 0.0022603873251397285,
+        "total_cost": 764.7150339946179,
+        "avg_cost_per_trade": 58.82423338420138,
+        "sharpe": -0.12860833232339974,
+        "max_drawdown": -0.033825961937441126,
+        "winrate": 0.38461538461538464,
+        "profit_factor": 0.9471088823277805,
+        "total_trades": 13
+      },
+      "model_checkpoint": "/home/datnm/projects/trading/ml/models/walkforward/xgb_p1_BTC_USDT_4h_2024-07-21_2024-10-18.pkl"
+    },
+    {
+      "period_label": "2024-10-19_2025-01-16",
+      "metrics": {
+        "total_return": -0.003493375450608127,
+        "gross_return": -0.002298036970205193,
+        "total_cost": 119.53384804029345,
+        "avg_cost_per_trade": 59.766924020146725,
+        "sharpe": -0.16134868630077143,
+        "max_drawdown": -0.010495685702608748,
+        "winrate": 0.0,
+        "profit_factor": 0.0,
+        "total_trades": 2
+      },
+      "model_checkpoint": "/home/datnm/projects/trading/ml/models/walkforward/xgb_p1_BTC_USDT_4h_2024-10-19_2025-01-16.pkl"
+    },
+    {
+      "period_label": "2025-01-17_2025-04-16",
+      "metrics": {
+        "total_return": -0.03106208728941373,
+        "gross_return": -0.02757316954768891,
+        "total_cost": 348.89177417248226,
+        "avg_cost_per_trade": 58.148629028747045,
+        "sharpe": -1.2556193768174888,
+        "max_drawdown": -0.03352457586599528,
+        "winrate": 0.16666666666666666,
+        "profit_factor": 0.22123881547976226,
+        "total_trades": 6
+      },
+      "model_checkpoint": "/home/datnm/projects/trading/ml/models/walkforward/xgb_p1_BTC_USDT_4h_2025-01-17_2025-04-16.pkl"
+    },
+    {
+      "period_label": "2025-04-17_2025-07-15",
+      "metrics": {
+        "total_return": 0.005852912707861924,
+        "gross_return": 0.0064623030812573055,
+        "total_cost": 60.939037339538196,
+        "avg_cost_per_trade": 60.939037339538196,
+        "sharpe": 0.764323409209188,
+        "max_drawdown": -0.00256986880310583,
+        "winrate": 1.0,
+        "profit_factor": Infinity,
+        "total_trades": 1
+      },
+      "model_checkpoint": "/home/datnm/projects/trading/ml/models/walkforward/xgb_p1_BTC_USDT_4h_2025-04-17_2025-07-15.pkl"
+    },
+    {
+      "period_label": "2025-07-16_2025-10-13",
+      "metrics": {
+        "total_return": 0.0,
+        "gross_return": 0.0,
+        "total_cost": 0.0,
+        "avg_cost_per_trade": 0,
+        "sharpe": 0,
+        "max_drawdown": 0.0,
+        "winrate": 0,
+        "profit_factor": Infinity,
+        "total_trades": 0
+      },
+      "model_checkpoint": "/home/datnm/projects/trading/ml/models/walkforward/xgb_p1_BTC_USDT_4h_2025-07-16_2025-10-13.pkl"
+    },
+    {
+      "period_label": "2025-10-14_2026-01-11",
+      "metrics": {
+        "total_return": -0.04116843491081357,
+        "gross_return": -0.03363243926505596,
+        "total_cost": 753.59956457576,
+        "avg_cost_per_trade": 57.96919727505846,
+        "sharpe": -1.2025497865865271,
+        "max_drawdown": -0.049847816945848,
+        "winrate": 0.23076923076923078,
+        "profit_factor": 0.31076239460990274,
+        "total_trades": 13
+      },
+      "model_checkpoint": "/home/datnm/projects/trading/ml/models/walkforward/xgb_p1_BTC_USDT_4h_2025-10-14_2026-01-11.pkl"
+    },
+    {
+      "period_label": "2026-01-12_2026-04-11",
+      "metrics": {
+        "total_return": 0.015296336598680904,
+        "gross_return": 0.02016633205664623,
+        "total_cost": 486.99954579653286,
+        "avg_cost_per_trade": 60.87494322456661,
+        "sharpe": 0.46673705165558915,
+        "max_drawdown": -0.02472017295961484,
+        "winrate": 0.5,
+        "profit_factor": 1.4080435323037852,
+        "total_trades": 8
+      },
+      "model_checkpoint": "/home/datnm/projects/trading/ml/models/walkforward/xgb_p1_BTC_USDT_4h_2026-01-12_2026-04-11.pkl"
+    }
+  ],
+  "aggregate": {
+    "total_return": -0.04049859221061325,
+    "avg_sharpe": -0.040987988787453994,
+    "avg_max_dd": -0.020203584773872865,
+    "total_trades": 55
+  }
+}

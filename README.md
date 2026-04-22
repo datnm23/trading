@@ -51,6 +51,91 @@ Xem chi tiết tại [`docs/roadmap.md`](docs/roadmap.md).
 
 — *Turtle Trading Wiki*
 
+## Production Deployment & Data Migration
+
+### Chạy Paper Trading 24/7
+
+```bash
+# 1. Khởi động bot (systemd auto-restart)
+systemctl --user start paper-trade.service
+
+# 2. Xem log
+journalctl --user -u paper-trade.service -f
+
+# 3. Health check
+curl http://localhost:8080/health
+
+# 4. Dashboard
+streamlit run scripts/dashboard.py --server.port 8501
+```
+
+### Chuyển máy / Migration Database
+
+Bot dùng PostgreSQL (Docker). Data không tự động đi theo khi chuyển máy.
+
+#### Export (máy cũ)
+```bash
+docker exec trading-postgres pg_dump -U trader trading_journal > trading_backup.sql
+```
+
+#### Import (máy mới)
+```bash
+# 1. Khởi động PostgreSQL container
+docker run -d \
+  --name trading-postgres \
+  -e POSTGRES_USER=trader \
+  -e POSTGRES_PASSWORD=trading123 \
+  -e POSTGRES_DB=trading_journal \
+  -p 5432:5432 \
+  -v ./data/postgres:/var/lib/postgresql/data \
+  --restart unless-stopped \
+  postgres:16-alpine
+
+# 2. Import data
+cat trading_backup.sql | docker exec -i trading-postgres psql -U trader -d trading_journal
+
+# 3. Kiểm tra
+docker exec trading-postgres psql -U trader -d trading_journal -c "SELECT COUNT(*) FROM trades;"
+```
+
+#### Hoặc dùng Cloud PostgreSQL (Khuyến nghị)
+
+Sửa `config/system.yaml`:
+```yaml
+journal:
+  db_url: "postgresql://user:password@your-db-host:5432/trading_journal"
+```
+
+Các dịch vụ free tier phù hợp:
+- **Supabase**: 500MB free
+- **Neon**: 500MB free
+- **AWS RDS**: $5-10/tháng
+
+### Các service chạy nền
+
+| Service | Port | Mô tả |
+|---------|------|-------|
+| Trading Bot | — | systemd `paper-trade.service` |
+| Health API | 8080 | `curl localhost:8080/health` |
+| Dashboard | 8501 | Streamlit real-time monitoring |
+| PostgreSQL | 5432 | Journal + wiki feedback |
+
+### Telegram Alerts
+
+Set env vars trong `.env`:
+```
+TELEGRAM_BOT_TOKEN=xxx
+TELEGRAM_CHAT_ID=-xxx
+```
+
+Bot gửi alert cho:
+- 🟢/🔴 Trade signals
+- 🔔 Price alerts (real-time)
+- 🚨 Volume spikes
+- ⚠️ Drawdown warnings
+- 🧠 Psychology pauses
+- ⚪ No-trade reasons (wiki detail)
+
 ## License
 
 MIT — Dùng cho mục đích cá nhân / nội bộ.
