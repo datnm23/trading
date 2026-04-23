@@ -1,30 +1,53 @@
-version: "3.8"
-
 services:
-  trading-bot:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: hybrid-trading-bot
+  # -----------------------------------------------------------
+  # 1. PostgreSQL — Trading Journal
+  # -----------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: trading-postgres
     restart: unless-stopped
     env_file:
       - .env
     environment:
-      - TZ=UTC
-      - PYTHONUNBUFFERED=1
+      POSTGRES_USER: trader
+      POSTGRES_PASSWORD: trading123
+      POSTGRES_DB: trading_journal
     volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init_postgres.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trader -d trading_journal"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - trading-network
+
+  # -----------------------------------------------------------
+  # 2. Trading Bot — Main engine
+  # -----------------------------------------------------------
+  trading-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: trading-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - SERVICE_MODE=bot
+      - TRADING_DB_URL=postgresql://trader:trading123@postgres:5432/trading_journal
+    volumes:
+      - ./config:/app/config:ro
       - ./data:/app/data
-      - ./ml/models:/app/ml/models
-      - ./journal:/app/journal
-      - ./logs:/app/logs
-      - ./config:/app/config
+      - ./ml/models:/app/ml/models:ro
     ports:
       - "8080:8080"
-      - "8501:8501"
-    command: >
-      python3 -m execution.live_trading
-      --config /app/config/system.yaml
-      --mode ${TRADING_MODE:-paper}
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - trading-network
     logging:
@@ -33,27 +56,130 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # Optional: Streamlit dashboard
-  dashboard:
+  # -----------------------------------------------------------
+  # 3. Backend API — FastAPI gateway
+  # -----------------------------------------------------------
+  backend-api:
+    image: trading-trading-bot:latest
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: trading-dashboard
+    container_name: trading-api
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      - SERVICE_MODE=api
+      - TRADING_DB_URL=postgresql://trader:trading123@postgres:5432/trading_journal
     volumes:
+      - ./config:/app/config:ro
       - ./data:/app/data
-      - ./ml/models:/app/ml/models
-      - ./journal:/app/journal
     ports:
-      - "8501:8501"
-    command: >
-      streamlit run knowledge_engine/ui.py
-      --server.port=8501
-      --server.address=0.0.0.0
+      - "8090:8090"
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - trading-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # -----------------------------------------------------------
+  # 4. Prometheus — Metrics collection
+  # -----------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: trading-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+      - "--web.enable-lifecycle"
+    networks:
+      - trading-network
+
+  # -----------------------------------------------------------
+  # 5. Grafana — Visualization
+  # -----------------------------------------------------------
+  grafana:
+    image: grafana/grafana:latest
+    container_name: trading-grafana
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - trading-network
+
+  # -----------------------------------------------------------
+  # 6. Node Exporter — Host OS metrics
+  # -----------------------------------------------------------
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: trading-node-exporter
+    restart: unless-stopped
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - "--path.procfs=/host/proc"
+      - "--path.rootfs=/rootfs"
+      - "--path.sysfs=/host/sys"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+    ports:
+      - "9100:9100"
+    networks:
+      - trading-network
+
+  # -----------------------------------------------------------
+  # 7. Export Journal — Cron (10:00 UTC daily)
+  # -----------------------------------------------------------
+  export-journal:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: trading-export
+    env_file:
+      - .env
+    environment:
+      - SERVICE_MODE=export
+      - TRADING_DB_URL=postgresql://trader:trading123@postgres:5432/trading_journal
+    volumes:
+      - ./data/exports:/app/data/exports
+      - ./data/logs:/app/data/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - trading-network
+    profiles:
+      - export
+
+volumes:
+  postgres_data:
+  prometheus_data:
+  grafana_data:
 
 networks:
   trading-network:

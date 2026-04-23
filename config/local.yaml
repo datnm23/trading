@@ -1,11 +1,13 @@
-# Local configuration for paper trading (SQLite, no Telegram, no PostgreSQL)
+# Local Configuration — Copy from system.yaml and customize
+# DO NOT commit this file with real API keys
 
 system:
   name: "hybrid-trading-system"
-  mode: "paper"
+  mode: "paper"  # paper | live
   timezone: "UTC"
   log_level: "INFO"
 
+# Data configuration
 data:
   exchange: "binance"
   timeframe: "4h"
@@ -18,6 +20,7 @@ data:
   data_dir: "./data/raw"
   processed_dir: "./data/processed"
 
+# Strategy configuration
 strategies:
   active: "RegimeEnsemble"
   registry:
@@ -40,6 +43,7 @@ strategies:
       params:
         wiki_min_alignment: 0.45
 
+# Risk management
 risk:
   max_risk_per_trade: 0.008
   max_total_exposure: 0.10
@@ -52,6 +56,7 @@ risk:
   trailing_activation: 0.05
   trailing_trail_pct: 0.3
 
+# Psychology / Discipline
 psychology:
   max_consecutive_losses: 3
   pause_after_losses_hours: 24
@@ -63,19 +68,25 @@ psychology:
   large_loss_threshold: 2.0
   large_loss_cooldown_hours: 12
 
+# Backtest configuration
 backtest:
   initial_capital: 100000
   commission: 0.001
   slippage: 0.0005
   fractional_size: true
 
+# Execution
 execution:
   paper: true
   exchange_id: "binance"
-  api_key: ""
-  api_secret: ""
+  api_key: ""                     # Set via env var EXCHANGE_API_KEY
+  api_secret: ""                  # Set via env var EXCHANGE_API_SECRET
   testnet: true
+  max_retries: 3
+  retry_base_delay: 1.0
+  retry_max_delay: 30.0
 
+# Knowledge Engine
 knowledge:
   wiki_dir: "./crawl-wiki/concepts"
   vector_db_path: "./knowledge/vector_store"
@@ -84,6 +95,7 @@ knowledge:
   llm_model: "gpt-4o-mini"
   top_k_retrieval: 5
 
+# ML Configuration
 ml:
   enabled: false
   model_dir: "./ml/models"
@@ -96,32 +108,38 @@ ml:
     - "atr"
     - "volume_ma_ratio"
 
+# Monitoring
 monitoring:
   enabled: true
   alert_telegram: true
-  telegram_bot_token: ""
-  telegram_chat_id: ""
+  telegram_bot_token: ""          # Set via env var TELEGRAM_BOT_TOKEN
+  telegram_chat_id: ""            # Set via env var TELEGRAM_CHAT_ID
   health_port: 8080
 
+# Journal — PostgreSQL only
 journal:
   db_url: "postgresql://trader:trading123@localhost:5432/trading_journal"
 
+# Price Alerts
 price_alerts:
   enabled: true
   threshold_pct: 0.008
   cooldown_hours: 1.0
 
+# Drawdown Alerts
 drawdown_alerts:
   enabled: true
   warning_pct: 0.10
   cooldown_hours: 4.0
 
+# Volume Spike Alerts
 volume_alerts:
   enabled: true
   lookback_bars: 20
   multiplier: 2.5
   cooldown_hours: 4.0
 
+# Model Drift Detection
 drift:
   enabled: false
   confidence_window: 30

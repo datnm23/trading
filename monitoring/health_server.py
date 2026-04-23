@@ -17,7 +17,9 @@ from loguru import logger
 class _HealthHandler(BaseHTTPRequestHandler):
     """HTTP request handler for health endpoints."""
 
-    _status_provider: Optional[Callable[[], dict]] = None
+    def __init__(self, *args, status_provider=None, **kwargs):
+        self._status_provider = status_provider
+        super().__init__(*args, **kwargs)
 
     def log_message(self, format, *args):
         # Suppress default logging
@@ -33,7 +35,7 @@ class _HealthHandler(BaseHTTPRequestHandler):
             self.end_headers()
 
     def _get_health(self) -> dict:
-        provider = type(self)._status_provider
+        provider = self._status_provider
         if provider:
             status = provider()
             healthy = status.get("running", False)
@@ -45,15 +47,35 @@ class _HealthHandler(BaseHTTPRequestHandler):
         return {"status": "unknown", "timestamp": datetime.now().isoformat()}
 
     def _get_metrics(self) -> str:
-        provider = type(self)._status_provider
+        provider = self._status_provider
         if not provider:
             return "# No status provider\n"
         status = provider()
+        equity = status.get("equity", 0)
+        capital = status.get("capital", 0)
+        open_pos = status.get("open_positions", 0)
+        running = 1 if status.get("running", False) else 0
+        dd = status.get("drawdown", 0) or 0
         lines = [
-            f"equity {status.get('equity', 0)}",
-            f"capital {status.get('capital', 0)}",
-            f"open_positions {status.get('open_positions', 0)}",
-            f"running {1 if status.get('running', False) else 0}",
+            "# HELP trading_equity Current account equity",
+            "# TYPE trading_equity gauge",
+            f"trading_equity {equity}",
+            "",
+            "# HELP trading_capital Current cash capital",
+            "# TYPE trading_capital gauge",
+            f"trading_capital {capital}",
+            "",
+            "# HELP trading_positions_open Number of open positions",
+            "# TYPE trading_positions_open gauge",
+            f"trading_positions_open {open_pos}",
+            "",
+            "# HELP trading_running Whether the bot is running (1) or not (0)",
+            "# TYPE trading_running gauge",
+            f"trading_running {running}",
+            "",
+            "# HELP trading_drawdown Current drawdown percentage",
+            "# TYPE trading_drawdown gauge",
+            f"trading_drawdown {dd}",
         ]
         return "\n".join(lines) + "\n"
 
@@ -80,8 +102,10 @@ class HealthServer:
         self._thread: Optional[threading.Thread] = None
 
     def start(self):
-        _HealthHandler._status_provider = self.status_provider
-        self._server = HTTPServer(("0.0.0.0", self.port), _HealthHandler)
+        self._server = HTTPServer(
+            ("0.0.0.0", self.port),
+            lambda *args, **kwargs: _HealthHandler(*args, status_provider=self.status_provider, **kwargs),
+        )
         self._thread = threading.Thread(target=self._server.serve_forever, daemon=True)
         self._thread.start()
         logger.info(f"Health server started on port {self.port}")

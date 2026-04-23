@@ -16,6 +16,7 @@ Safety Rules:
 
 import argparse
 import os
+import threading
 import time
 import yaml
 from datetime import datetime, timedelta
@@ -178,13 +179,12 @@ class LiveTradingEngine:
         # Data
         self.feed = DataFeed()
 
-        # Journal (PostgreSQL preferred, SQLite fallback)
+        # Journal (PostgreSQL only)
         journal_cfg = config.get("journal", {})
-        if journal_cfg.get("db_url"):
-            self.journal = TradeLogger(db_url=journal_cfg["db_url"])
-        else:
-            db_path = journal_cfg.get("db_path", "./data/journal.db")
-            self.journal = TradeLogger(db_path=db_path)
+        db_url = journal_cfg.get("db_url")
+        if not db_url:
+            raise ValueError("journal.db_url is required in config (PostgreSQL only)")
+        self.journal = TradeLogger(db_url=db_url)
 
         # Alerts
         alert_cfg = config.get("monitoring", {})
@@ -265,7 +265,6 @@ class LiveTradingEngine:
         # New: Daily Report Generator
         self.daily_report = DailyReportGenerator(
             db_url=journal_cfg.get("db_url"),
-            db_path=journal_cfg.get("db_path"),
         )
 
         # Health server
@@ -283,6 +282,8 @@ class LiveTradingEngine:
         self.last_bar_times: Dict[str, datetime] = {}
         self.check_interval = 60  # seconds
         self._was_psych_paused = False  # Track pause→resume transitions
+        self._last_daily_summary_date = None  # Track daily summary to avoid duplicates
+        self._lock = threading.Lock()  # Protect shared mutable state
 
     def run(self):
         """Main trading loop."""
@@ -322,9 +323,11 @@ class LiveTradingEngine:
                 if iteration % 50 == 0 and self.drift_monitor is not None:
                     self._check_drift()
 
-                # Daily summary at midnight UTC
-                if datetime.now().hour == 0 and datetime.now().minute < 2:
+                # Daily summary at midnight UTC (once per day)
+                today = datetime.now().date()
+                if datetime.now().hour == 0 and datetime.now().minute < 2 and today != self._last_daily_summary_date:
                     self._send_daily_summary()
+                    self._last_daily_summary_date = today
 
             except Exception as e:
                 logger.error(f"Trading loop error: {e}")
@@ -366,7 +369,15 @@ class LiveTradingEngine:
             if self.trailing_stop.should_exit(symbol, current_price):
                 stop_level = self.trailing_stop.get_stop(symbol)
                 logger.info(f"🛑 TRAILING STOP HIT for {symbol} at {current_price:.2f} (stop: {stop_level:.2f})")
-                self._execute_signal(symbol, type('obj', (object,), {'side': 'sell', 'timestamp': latest_time, 'meta': {'reason': 'trailing_stop'}})(), latest_bar)
+                from strategies.base import Signal
+                trailing_signal = Signal(
+                    timestamp=latest_time,
+                    symbol=symbol,
+                    side="sell",
+                    strength=1.0,
+                    meta={"reason": "trailing_stop"},
+                )
+                self._execute_signal(symbol, trailing_signal, latest_bar)
                 self.trailing_stop.remove_position(symbol)
                 self.partial_exit.remove_position(symbol)
                 return
@@ -512,6 +523,11 @@ class LiveTradingEngine:
 
     def _execute_signal(self, symbol: str, signal, bar, psych_state=None):
         """Convert strategy signal to order and submit."""
+        with self._lock:
+            self._execute_signal_locked(symbol, signal, bar, psych_state)
+
+    def _execute_signal_locked(self, symbol: str, signal, bar, psych_state=None):
+        """Internal signal execution under lock."""
         price = bar["close"]
         psych_multiplier = psych_state.size_multiplier if psych_state else 1.0
         regime = signal.meta.get("directional_regime", "neutral") if signal.meta else "neutral"
@@ -690,15 +706,11 @@ class LiveTradingEngine:
                 if "wiki_feedback_id" in pos:
                     try:
                         outcome = "win" if pnl > 0 else "loss"
-                        with self.journal._connect() as conn:
-                            cur = conn.cursor()
-                            ph = self.journal._ph()
-                            cur.execute(
-                                f"UPDATE wiki_feedback SET outcome={ph}, pnl={ph}, pnl_pct={ph} WHERE id={ph}",
-                                (outcome, pnl, pnl_pct, pos["wiki_feedback_id"]),
-                            )
-                            conn.commit()
-                        logger.debug(f"Wiki feedback {pos['wiki_feedback_id']} updated: {outcome}")
+                        updated = self.journal.update_wiki_feedback(
+                            pos["wiki_feedback_id"], outcome, pnl, pnl_pct
+                        )
+                        if updated:
+                            logger.debug(f"Wiki feedback {pos['wiki_feedback_id']} updated: {outcome}")
                     except Exception as e:
                         logger.warning(f"Failed to update wiki feedback: {e}")
 
@@ -753,10 +765,11 @@ class LiveTradingEngine:
 
     def _update_equity(self, symbol: str, bar):
         """Recalculate total equity."""
-        position_value = sum(
-            p["size"] * bar["close"] for p in self.positions.values()
-        )
-        self.equity = self.capital + position_value
+        with self._lock:
+            position_value = sum(
+                p["size"] * bar["close"] for p in self.positions.values()
+            )
+            self.equity = self.capital + position_value
 
     def _snapshot(self):
         """Record equity snapshot to journal."""
@@ -797,7 +810,8 @@ class LiveTradingEngine:
             )
 
     def stop(self):
-        self.is_running = False
+        with self._lock:
+            self.is_running = False
         self.health_server.stop()
 
     def _check_drift(self):
@@ -819,30 +833,32 @@ class LiveTradingEngine:
 
     def get_status(self) -> dict:
         """Return current engine status (for health check / monitoring)."""
-        status = {
-            "mode": self.mode,
-            "running": self.is_running,
-            "equity": self.equity,
-            "capital": self.capital,
-            "open_positions": len(self.positions),
-            "positions": [
+        with self._lock:
+            positions_copy = [
                 {
-                    "symbol": p.symbol,
-                    "side": p.side,
-                    "entry_price": p.entry_price,
-                    "size": p.size,
-                    "current_price": getattr(p, 'current_price', None),
-                    "unrealized_pnl": getattr(p, 'unrealized_pnl', None),
-                    "stop_price": getattr(p, 'stop_price', None),
+                    "symbol": p.get("symbol", ""),
+                    "side": p.get("side", ""),
+                    "entry_price": p.get("entry_price", 0.0),
+                    "size": p.get("size", 0.0),
+                    "current_price": p.get("current_price"),
+                    "unrealized_pnl": p.get("unrealized_pnl"),
+                    "stop_price": p.get("stop"),
                     "strategy": self.strategy.__class__.__name__,
                 }
-                for p in self.positions
-            ],
-            "symbols": self.symbols,
-            "strategy": self.strategy.__class__.__name__,
-            "paper_mode": self.paper_mode,
-            "timestamp": datetime.now().isoformat(),
-        }
+                for p in self.positions.values()
+            ]
+            status = {
+                "mode": self.mode,
+                "running": self.is_running,
+                "equity": self.equity,
+                "capital": self.capital,
+                "open_positions": len(self.positions),
+                "positions": positions_copy,
+                "symbols": self.symbols,
+                "strategy": self.strategy.__class__.__name__,
+                "paper_mode": self.paper_mode,
+                "timestamp": datetime.now().isoformat(),
+            }
         # Add psychological state
         psych = self.psych_enforcer.get_summary()
         status["psychology"] = psych

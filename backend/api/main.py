@@ -7,6 +7,7 @@ from typing import Dict, List
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel
 from loguru import logger
 
@@ -65,6 +66,9 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+# Prometheus metrics instrumentation
+Instrumentator().instrument(app).expose(app)
 
 # CORS for Next.js dev server
 app.add_middleware(
@@ -125,16 +129,24 @@ async def get_rebalance_targets():
 @app.get("/api/v1/market/ohlcv")
 async def get_market_ohlcv(symbol: str = "BTC/USDT", timeframe: str = "1d", limit: int = 100):
     """Fetch OHLCV candles for a symbol."""
-    data = await market_provider.get_ohlcv(symbol=symbol, timeframe=timeframe, limit=limit)
-    return {"symbol": symbol, "timeframe": timeframe, "candles": data}
+    try:
+        data = await market_provider.get_ohlcv(symbol=symbol, timeframe=timeframe, limit=limit)
+        return {"symbol": symbol, "timeframe": timeframe, "candles": data}
+    except Exception as e:
+        logger.error(f"OHLCV fetch failed: {e}")
+        return {"symbol": symbol, "timeframe": timeframe, "candles": [], "error": str(e)}
 
 
 @app.get("/api/v1/market/tickers")
 async def get_market_tickers():
     """Fetch current prices and 24h change for tracked symbols."""
-    symbols = ["BTC/USDT", "ETH/USDT", "SOL/USDT"]
-    data = await market_provider.get_tickers(symbols)
-    return {"tickers": data, "timestamp": datetime.utcnow().isoformat()}
+    try:
+        symbols = ["BTC/USDT", "ETH/USDT", "SOL/USDT"]
+        data = await market_provider.get_tickers(symbols)
+        return {"tickers": data, "timestamp": datetime.utcnow().isoformat()}
+    except Exception as e:
+        logger.error(f"Ticker fetch failed: {e}")
+        return {"tickers": {}, "timestamp": datetime.utcnow().isoformat(), "error": str(e)}
 
 
 if __name__ == "__main__":

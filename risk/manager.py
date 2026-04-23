@@ -142,6 +142,8 @@ class DrawdownGuard:
 
     def update(self, equity: float) -> bool:
         """Return True if trading should halt."""
+        if equity <= 0:
+            return True
         if equity > self.peak:
             self.peak = equity
         if self.peak <= 0:

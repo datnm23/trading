@@ -1,0 +1,13 @@
+[Unit]
+Description=Export trading journal data to CSV/JSON
+After=network.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/datnm/projects/trading
+Environment="PATH=/home/datnm/projects/trading/.venv/bin"
+Environment="PYTHONPATH=/home/datnm/projects/trading"
+Environment="TRADING_DB_URL=postgresql://trader:trading123@localhost:5432/trading_journal"
+ExecStart=/home/datnm/projects/trading/.venv/bin/python scripts/export_journal.py --output-dir ./data/exports --format both
+StandardOutput=append:/home/datnm/projects/trading/data/logs/export_journal.log
+StandardError=append:/home/datnm/projects/trading/data/logs/export_journal.log

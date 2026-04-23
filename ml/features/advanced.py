@@ -57,12 +57,12 @@ def add_sentiment_features(df: pd.DataFrame) -> pd.DataFrame:
     n = len(data)
 
     # Synthetic fear/greed index (0-100, mean-reverting around 50)
-    np.random.seed(42)
+    rng = np.random.default_rng(42)
     fear_greed = [50.0]
     for i in range(1, n):
         # Mean-reverting with momentum from returns
         momentum = data["returns_1d"].iloc[i] * 200 if i < len(data) else 0
-        noise = np.random.normal(0, 8)
+        noise = rng.normal(0, 8)
         val = 0.9 * fear_greed[-1] + 0.1 * (50 + momentum) + noise
         val = max(0, min(100, val))
         fear_greed.append(val)
@@ -74,7 +74,7 @@ def add_sentiment_features(df: pd.DataFrame) -> pd.DataFrame:
     # Synthetic social volume (correlated with volatility)
     data["social_volume"] = (
         data["volatility_5d"] * 10000 +
-        np.random.normal(0, 1000, n)
+        rng.normal(0, 1000, n)
     )
     data["social_volume_ma7"] = data["social_volume"].rolling(7).mean()
 
@@ -93,11 +93,11 @@ def add_macro_features(df: pd.DataFrame) -> pd.DataFrame:
     n = len(data)
 
     # Synthetic DXY (negatively correlated with BTC, slow-moving)
-    np.random.seed(123)
+    rng2 = np.random.default_rng(123)
     dxy = [100.0]
     for i in range(1, n):
         trend = -data["returns_1d"].iloc[max(0, i-5):i].mean() * 50 if i > 0 else 0
-        noise = np.random.normal(0, 0.3)
+        noise = rng2.normal(0, 0.3)
         val = 0.98 * dxy[-1] + 0.02 * (100 + trend) + noise
         dxy.append(val)
     data["dxy_index"] = dxy
@@ -106,7 +106,7 @@ def add_macro_features(df: pd.DataFrame) -> pd.DataFrame:
     # Synthetic rates (slow drift)
     rates = [4.5]
     for i in range(1, n):
-        noise = np.random.normal(0, 0.05)
+        noise = rng2.normal(0, 0.05)
         val = max(0, rates[-1] + noise)
         rates.append(val)
     data["fed_rate"] = rates

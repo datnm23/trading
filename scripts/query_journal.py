@@ -1,23 +1,21 @@
 #!/usr/bin/env python3
 """Query trading journal for P&L, winrate, and performance metrics.
 
-Supports both SQLite and PostgreSQL backends.
+PostgreSQL only.
 
 Usage:
-    # Query PostgreSQL (default for running bot)
+    # Query default PostgreSQL
     python scripts/query_journal.py
 
     # Query specific symbol
     python scripts/query_journal.py --symbol BTC/USDT
-
-    # Query SQLite file directly
-    python scripts/query_journal.py --db data/journal.db
 
     # Export to CSV
     python scripts/query_journal.py --export trades.csv
 """
 
 import argparse
+import os
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -25,6 +23,12 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from journal.trade_logger import TradeLogger
+
+
+DEFAULT_DB_URL = os.getenv(
+    "TRADING_DB_URL",
+    "postgresql://trader:trading123@localhost:5432/trading_journal"
+)
 
 
 def format_currency(val: float) -> str:
@@ -114,20 +118,15 @@ def export_trades(logger: TradeLogger, path: str, symbol: str = None):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Query trading journal")
-    parser.add_argument("--db", default=None, help="SQLite db path (default: use PostgreSQL)")
-    parser.add_argument("--pg-url", default="postgresql://trader:trading123@localhost:5432/trading_journal",
+    parser = argparse.ArgumentParser(description="Query trading journal (PostgreSQL)")
+    parser.add_argument("--pg-url", default=DEFAULT_DB_URL,
                         help="PostgreSQL connection URL")
     parser.add_argument("--symbol", help="Filter by symbol (e.g. BTC/USDT)")
     parser.add_argument("--export", help="Export trades to CSV file")
     args = parser.parse_args()
 
-    if args.db:
-        logger = TradeLogger(db_path=args.db)
-        print(f"📁 Using SQLite: {args.db}\n")
-    else:
-        logger = TradeLogger(db_url=args.pg_url)
-        print(f"🐘 Using PostgreSQL: {args.pg_url}\n")
+    logger = TradeLogger(db_url=args.pg_url)
+    print(f"🐘 Using PostgreSQL: {args.pg_url}\n")
 
     if args.export:
         export_trades(logger, args.export, symbol=args.symbol)

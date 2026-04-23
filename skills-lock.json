@@ -11,30 +11,105 @@
       "sourceType": "github",
       "computedHash": "eb16b20dcbe6ce51e0372083d624e0847af1b09487ec99249227d5a8eddebfc0"
     },
-    "vercel-composition-patterns": {
+    "composition-patterns": {
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",
       "computedHash": "575757e3e25761c8c562d6e395d29f0b76c98b1273c0bd72d88e6ab1bc9c7d42"
     },
-    "vercel-react-best-practices": {
+    "react-best-practices": {
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",
       "computedHash": "ca7b0c0c6e5f2750043f7f0cd72d16ac4e2abc48f9b5500d047a4b77a2506212"
     },
-    "vercel-react-native-skills": {
+    "react-native-skills": {
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",
       "computedHash": "41d24eafa7c3d82e270439808f7cfbc4d51aeb2d14f2809a2267c16275784d06"
     },
-    "vercel-react-view-transitions": {
+    "react-view-transitions": {
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",
       "computedHash": "c8952fc9127fa0564d0cb71dccb4215a5608ac933b5831104f09173a97a46f85"
+    },
+    "neobrutalism": {
+      "source": "typeui.sh",
+      "sourceType": "registry",
+      "computedHash": "16d3c96dcc6e63dc43eb04559e2177cb02fd6c61334b43532dbc73be0e65053a"
     },
     "web-design-guidelines": {
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",
       "computedHash": "f3bc47f890f42a44db1007ab390709ec368e4b8c089baee6b0007182236ac474"
+    },
+    "researcher": {
+      "source": "claudekit-engineer",
+      "sourceType": "local",
+      "computedHash": "0278ed100130c06ea14839e62d1d4bc5468b7648b3ac49a653d69af39694c082"
+    },
+    "journal-writer": {
+      "source": "claudekit-engineer",
+      "sourceType": "local",
+      "computedHash": "b3e072ec80d5e6f9cb34d496d60c56719a91d6670fb0cd697aa519530eeb1670"
+    },
+    "brainstormer": {
+      "source": "claudekit-engineer",
+      "sourceType": "local",
+      "computedHash": "13c564430f81fac4964961e9eb9fef7e5975883a80592419741a0608d23147c6"
+    },
+    "code-reviewer": {
+      "source": "claudekit-engineer",
+      "sourceType": "local",
+      "computedHash": "14df35df1328c21e335a637ef33cf98c6a2c2ccdb6917cb851f8b0bf3f4bb35f"
+    },
+    "fullstack-developer": {
+      "source": "claudekit-engineer",
+      "sourceType": "local",
+      "computedHash": "790568de07769cc045926eaa7f05b22c20de8b25ed799b922e88087767ea5033"
+    },
+    "ui-ux-designer": {
+      "source": "claudekit-engineer",
+      "sourceType": "local",
+      "computedHash": "55cb69913a971b02624a62fa3fd9fdf1fd6fbc223214939d6b0f4e98e0f94e20"
+    },
+    "debugger": {
+      "source": "claudekit-engineer",
+      "sourceType": "local",
+      "computedHash": "5dec21a4387b0e163816e43894cd33058caf54d2e10078e6a6d9537549b29edf"
+    },
+    "git-manager": {
+      "source": "claudekit-engineer",
+      "sourceType": "local",
+      "computedHash": "62c58833e1cf2df1fe0913a36c3b9546ce013c5739dada03d9a6863de1626be0"
+    },
+    "mcp-manager": {
+      "source": "claudekit-engineer",
+      "sourceType": "local",
+      "computedHash": "a1fef90ee655566fd9952d0048de1ef7c98043a3ee228fcfafd52ed719bec916"
+    },
+    "docs-manager": {
+      "source": "claudekit-engineer",
+      "sourceType": "local",
+      "computedHash": "0d3f7c1451313fe7cc3804fa4c5496486141b6b8dc783846753ed01bb47f2fbd"
+    },
+    "planner": {
+      "source": "claudekit-engineer",
+      "sourceType": "local",
+      "computedHash": "1c2c46bbbeeda2b67abe78589444af397d0e61d4c9ca83973faa3087fbe49e04"
+    },
+    "project-manager": {
+      "source": "claudekit-engineer",
+      "sourceType": "local",
+      "computedHash": "5b55a2f8a63c583e511e15720bf9240849898674b51192b8883bd7e1a06cfb7e"
+    },
+    "code-simplifier": {
+      "source": "claudekit-engineer",
+      "sourceType": "local",
+      "computedHash": "7e1a031112a72fd39bd5f7b9ca8c127f8b7928c13b6fa6061b07d90a73580862"
+    },
+    "tester": {
+      "source": "claudekit-engineer",
+      "sourceType": "local",
+      "computedHash": "3ac3a3034ee48d05325b869437d3c2c234f6abdf0b572dd7744291914890056f"
     }
   }
 }

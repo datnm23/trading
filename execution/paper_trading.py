@@ -1,5 +1,6 @@
 """Paper trading engine that simulates live execution."""
 
+import threading
 import time
 from dataclasses import dataclass, field
 from typing import Optional, List
@@ -51,6 +52,7 @@ class PaperTradingEngine:
         self.is_running = False
         self.last_bar_time = None
         self._is_regime_aware = isinstance(risk_manager, RegimeAwareRiskManager)
+        self._lock = threading.Lock()
 
     def run_once(self) -> Optional[dict]:
         """Execute one trading cycle. Returns trade info if any."""
@@ -67,6 +69,9 @@ class PaperTradingEngine:
         if self.last_bar_time == latest_time:
             return None
         self.last_bar_time = latest_time
+
+        # Check stop-loss FIRST (before strategy signal) to prevent runaway losses
+        self._check_stops(latest_bar)
 
         # Warmup strategy on first run
         if not self.strategy.is_warm:
@@ -94,6 +99,7 @@ class PaperTradingEngine:
         # Get signal
         signal = self.strategy.on_bar(context)
         if not signal:
+            self._update_equity(latest_bar)
             return None
 
         # Execute signal
@@ -105,6 +111,26 @@ class PaperTradingEngine:
             f"Equity: ${self.equity:,.2f} | Positions: {len(self.positions)}"
         )
         return result
+
+    def _check_stops(self, bar):
+        """Check stop-loss for all open positions."""
+        for pos in list(self.positions):
+            if pos["side"] == "long":
+                stop = pos.get("stop", 0)
+                if stop > 0 and bar["low"] <= stop:
+                    exit_price = bar["open"] if bar["open"] <= stop else stop
+                    pnl = (exit_price - pos["entry_price"]) * pos["size"]
+                    self.capital += pos["size"] * exit_price * 0.999
+                    self.trades.append(PaperTrade(
+                        timestamp=bar.name,
+                        symbol=pos["symbol"],
+                        side="sell",
+                        price=exit_price,
+                        size=pos["size"],
+                        pnl=pnl,
+                        reason="stop_loss",
+                    ))
+                    self.positions.remove(pos)
 
     def _execute(self, signal, bar) -> dict:
         price = bar["close"]
@@ -162,8 +188,9 @@ class PaperTradingEngine:
         return {}
 
     def _update_equity(self, bar):
-        position_value = sum(p["size"] * bar["close"] for p in self.positions)
-        self.equity = self.capital + position_value
+        with self._lock:
+            position_value = sum(p["size"] * bar["close"] for p in self.positions)
+            self.equity = self.capital + position_value
 
     def run(self, max_iterations: Optional[int] = None):
         """Run paper trading loop."""
@@ -190,16 +217,17 @@ class PaperTradingEngine:
 
     def get_summary(self) -> dict:
         """Get current trading summary."""
-        total_pnl = sum(t.pnl for t in self.trades)
-        wins = [t.pnl for t in self.trades if t.pnl > 0]
-        losses = [t.pnl for t in self.trades if t.pnl <= 0]
-        return {
-            "capital": self.capital,
-            "equity": self.equity,
-            "total_return": (self.equity / self.initial_capital) - 1,
-            "open_positions": len(self.positions),
-            "total_trades": len(self.trades),
-            "winrate": len(wins) / len(self.trades) if self.trades else 0,
-            "profit_factor": sum(wins) / abs(sum(losses)) if losses and sum(losses) != 0 else float("inf"),
-            "total_pnl": total_pnl,
-        }
+        with self._lock:
+            total_pnl = sum(t.pnl for t in self.trades)
+            wins = [t.pnl for t in self.trades if t.pnl > 0]
+            losses = [t.pnl for t in self.trades if t.pnl <= 0]
+            return {
+                "capital": self.capital,
+                "equity": self.equity,
+                "total_return": (self.equity / self.initial_capital) - 1,
+                "open_positions": len(self.positions),
+                "total_trades": len(self.trades),
+                "winrate": len(wins) / len(self.trades) if self.trades else 0,
+                "profit_factor": sum(wins) / abs(sum(losses)) if losses and sum(losses) != 0 else float("inf"),
+                "total_pnl": total_pnl,
+            }

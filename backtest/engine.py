@@ -60,6 +60,9 @@ class BacktestEngine:
             bar = data.iloc[i]
             history = data.iloc[:i+1]
 
+            # Check stop-loss and trailing stops for open positions
+            self._check_stops(bar, risk_manager)
+
             context = StrategyContext(
                 symbol=data.name if hasattr(data, "name") else "UNKNOWN",
                 bar=bar,

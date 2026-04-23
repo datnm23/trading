@@ -113,12 +113,9 @@ monitoring:
   telegram_chat_id: ""
   health_port: 8080
 
-# Journal
+# Journal — PostgreSQL only
 journal:
-  # PostgreSQL (recommended for production)
   db_url: "postgresql://trader:trading123@localhost:5432/trading_journal"
-  # SQLite (fallback / local dev)
-  # db_path: "./data/journal.db"
 
 # Price Alerts (bilingual EN/VN)
 price_alerts:

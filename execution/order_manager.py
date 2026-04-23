@@ -5,6 +5,7 @@ with automatic retries, partial-fill reconciliation, and state tracking.
 """
 
 import time
+import uuid
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
 from enum import Enum
@@ -163,8 +164,7 @@ class OrderManager:
         self._callbacks.append(callback)
 
     def _generate_id(self) -> str:
-        self._order_counter += 1
-        return f"ord_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{self._order_counter:04d}"
+        return f"ord_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
 
     def _notify(self, order: Order):
         for cb in self._callbacks:

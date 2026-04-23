@@ -51,12 +51,13 @@ class MLStrategy(BaseStrategy):
         self.position_size = 0.0
 
         # SL/TP config
-        self.sl_method = self.params.get("sl_method", "atr")  # atr | fixed_pct | none
-        self.sl_value = self.params.get("sl_value", 2.0)      # ATR multiplier or pct
-        self.tp_method = self.params.get("tp_method", "atr")  # atr | fixed_pct | none
-        self.tp_value = self.params.get("tp_value", 3.0)      # ATR multiplier or pct
-        self.trailing_sl = self.params.get("trailing_sl", False)
-        self.trailing_activation = self.params.get("trailing_activation", 0.02)
+        params = self.params or {}
+        self.sl_method = params.get("sl_method", "atr")  # atr | fixed_pct | none
+        self.sl_value = params.get("sl_value", 2.0)      # ATR multiplier or pct
+        self.tp_method = params.get("tp_method", "atr")  # atr | fixed_pct | none
+        self.tp_value = params.get("tp_value", 3.0)      # ATR multiplier or pct
+        self.trailing_sl = params.get("trailing_sl", False)
+        self.trailing_activation = params.get("trailing_activation", 0.02)
 
         # Drift monitoring
         self.drift_monitor = drift_monitor

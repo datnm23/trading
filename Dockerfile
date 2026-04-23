@@ -1,38 +1,75 @@
 # syntax=docker/dockerfile:1
-FROM python:3.12-slim-bookworm
 
-# Prevent Python from writing pyc files and buffering stdout
+# ============================================================
+# Stage 1: Builder
+# ============================================================
+FROM python:3.12-slim-bookworm AS builder
+
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV PIP_NO_CACHE_DIR=1
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 
-WORKDIR /app
+WORKDIR /build
 
-# Install system dependencies
+# Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    libpq-dev \
     git \
-    curl \
     && rm -rf /var/lib/apt/lists/*
+
+# Create virtual environment
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
 # Install Python dependencies
 COPY pyproject.toml ./
 RUN pip install --upgrade pip && \
-    pip install -e ".[dev]" || pip install -e .
+    pip install -e ".[dev]"
+
+# ============================================================
+# Stage 2: Runtime
+# ============================================================
+FROM python:3.12-slim-bookworm AS runtime
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app
+
+# Install runtime dependencies only
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    curl \
+    cron \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Create non-root user
+RUN groupadd -r trader && useradd -r -g trader -u 1000 trader
+
+WORKDIR /app
 
 # Copy application code
-COPY . .
+COPY --chown=trader:trader . .
 
 # Create data directories
-RUN mkdir -p /app/data/raw /app/data/processed /app/ml/models /app/journal /app/logs
+RUN mkdir -p /app/data/raw /app/data/processed /app/data/exports /app/data/logs \
+    /app/ml/models /app/journal /app/logs && \
+    chown -R trader:trader /app/data /app/logs /app/journal
 
 # Make scripts executable
 RUN chmod +x /app/scripts/*.sh
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD python3 -c "import requests; requests.get('http://localhost:8080/health', timeout=5)" || exit 1
+# Switch to non-root user
+USER trader
 
-# Default command
+# Health check (uses curl which is lightweight)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -fsS http://localhost:8080/health > /dev/null || exit 1
+
+# Default command (overridden by docker-compose per service)
 CMD ["/app/scripts/run_bot.sh"]

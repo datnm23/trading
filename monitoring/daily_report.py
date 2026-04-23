@@ -1,5 +1,6 @@
 """Daily Report Generator — Automated P&L, metrics, and insight reports."""
 
+import os
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 from pathlib import Path
@@ -17,18 +18,16 @@ class DailyReportGenerator:
         print(summary.to_text())
     """
 
-    def __init__(self, db_url: Optional[str] = None, db_path: Optional[str] = None):
-        self.db_url = db_url
-        self.db_path = db_path
+    def __init__(self, db_url: Optional[str] = None):
+        self.db_url = db_url or os.getenv(
+            "TRADING_DB_URL",
+            "postgresql://trader:trading123@localhost:5432/trading_journal"
+        )
 
     def _get_connection(self):
-        """Return database connection."""
-        if self.db_url:
-            import psycopg2
-            return psycopg2.connect(self.db_url)
-        else:
-            import sqlite3
-            return sqlite3.connect(self.db_path or "./data/journal.db")
+        """Return PostgreSQL connection."""
+        import psycopg2
+        return psycopg2.connect(self.db_url)
 
     def get_today_trades(self) -> pd.DataFrame:
         """Fetch today's trades."""

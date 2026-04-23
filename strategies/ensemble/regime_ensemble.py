@@ -203,35 +203,6 @@ class RegimeEnsembleStrategy(BaseStrategy):
         self.last_status["rejection_reasons"].append("EMA/Breakout conflict → no buy consensus")
         return None
 
-        # Cooldown: wait 48 bars (8 days on 4h) between trades
-        COOLDOWN_BARS = 48
-        if self.bars_since_last_trade < COOLDOWN_BARS:
-            return None
-
-        trend_signals = []
-        for name in ["ema", "breakout"]:
-            if name in signals:
-                trend_signals.append((name, signals[name]))
-
-        if not trend_signals:
-            return None
-
-        # If both agree, take the signal
-        sides = [s.side for _, s in trend_signals]
-        if len(set(sides)) == 1:
-            chosen = max(trend_signals, key=lambda x: x[1].strength)
-            self.last_signal_source = chosen[0]
-            logger.debug(f"Trending regime | {chosen[0]} signal: {chosen[1].side}")
-            return self._clone_signal(chosen[1], source=chosen[0], regime="trending")
-
-        # Conflict: prefer buy signals (bullish bias, but skip in bear above)
-        for name, sig in trend_signals:
-            if sig.side == "buy":
-                self.last_signal_source = name
-                return self._clone_signal(sig, source=name, regime="trending")
-
-        return None
-
     def _aggregate_ranging(self, signals: dict, context: StrategyContext, regime_info: dict) -> Optional[Signal]:
         """In ranging regime: use Grid Mean Reversion."""
         COOLDOWN_BARS = 48
@@ -253,18 +224,6 @@ class RegimeEnsembleStrategy(BaseStrategy):
             return self._clone_signal(fallback[1], source=fallback[0], regime="ranging")
 
         self.last_status["rejection_reasons"].append("Fallback consensus (2/3) not reached")
-        return None
-
-        if "grid" in signals:
-            self.last_signal_source = "grid"
-            logger.debug(f"Ranging regime | grid signal: {signals['grid'].side}")
-            return self._clone_signal(signals["grid"], source="grid", regime="ranging")
-
-        # Fallback: if grid didn't fire but ema/breakout strongly agree
-        fallback = self._check_consensus(signals, min_agree=2)
-        if fallback:
-            self.last_signal_source = fallback[0]
-            return self._clone_signal(fallback[1], source=fallback[0], regime="ranging")
         return None
 
     def _aggregate_neutral(self, signals: dict, context: StrategyContext, regime_info: dict) -> Optional[Signal]:

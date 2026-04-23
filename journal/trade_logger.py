@@ -450,6 +450,7 @@ class TradeLogger:
         if end:
             query += f" AND timestamp <= {ph}"
             params.append(end)
+        limit = max(1, int(limit))
         query += f" ORDER BY timestamp DESC LIMIT {ph}"
         params.append(limit)
 
@@ -751,6 +752,20 @@ class TradeLogger:
             cur = self._exec(conn, sql, params)
             conn.commit()
             return self._lastrowid(cur)
+
+    def update_wiki_feedback(self, feedback_id: int, outcome: str, pnl: float, pnl_pct: float) -> bool:
+        """Update wiki feedback outcome after trade close."""
+        ph = self._ph()
+        sql = f"UPDATE wiki_feedback SET outcome={ph}, pnl={ph}, pnl_pct={ph} WHERE id={ph}"
+        params = (outcome, pnl, pnl_pct, feedback_id)
+        try:
+            with self._connect() as conn:
+                cur = self._exec(conn, sql, params)
+                conn.commit()
+                return cur.rowcount > 0
+        except Exception as e:
+            logger.warning(f"Failed to update wiki feedback {feedback_id}: {e}")
+            return False
 
     def get_wiki_feedback_stats(self, min_samples: int = 10) -> dict:
         """Compute wiki validation accuracy from feedback history."""

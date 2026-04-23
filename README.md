@@ -6,44 +6,84 @@ Hệ thống giao dịch hybrid kết hợp **rule-based strategies**, **machine
 
 ```bash
 # 1. Install dependencies
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -e ".[dev]"
 
-# 2. Copy and edit config
-cp config/system.yaml config/local.yaml
-# Edit API keys, symbols, risk params
+# 2. Run tests
+pytest tests/ -v
 
 # 3. Run backtest với rule-based strategy
 python -m backtest.run --strategy EMA-Trend --config config/local.yaml
 
-# 4. Start knowledge chat UI
+# 4. Start backend API
+uvicorn backend.api.main:app --host 0.0.0.0 --port 8090 --reload
+
+# 5. Start knowledge chat UI
 streamlit run knowledge_engine/ui.py
 ```
 
-## Kiến trúc
+## Documentation
 
-Xem chi tiết tại [`docs/architecture.md`](docs/architecture.md).
-
-## Roadmap
-
-Xem chi tiết tại [`docs/roadmap.md`](docs/roadmap.md).
+| Document | Description |
+|----------|-------------|
+| [`docs/project-overview-pdr.md`](docs/project-overview-pdr.md) | Product requirements, success criteria, risks |
+| [`docs/architecture.md`](docs/architecture.md) | System architecture, component details, tech stack |
+| [`docs/quickstart.md`](docs/quickstart.md) | Setup, tests, backtest, paper trading, API usage |
+| [`docs/roadmap.md`](docs/roadmap.md) | Development phases, completion status |
+| [`docs/deployment-guide.md`](docs/deployment-guide.md) | Docker, systemd, database migration |
+| [`docs/code-standards.md`](docs/code-standards.md) | Coding conventions, testing, thread safety |
+| [`docs/ml_xgboost_modification_plan.md`](docs/ml_xgboost_modification_plan.md) | ML experiment results (historical) |
 
 ## Thư mục
 
 ```
 .
-├── data/               # Market data pipeline
-├── knowledge/          # Wiki anchor (crawl-wiki/)
-├── strategies/         # Rule-based + ML strategies
-├── backtest/           # Event-driven backtest engine
-├── risk/               # Risk management layer
-├── execution/          # Exchange connectors + order manager
-├── ml/                 # ML models + feature engineering
-├── knowledge_engine/   # RAG + LLM decision support
-├── config/             # YAML configs
-├── notebooks/          # Research notebooks
-├── tests/              # Unit + integration tests
-└── docs/               # Documentation
+├── backend/api/         # FastAPI gateway + Socket.IO
+├── backtest/            # Event-driven backtest engine
+├── config/              # YAML configs (system.yaml + local.yaml)
+├── crawl-wiki/          # Wiki crawler (683 concepts)
+├── data/                # Market data pipeline
+├── docs/                # Documentation
+├── execution/           # Trading engines + connectors
+├── frontend/            # Next.js 16 dashboard
+├── journal/             # Trade journal (SQLite/PostgreSQL)
+├── knowledge_engine/    # RAG + LLM + Signal validator
+├── ml/                  # ML pipelines + feature engineering
+├── monitoring/          # Alerts + health server
+├── risk/                # Risk management
+├── scripts/             # Utility scripts
+├── strategies/          # Rule-based + ML strategies
+└── tests/               # Unit + integration tests (71 tests)
 ```
+
+## Key Features
+
+- **RegimeEnsemble Strategy**: Kết hợp EMA-Trend + Monthly Breakout + Grid Mean Reversion, chọn theo market regime, validate qua 683 wiki concepts
+- **Psychology Enforcement**: Tự động pause sau 3 consecutive losses, daily trade limit (10), revenge emotion detection, win-streak cooldown
+- **Regime-Aware Risk**: Position sizing và stop-loss điều chỉnh theo bull/bear/sideways
+- **Graduation Gate**: Chỉ cho phép live trading sau khi paper đạt criteria (30 days, DD < 10%, Sharpe > 0.5)
+- **Full Safety Stack**: Trailing stops, partial exits, correlation guard, order retry, slippage tracking
+- **Real-time Monitoring**: Prometheus + Grafana, Telegram alerts (bilingual EN/VN), health HTTP server, daily reports
+- **Backend API**: FastAPI + Socket.IO cho Next.js frontend
+- **PostgreSQL Journal**: Trade journal + wiki feedback trên PostgreSQL
+- **Containerized**: Docker Compose stack (PostgreSQL, Bot, API, Prometheus, Grafana, Node Exporter)
+- **CI/CD**: GitHub Actions build Docker image → GitHub Container Registry
+
+## Testing
+
+```bash
+# Run all tests
+pytest tests/ -v
+
+# Run specific modules
+pytest tests/test_risk.py -v
+pytest tests/test_execution.py -v
+pytest tests/test_backend_api.py -v
+pytest tests/test_ml_integration.py -v
+```
+
+**Current coverage**: 71 tests passing (risk, execution, journal, psychology, drift, knowledge, backend API, ML integration).
 
 ## Triết lý
 
@@ -117,6 +157,7 @@ Các dịch vụ free tier phù hợp:
 |---------|------|-------|
 | Trading Bot | — | systemd `paper-trade.service` |
 | Health API | 8080 | `curl localhost:8080/health` |
+| Backend API | 8090 | FastAPI + Socket.IO gateway |
 | Dashboard | 8501 | Streamlit real-time monitoring |
 | PostgreSQL | 5432 | Journal + wiki feedback |
 
