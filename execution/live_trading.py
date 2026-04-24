@@ -15,7 +15,9 @@ Safety Rules:
 """
 
 import argparse
+import json
 import os
+import sys
 import threading
 import time
 import yaml
@@ -181,7 +183,7 @@ class LiveTradingEngine:
 
         # Journal (PostgreSQL only)
         journal_cfg = config.get("journal", {})
-        db_url = journal_cfg.get("db_url")
+        db_url = os.environ.get("TRADING_DB_URL") or journal_cfg.get("db_url")
         if not db_url:
             raise ValueError("journal.db_url is required in config (PostgreSQL only)")
         self.journal = TradeLogger(db_url=db_url)
@@ -421,6 +423,14 @@ class LiveTradingEngine:
         # Get signal
         signal = self.strategy.on_bar(context)
         if not signal:
+            reasons = []
+            if hasattr(self.strategy, "last_status") and self.strategy.last_status:
+                reasons = self.strategy.last_status.get("rejection_reasons", [])
+                regime = self.strategy.last_status.get("regime", "?")
+                directional = self.strategy.last_status.get("directional_regime", "?")
+                logger.info(f"No signal for {symbol} | Regime: {regime}/{directional} | Reasons: {reasons}")
+            else:
+                logger.debug(f"No signal for {symbol} | Strategy: {self.strategy.__class__.__name__}")
             # Send Telegram alert with reasons why no trade
             if hasattr(self.strategy, "last_status") and self.strategy.last_status:
                 status = self.strategy.last_status
@@ -593,6 +603,7 @@ class LiveTradingEngine:
                     "size": size,
                     "stop": stop,
                     "entry_time": signal.timestamp,
+                    "meta": dict(signal.meta) if signal.meta else {},
                 }
                 self.capital -= size * price * 1.001
                 # Wiki detail alert
@@ -671,7 +682,12 @@ class LiveTradingEngine:
                 self.trailing_stop.remove_position(symbol)
                 self.partial_exit.remove_position(symbol)
 
-                # Log trade
+                # Log trade with sub-strategy metadata
+                trade_meta = dict(pos.get("meta", {}))
+                trade_meta["exit_price"] = price
+                trade_meta["pnl"] = pnl
+                trade_meta["pnl_pct"] = pnl_pct
+                trade_meta["exit_reason"] = getattr(signal, 'meta', {}).get('reason', 'signal') if hasattr(signal, 'meta') and signal.meta else 'signal'
                 self.journal.log_trade(TradeRecord(
                     symbol=symbol,
                     strategy=self.strategy.__class__.__name__,
@@ -681,8 +697,10 @@ class LiveTradingEngine:
                     size=pos["size"],
                     pnl=pnl,
                     pnl_pct=pnl_pct,
-                    exit_reason=getattr(signal, 'meta', {}).get('reason', 'signal') if hasattr(signal, 'meta') and signal.meta else 'signal',
+                    exit_reason=trade_meta.get("exit_reason", "signal"),
                     reasoning=getattr(signal, 'reason', '') or "",
+                    stop_price=pos.get("stop"),
+                    raw_metadata=json.dumps(trade_meta),
                 ))
 
                 # Update psychological state with P&L
@@ -764,10 +782,16 @@ class LiveTradingEngine:
                 self.partial_exit.remove_position(symbol)
 
     def _update_equity(self, symbol: str, bar):
-        """Recalculate total equity."""
+        """Recalculate total equity and update position unrealized P&L."""
+        current_price = bar["close"]
         with self._lock:
+            for p in self.positions.values():
+                if p["symbol"] == symbol:
+                    p["current_price"] = current_price
+                    p["unrealized_pnl"] = (current_price - p["entry_price"]) * p["size"]
+                    p["unrealized_pnl_pct"] = (current_price - p["entry_price"]) / p["entry_price"]
             position_value = sum(
-                p["size"] * bar["close"] for p in self.positions.values()
+                p["size"] * current_price for p in self.positions.values()
             )
             self.equity = self.capital + position_value
 
@@ -844,6 +868,8 @@ class LiveTradingEngine:
                     "unrealized_pnl": p.get("unrealized_pnl"),
                     "stop_price": p.get("stop"),
                     "strategy": self.strategy.__class__.__name__,
+                    "entry_time": p.get("entry_time", "").isoformat() if p.get("entry_time") else None,
+                    "meta": p.get("meta", {}),
                 }
                 for p in self.positions.values()
             ]
@@ -875,6 +901,15 @@ class LiveTradingEngine:
         status["order_retry"] = self.order_retry.get_stats()
         # Add correlation guard
         status["correlation"] = self.correlation_guard.summary()
+        # Add sub-strategy state (regime, sub-signals, wiki alignment)
+        if hasattr(self.strategy, "last_status") and self.strategy.last_status:
+            status["sub_strategy"] = self.strategy.last_status
+        if hasattr(self.strategy, "current_regime"):
+            status["current_regime"] = self.strategy.current_regime
+        if hasattr(self.strategy, "current_directional_regime"):
+            status["directional_regime"] = self.strategy.current_directional_regime
+        if hasattr(self.strategy, "regime_distribution"):
+            status["regime_distribution"] = self.strategy.regime_distribution
         return status
 
 
@@ -898,10 +933,14 @@ def main():
     # Override mode from CLI
     config["system"]["mode"] = args.mode
 
-    # Override symbols if provided
+    # Override symbols if provided via CLI
     symbols = args.symbols
-    if symbols is None:
-        symbols = [args.symbol]
+    if symbols is not None:
+        pass  # Use CLI --symbols
+    elif "--symbol" in sys.argv:
+        symbols = [args.symbol]  # Use CLI --symbol
+    else:
+        symbols = config.get("data", {}).get("symbols", ["BTC/USDT"])  # Use config
 
     # Override health port if provided
     if args.health_port is not None:

@@ -3,7 +3,7 @@
 import asyncio
 from contextlib import asynccontextmanager
 from datetime import datetime
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,9 +14,11 @@ from loguru import logger
 from backend.api.aggregator import StateAggregator
 from backend.api.socket_manager import SocketManager
 from backend.api.market_data import MarketDataProvider
+from backend.api.trades_service import TradesService
 
 
 market_provider = MarketDataProvider()
+trades_service = TradesService()
 
 
 class AllocationItem(BaseModel):
@@ -73,7 +75,7 @@ Instrumentator().instrument(app).expose(app)
 # CORS for Next.js dev server
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000", "http://127.0.0.1:3001"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -99,6 +101,28 @@ async def get_strategies():
 @app.get("/api/v1/state")
 async def get_full_state():
     return aggregator.get_state()
+
+
+@app.get("/api/v1/trades")
+async def get_trades(
+    sub_strategy: Optional[str] = None,
+    symbol: Optional[str] = None,
+    limit: int = 50,
+):
+    """Fetch closed trade history with sub-strategy breakdown.
+
+    Only returns trades that have sub-strategy metadata (new trades).
+    """
+    try:
+        trades = trades_service.get_trades(
+            sub_strategy=sub_strategy,
+            symbol=symbol,
+            limit=limit,
+        )
+        return {"trades": trades, "count": len(trades)}
+    except Exception as e:
+        logger.error(f"Trades fetch failed: {e}")
+        return {"trades": [], "count": 0, "error": str(e)}
 
 
 @app.post("/api/v1/rebalance")

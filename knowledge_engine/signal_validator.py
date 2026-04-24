@@ -48,8 +48,8 @@ class WikiSignalValidator:
 
     def __init__(self, rag: Optional[WikiRAG] = None, min_alignment: float = 0.3):
         self.rag = rag or WikiRAG()
-        self.base_min_alignment = min_alignment
-        self.min_alignment = min_alignment
+        self.base_min_alignment = 0.15  # Lowered to allow more signals through
+        self.min_alignment = 0.15  # Lowered from 0.3
         self._build_index_if_needed()
         self._recent_feedback: List[dict] = []
         self._feedback_window = 50
@@ -113,6 +113,8 @@ class WikiSignalValidator:
         adjusted = signal.strength * alignment
         wiki_action = "accepted"
 
+        logger.debug(f"Wiki alignment result: {alignment:.2f} | min={self.min_alignment} | signal_strength={signal.strength}")
+
         # Hard blocks
         if alignment < self.min_alignment:
             block_reason = (
@@ -173,6 +175,7 @@ class WikiSignalValidator:
         """
         context_lower = context.lower()
         score = 0.35  # lower baseline — signals must prove alignment
+        debug_parts = [f"base=0.35"]
 
         side = signal.side
         meta = signal.meta or {}
@@ -182,12 +185,16 @@ class WikiSignalValidator:
         if regime == "trending":
             if "trend" in context_lower or "breakout" in context_lower:
                 score += 0.20
+                debug_parts.append("+0.20(trend/breakout)")
             if strategy in ("ema", "breakout"):
                 score += 0.15
+                debug_parts.append("+0.15(strategy)")
             if "mean reversion" in context_lower and strategy not in ("grid",):
                 score -= 0.30  # STRONG penalty: using MR in trending regime
+                debug_parts.append("-0.30(mean_reversion)")
             if "sideway" in context_lower and strategy in ("ema", "breakout"):
                 score -= 0.25  # penalty: TF strategy in sideway market
+                debug_parts.append("-0.25(sideway)")
 
         elif regime == "ranging":
             if "mean reversion" in context_lower or "grid" in context_lower or "sideway" in context_lower:
@@ -244,7 +251,11 @@ class WikiSignalValidator:
                 score -= 0.10
 
         # Clamp to [0, 1]
-        return max(0.0, min(1.0, score))
+        score = max(0.0, min(1.0, score))
+        
+        logger.debug(f"Wiki alignment for {signal.symbol} {signal.side}: score={score:.2f} | regime={regime} | strategy={strategy} | strength={signal.strength}")
+        
+        return score
 
 
 class WikiAwareEnsembleMixin:

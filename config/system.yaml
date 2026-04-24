@@ -5,12 +5,12 @@ system:
   name: "hybrid-trading-system"
   mode: "paper"  # paper | live
   timezone: "UTC"
-  log_level: "INFO"
+  log_level: "DEBUG"
 
 # Data configuration
 data:
   exchange: "binance"
-  timeframe: "1d"
+  timeframe: "1h"
   symbols:
     - "BTC/USDT"
     - "ETH/USDT"

@@ -8,12 +8,13 @@ import httpx
 from loguru import logger
 
 from backend.api.models import StrategyState, Position, TrailingStopState, SlippageSummary
+from backend.api.trades_service import TradesService
 
+
+import os
 
 STRATEGY_ENDPOINTS = [
-    {"name": "RegimeEnsemble", "port": 8080},
-    {"name": "EMA-Trend", "port": 8081},
-    {"name": "Monthly-Breakout", "port": 8082},
+    {"name": "RegimeEnsemble", "host": os.environ.get("BOT_HOST", "trading-bot"), "port": 8080},
 ]
 
 
@@ -30,11 +31,13 @@ class StateAggregator:
         self.equity_history: List[dict] = []
         self._latest_raw: Dict[str, dict] = {}
         self._running = False
+        self._trades_service = TradesService()
+        self._sub_stats: Dict[str, Dict] = {}
 
-    async def poll_strategy(self, name: str, port: int) -> Optional[StrategyState]:
+    async def poll_strategy(self, name: str, host: str, port: int) -> Optional[StrategyState]:
         """Poll a single strategy health endpoint."""
         try:
-            resp = await self.client.get(f"http://localhost:{port}/health")
+            resp = await self.client.get(f"http://{host}:{port}/health")
             resp.raise_for_status()
             data = resp.json().get("data", {})
             self._latest_raw[name] = data
@@ -59,10 +62,91 @@ class StateAggregator:
             logger.warning(f"Failed to poll {name} on port {port}: {e}")
             return None
 
+    def _build_sub_strategies(self, ensemble_data: dict) -> List[StrategyState]:
+        """Synthesize 3 sub-strategy cards from the single ensemble bot."""
+        equity = ensemble_data.get("equity", 100000.0)
+        capital = ensemble_data.get("capital", equity)
+        initial = 100000.0
+        running = ensemble_data.get("running", False)
+        mode = ensemble_data.get("mode", "paper")
+        open_positions = ensemble_data.get("open_positions", 0)
+        return_pct = (equity / initial - 1.0) if initial > 0 else 0.0
+        daily_pnl = ensemble_data.get("psychology", {}).get("total_pnl_today", 0.0)
+        sub = ensemble_data.get("sub_strategy", {})
+        sub_signals = sub.get("sub_signals", {})
+        current_regime = ensemble_data.get("current_regime", "unknown")
+        directional = ensemble_data.get("directional_regime", "unknown")
+
+        sub_defs = [
+            {"name": "EMA-Trend", "type": "ema", "regime": "trending"},
+            {"name": "Monthly-Breakout", "type": "breakout", "regime": "trending"},
+            {"name": "Grid-MeanReversion", "type": "grid", "regime": "ranging"},
+        ]
+
+        # Count actual open positions per sub-strategy from position metadata
+        position_counts: Dict[str, int] = {}
+        for p in ensemble_data.get("positions", []):
+            source = p.get("meta", {}).get("ensemble_source", "unknown")
+            position_counts[source] = position_counts.get(source, 0) + 1
+
+        results = []
+        for sd in sub_defs:
+            active_signal = sub_signals.get(sd["type"])
+            is_active_regime = current_regime == sd["regime"]
+
+            # Use real trade stats if available; otherwise show no return
+            stats = self._sub_stats.get(sd["type"], {})
+            realized_pnl = stats.get("total_pnl", 0.0)
+            sub_trade_count = stats.get("trade_count", 0)
+            sub_winrate = stats.get("winrate", 0.0)
+
+            # Add unrealized P&L from open positions belonging to this sub-strategy
+            unrealized_pnl = sum(
+                (p.get("unrealized_pnl") or 0)
+                for p in ensemble_data.get("positions", [])
+                if p.get("meta", {}).get("ensemble_source") == sd["type"]
+            )
+            total_pnl = realized_pnl + unrealized_pnl
+
+            # Each sub-strategy gets 1/3 of initial capital as notional allocation
+            sub_initial = initial / 3
+            sub_equity = sub_initial + total_pnl
+            sub_return = (total_pnl / sub_initial) if sub_initial > 0 else 0.0
+
+            results.append(StrategyState(
+                name=sd["name"],
+                port=8080,
+                equity=sub_equity,
+                capital=sub_equity,
+                open_positions=position_counts.get(sd["type"], 0),
+                running=running,
+                mode=mode,
+                return_pct=sub_return,
+                daily_pnl=0.0,
+                strategy_type=sd["type"],
+                timestamp=datetime.utcnow(),
+                meta={
+                    "active_signal": active_signal,
+                    "is_active_regime": is_active_regime,
+                    "current_regime": current_regime,
+                    "directional_regime": directional,
+                    "wiki_alignment": sub.get("wiki_alignment", 0.0),
+                    "wiki_action": sub.get("wiki_action", "no_signal"),
+                    "final_decision": sub.get("final_decision", "no_signal"),
+                    "rejection_reasons": sub.get("rejection_reasons", []),
+                    "trade_count": sub_trade_count,
+                    "winrate": sub_winrate,
+                    "total_pnl": total_pnl,
+                    "realized_pnl": realized_pnl,
+                    "unrealized_pnl": unrealized_pnl,
+                },
+            ))
+        return results
+
     async def poll_all(self):
         """Poll all strategies concurrently."""
         tasks = [
-            self.poll_strategy(s["name"], s["port"])
+            self.poll_strategy(s["name"], s["host"], s["port"])
             for s in STRATEGY_ENDPOINTS
         ]
         results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -78,6 +162,22 @@ class StateAggregator:
                 })
                 # Keep only last 500 points per strategy
                 self.equity_history = self.equity_history[-500:]
+
+        # Fetch sub-strategy trade stats (run sync DB query in thread pool)
+        try:
+            loop = asyncio.get_running_loop()
+            self._sub_stats = await loop.run_in_executor(
+                None, self._trades_service.get_sub_strategy_stats
+            )
+        except Exception as e:
+            logger.warning(f"Failed to fetch sub-strategy stats: {e}")
+
+        # Synthesize sub-strategies from ensemble
+        ensemble_raw = self._latest_raw.get("RegimeEnsemble", {})
+        if ensemble_raw:
+            sub_strategies = self._build_sub_strategies(ensemble_raw)
+            for ss in sub_strategies:
+                self.strategies[ss.name] = ss
 
         # Extract positions from strategy data
         self._extract_positions()
@@ -98,6 +198,8 @@ class StateAggregator:
                     unrealized_pnl=p.get("unrealized_pnl"),
                     stop_price=p.get("stop_price"),
                     strategy=name,
+                    entry_time=p.get("entry_time"),
+                    meta=p.get("meta"),
                 ))
         self.positions = positions
 
@@ -119,6 +221,10 @@ class StateAggregator:
             "slippage": [s.model_dump() for s in self.slippage],
             "equity_history": self.equity_history,
             "alerts": [],
+            "sub_strategy": self._latest_raw.get("RegimeEnsemble", {}).get("sub_strategy", {}),
+            "current_regime": self._latest_raw.get("RegimeEnsemble", {}).get("current_regime", "unknown"),
+            "directional_regime": self._latest_raw.get("RegimeEnsemble", {}).get("directional_regime", "unknown"),
+            "regime_distribution": self._latest_raw.get("RegimeEnsemble", {}).get("regime_distribution", {}),
         }
 
     async def run_loop(self):

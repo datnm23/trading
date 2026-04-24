@@ -54,7 +54,7 @@ class MonthlyBreakoutStrategy(BaseStrategy):
                 side="buy",
                 strength=0.9,
                 price=curr_close,
-                meta={"highest": highest, "lowest": lowest, "atr": atr_val, "breakout": "up"},
+                meta={"highest": highest, "lowest": lowest, "atr": atr_val, "breakout": "up", "reason": "breakout"},
             )
 
         # Breakdown — close long when close below previous N-day low
@@ -66,7 +66,34 @@ class MonthlyBreakoutStrategy(BaseStrategy):
                 side="sell",
                 strength=0.9,
                 price=curr_close,
-                meta={"highest": highest, "lowest": lowest, "atr": atr_val, "breakout": "down"},
+                meta={"highest": highest, "lowest": lowest, "atr": atr_val, "breakout": "down", "reason": "breakdown"},
             )
+
+        # Trend continuation — weak signal for ensemble when price is near breakout level
+        if not self.in_position:
+            # Price is within 2% of the high — potential breakout forming
+            dist_to_high = (highest - curr_close) / highest
+            if 0 < dist_to_high < 0.02:
+                strength = 0.3 * (1 - dist_to_high / 0.02)  # Scale 0→0.3 as price approaches high
+                return Signal(
+                    timestamp=context.bar.name,
+                    symbol=context.symbol,
+                    side="buy",
+                    strength=strength,
+                    price=curr_close,
+                    meta={"highest": highest, "lowest": lowest, "atr": atr_val, "breakout": "none", "reason": "approaching_high"},
+                )
+            # Price is within 2% of the low — potential breakdown forming
+            dist_to_low = (curr_close - lowest) / lowest
+            if 0 < dist_to_low < 0.02:
+                strength = 0.3 * (1 - dist_to_low / 0.02)
+                return Signal(
+                    timestamp=context.bar.name,
+                    symbol=context.symbol,
+                    side="sell",
+                    strength=strength,
+                    price=curr_close,
+                    meta={"highest": highest, "lowest": lowest, "atr": atr_val, "breakout": "none", "reason": "approaching_low"},
+                )
 
         return None

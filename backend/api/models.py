@@ -17,6 +17,7 @@ class StrategyState(BaseModel):
     daily_pnl: float = 0.0
     strategy_type: str = ""
     timestamp: datetime = datetime.utcnow()
+    meta: Optional[Dict[str, Any]] = None
 
 
 class Position(BaseModel):
@@ -28,6 +29,8 @@ class Position(BaseModel):
     unrealized_pnl: Optional[float] = None
     stop_price: Optional[float] = None
     strategy: str = ""
+    entry_time: Optional[str] = None
+    meta: Optional[Dict[str, Any]] = None
 
 
 class TrailingStopState(BaseModel):

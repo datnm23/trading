@@ -50,28 +50,59 @@ class EMATrendStrategy(BaseStrategy):
         prev_fast = close.ewm(span=self.fast).mean().iloc[-2]
         prev_slow = close.ewm(span=self.slow).mean().iloc[-2]
 
-        # Cross up
+        current_price = context.bar["close"]
+
+        # Cross up → strong buy signal
         if prev_fast <= prev_slow and fast_ema > slow_ema and not self.in_position:
             self.in_position = True
+            stop_price = current_price - atr_val * 2
             return Signal(
                 timestamp=context.bar.name,
                 symbol=context.symbol,
                 side="buy",
-                strength=0.8,
-                price=context.bar["close"],
-                meta={"fast_ema": fast_ema, "slow_ema": slow_ema, "atr": atr_val},
+                strength=0.9,
+                price=current_price,
+                meta={"fast_ema": fast_ema, "slow_ema": slow_ema, "atr": atr_val, "reason": "crossover_up", "stop": stop_price, "stop_price": stop_price},
             )
 
-        # Cross down
+        # Cross down → strong sell signal (exit)
         if prev_fast >= prev_slow and fast_ema < slow_ema and self.in_position:
             self.in_position = False
             return Signal(
                 timestamp=context.bar.name,
                 symbol=context.symbol,
                 side="sell",
-                strength=0.8,
-                price=context.bar["close"],
-                meta={"fast_ema": fast_ema, "slow_ema": slow_ema, "atr": atr_val},
+                strength=0.9,
+                price=current_price,
+                meta={"fast_ema": fast_ema, "slow_ema": slow_ema, "atr": atr_val, "reason": "crossover_down"},
+            )
+
+        # Trend continuation → weaker signal for aggregation
+        if fast_ema > slow_ema and not self.in_position:
+            # Uptrend but no crossover — produce a weak buy signal for ensemble
+            gap_pct = (fast_ema - slow_ema) / slow_ema * 100
+            strength = min(0.5, gap_pct / 10)  # Scale strength by gap
+            stop_price = current_price - atr_val * 2
+            return Signal(
+                timestamp=context.bar.name,
+                symbol=context.symbol,
+                side="buy",
+                strength=strength,
+                price=current_price,
+                meta={"fast_ema": fast_ema, "slow_ema": slow_ema, "atr": atr_val, "reason": "trend_continuation", "stop": stop_price, "stop_price": stop_price},
+            )
+
+        if fast_ema < slow_ema and self.in_position:
+            # Downtrend continuation — produce weak sell signal
+            gap_pct = (slow_ema - fast_ema) / slow_ema * 100
+            strength = min(0.5, gap_pct / 10)
+            return Signal(
+                timestamp=context.bar.name,
+                symbol=context.symbol,
+                side="sell",
+                strength=strength,
+                price=current_price,
+                meta={"fast_ema": fast_ema, "slow_ema": slow_ema, "atr": atr_val, "reason": "trend_continuation"},
             )
 
         return None

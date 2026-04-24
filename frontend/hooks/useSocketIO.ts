@@ -13,12 +13,30 @@ interface StrategyState {
   daily_pnl?: number;
 }
 
+interface SubStrategyState {
+  symbol?: string;
+  bar_time?: string;
+  regime?: string;
+  directional_regime?: string;
+  sub_signals?: Record<string, string>;
+  rejection_reasons?: string[];
+  final_decision?: string;
+  wiki_alignment?: number;
+  wiki_top_concepts?: string;
+  wiki_action?: string;
+  wiki_min_alignment?: number;
+}
+
 interface SystemState {
   timestamp: string;
   strategies: StrategyState[];
   positions: any[];
   alerts: any[];
   equity_history?: { timestamp: string; equity: number; strategy: string }[];
+  sub_strategy?: SubStrategyState;
+  current_regime?: string;
+  directional_regime?: string;
+  regime_distribution?: Record<string, number>;
 }
 
 export function useSocketIO(url: string = 'http://localhost:8090') {

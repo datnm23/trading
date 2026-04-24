@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 
 interface NeoMetricProps {
   label: string;
-  value: string | number;
+  value: string | number | React.ReactNode;
   delta?: string | number;
   variant?: 'neutral' | 'bullish' | 'bearish';
   prefix?: string;

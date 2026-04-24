@@ -42,6 +42,7 @@ dependencies = [
     "plotly>=5.18",
     "prometheus-fastapi-instrumentator>=6.0",
     "uvicorn>=0.20",
+    "psycopg2-binary>=2.9",
     "pytest>=7.4",
     "ruff>=0.1",
 ]

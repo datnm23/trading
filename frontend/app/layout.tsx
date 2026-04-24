@@ -31,6 +31,74 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${jetbrainsMono.variable} antialiased`} suppressHydrationWarning>
+        {/* Strip browser extension injected attributes that cause hydration mismatch */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                var clean = function() {
+                  document.querySelectorAll('[bis_skin_checked]').forEach(function(el) {
+                    el.removeAttribute('bis_skin_checked');
+                  });
+                };
+                clean();
+                var obs = new MutationObserver(clean);
+                obs.observe(document.documentElement, { attributes: true, subtree: true, attributeFilter: ['bis_skin_checked'] });
+              })();
+            `,
+          }}
+        />
+        {/* Strip browser extension injected attributes that cause hydration mismatch */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                var clean = function() {
+                  document.querySelectorAll('[bis_skin_checked]').forEach(function(el) {
+                    el.removeAttribute('bis_skin_checked');
+                  });
+                };
+                clean();
+                var obs = new MutationObserver(clean);
+                obs.observe(document.documentElement, { attributes: true, subtree: true, attributeFilter: ['bis_skin_checked'] });
+              })();
+            `,
+          }}
+        />
+        {/* Strip browser extension injected attributes that cause hydration mismatch */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                var clean = function() {
+                  document.querySelectorAll('[bis_skin_checked]').forEach(function(el) {
+                    el.removeAttribute('bis_skin_checked');
+                  });
+                };
+                clean();
+                var obs = new MutationObserver(clean);
+                obs.observe(document.documentElement, { attributes: true, subtree: true, attributeFilter: ['bis_skin_checked'] });
+              })();
+            `,
+          }}
+        />
+        {/* Strip browser extension injected attributes that cause hydration mismatch */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                var clean = function() {
+                  document.querySelectorAll('[bis_skin_checked]').forEach(function(el) {
+                    el.removeAttribute('bis_skin_checked');
+                  });
+                };
+                clean();
+                var obs = new MutationObserver(clean);
+                obs.observe(document.documentElement, { attributes: true, subtree: true, attributeFilter: ['bis_skin_checked'] });
+              })();
+            `,
+          }}
+        />
         <ThemeProvider attribute="data-theme" defaultTheme="light" enableSystem={false}>
           <LangProvider>
             <div className="min-h-screen flex flex-col">
