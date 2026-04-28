@@ -26,10 +26,11 @@ class RegimeEnsembleStrategy(BaseStrategy):
     """
 
     def __init__(self, params: Optional[dict] = None):
+        params = params or {}
         super().__init__(name="RegimeEnsemble", params=params)
 
         # Wiki knowledge validator
-        wiki_min_alignment = params.get("wiki_min_alignment", 0.3) if params else 0.3
+        wiki_min_alignment = params.get("wiki_min_alignment", 0.3)
         self.wiki_validator = WikiSignalValidator(min_alignment=wiki_min_alignment)
 
         # Sub-strategies

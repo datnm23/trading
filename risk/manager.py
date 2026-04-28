@@ -33,7 +33,7 @@ class PositionSizer:
         self.risk_per_trade = risk_per_trade
         self.method = method
 
-    def size(self, capital: float, entry: float, stop: float, atr: Optional[float] = None) -> float:
+    def size(self, capital: float, entry: float, stop: float, atr: Optional[float] = None, **kwargs) -> float:
         """Return position size (number of units).
 
         Args:

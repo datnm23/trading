@@ -29,6 +29,13 @@ class GridMeanReversionStrategy(BaseStrategy):
         self._update_levels(history)
         self.is_warm = True
 
+    def reset(self) -> None:
+        super().reset()
+        self.in_position = False
+        self.support = None
+        self.resistance = None
+        self.grid_step = None
+
     def _update_levels(self, history: pd.DataFrame):
         window = history.iloc[-self.lookback:]
         self.support = window["low"].min()

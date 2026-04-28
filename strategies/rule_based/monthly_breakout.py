@@ -24,6 +24,10 @@ class MonthlyBreakoutStrategy(BaseStrategy):
             return
         self.is_warm = True
 
+    def reset(self) -> None:
+        super().reset()
+        self.in_position = False
+
     def on_bar(self, context: StrategyContext) -> Optional[Signal]:
         if not self.is_warm:
             return None
