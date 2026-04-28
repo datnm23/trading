@@ -48,8 +48,8 @@ class WikiSignalValidator:
 
     def __init__(self, rag: Optional[WikiRAG] = None, min_alignment: float = 0.3):
         self.rag = rag or WikiRAG()
-        self.base_min_alignment = 0.15  # Lowered to allow more signals through
-        self.min_alignment = 0.15  # Lowered from 0.3
+        self.base_min_alignment = 0.30
+        self.min_alignment = 0.30
         self._build_index_if_needed()
         self._recent_feedback: List[dict] = []
         self._feedback_window = 50

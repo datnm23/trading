@@ -119,20 +119,14 @@ class RegimeEnsembleStrategy(BaseStrategy):
         # Validate against Turtle Trading Wiki knowledge
         if signal:
             validated = self._validate_with_wiki(signal)
-            # TEMPORARY: Allow signals even if wiki blocks (for testing)
             if validated:
                 self.bars_since_last_trade = 0
                 self.last_status["final_decision"] = f"{validated.side.upper()} signal accepted"
                 return validated
             else:
-                # Allow signal through with reduced strength instead of blocking
-                logger.warning(f"Wiki blocked {signal.side} {signal.symbol}, allowing with strength=0.3")
-                signal.strength = 0.3
-                signal.meta = signal.meta or {}
-                signal.meta["wiki_bypassed"] = True
-                self.bars_since_last_trade = 0
-                self.last_status["final_decision"] = f"{signal.side.upper()} signal (wiki bypassed)"
-                return signal
+                self.last_status["rejection_reasons"].append("Wiki validation blocked signal")
+                self.last_status["final_decision"] = "no_signal"
+                return None
         else:
             if not self.last_status["rejection_reasons"]:
                 self.last_status["rejection_reasons"].append("No sub-strategy produced a signal")

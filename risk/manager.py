@@ -73,8 +73,17 @@ class PositionSizer:
                 return 0.0
 
         elif self.method == "kelly":
-            # Simplified Kelly: requires winrate and payoff — placeholder
-            kelly_fraction = 0.25
+            # Kelly criterion: f* = (p*b - q) / b
+            # Requires winrate (p) and payoff ratio (b = avg_win / avg_loss)
+            # If not provided, falls back to conservative half-Kelly (0.25)
+            winrate = kwargs.get("winrate")
+            payoff_ratio = kwargs.get("payoff_ratio")
+            if winrate is not None and payoff_ratio is not None and payoff_ratio > 0:
+                kelly_fraction = (winrate * payoff_ratio - (1 - winrate)) / payoff_ratio
+                # Clamp to [0, 0.5] — use half-Kelly for safety
+                kelly_fraction = max(0.0, min(kelly_fraction * 0.5, 0.5))
+            else:
+                kelly_fraction = 0.25  # Conservative default
             return (capital * kelly_fraction) / entry
         else:
             price_risk = abs(entry - stop)

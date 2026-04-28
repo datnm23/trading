@@ -243,13 +243,20 @@ class ModelDriftMonitor:
         """Set baselines from a trained MLClassifierPipeline."""
         # Confidence baseline from training CV
         if hasattr(pipeline, "metrics") and "folds" in pipeline.metrics:
-            # Use validation accuracies as proxy for confidence
-            self.confidence_detector.set_baseline(
-                np.array([0.7] * 100)  # placeholder, should use actual val probs
-            )
+            # Use per-fold validation accuracies as confidence proxy
+            fold_accuracies = np.array([
+                f["accuracy"] for f in pipeline.metrics["folds"]
+            ])
+            # Repeat to get ~100 samples for PSI calculation
+            repeated = np.tile(fold_accuracies, 100 // len(fold_accuracies) + 1)[:100]
+            self.confidence_detector.set_baseline(repeated)
+            logger.info(f"Drift baselines set from {len(fold_accuracies)} CV folds")
+        else:
+            logger.warning("No CV fold metrics found — using default confidence baseline")
+            self.confidence_detector.set_baseline(np.array([0.7] * 100))
 
         # Feature baseline would need training features stored
-        logger.info("Drift monitor baselines set (placeholder)")
+        logger.info("Drift monitor baselines set")
 
     def set_baseline_manual(
         self,

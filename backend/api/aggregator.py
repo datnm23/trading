@@ -204,12 +204,33 @@ class StateAggregator:
         self.positions = positions
 
     def _extract_trailing_stops(self):
-        """Placeholder."""
-        self.trailing_stops = []
+        """Extract trailing stop states from raw bot health data."""
+        stops: List[TrailingStopState] = []
+        for name, data in self._latest_raw.items():
+            for symbol, info in data.get("trailing_stops", {}).items():
+                stops.append(TrailingStopState(
+                    symbol=symbol,
+                    entry_price=info.get("entry", 0.0),
+                    peak_price=info.get("peak", 0.0),
+                    current_stop=info.get("current_stop", 0.0),
+                    activated=info.get("activated", False),
+                    profit_pct=info.get("profit_pct", 0.0),
+                ))
+        self.trailing_stops = stops
 
     def _extract_slippage(self):
-        """Placeholder."""
-        self.slippage = []
+        """Extract slippage summaries from raw bot health data."""
+        slippage: List[SlippageSummary] = []
+        for name, data in self._latest_raw.items():
+            for symbol, info in data.get("slippage", {}).items():
+                slippage.append(SlippageSummary(
+                    symbol=symbol,
+                    trades=info.get("trades", 0),
+                    avg_slippage_pct=info.get("avg_slippage_pct", 0.0),
+                    max_slippage_pct=info.get("max_slippage_pct", 0.0),
+                    total_cost=info.get("total_slippage_cost", 0.0),
+                ))
+        self.slippage = slippage
 
     def get_state(self) -> dict:
         """Return current unified state."""
