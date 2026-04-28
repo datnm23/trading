@@ -266,7 +266,44 @@ File OHLCV 1h đã có sẵn trong `data/raw/`:
 
 Bot sẽ tự động tải data mới khi chạy.
 
-## 8. Chuyển sang Live Trading
+## 8. Bảo mật (Production)
+
+**⚠️ Không bỏ qua nếu deploy public.**
+
+### API Authentication
+
+Tất cả endpoints (trừ `/health`) yêu cầu API key qua header:
+
+```env
+API_KEY=your_random_read_key
+ADMIN_KEY=your_random_admin_key
+NEXT_PUBLIC_API_KEY=your_random_read_key
+NEXT_PUBLIC_ADMIN_KEY=your_random_admin_key
+CORS_ORIGINS=https://your-frontend.com,https://app.yourdomain.com
+```
+
+| Endpoint | Key Required | Mô tả |
+|----------|-------------|-------|
+| `GET /health` | None | Health check (public) |
+| `GET /api/v1/*` | `X-API-Key` | Read access |
+| `POST /api/v1/rebalance` | `X-API-Key` + `X-Admin-Key` | Admin only |
+
+**Tạo key ngẫu nhiên:**
+```bash
+openssl rand -hex 32
+```
+
+### CORS
+- Backend CORS chỉ cho phép origins trong `CORS_ORIGINS`
+- Socket.IO CORS tự động lấy từ cùng biến môi trường
+- Không dùng `*` trong production
+
+### Rebalance Confirmation
+- `POST /api/v1/rebalance` yêu cầu cả `API_KEY` và `ADMIN_KEY`
+- Frontend gửi `X-Admin-Key` header khi gọi rebalance
+- Đảm bảo `ADMIN_KEY` khác và bảo mật hơn `API_KEY`
+
+## 9. Chuyển sang Live Trading
 
 **⚠️ Cảnh báo**: Live trading yêu cầu graduation gate:
 - Paper trading 30 ngày có lãi

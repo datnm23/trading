@@ -5,6 +5,8 @@ import sys
 
 # Set env before any imports that depend on it
 os.environ["TRADING_DB_URL"] = os.environ.get("TRADING_DB_URL", "postgresql://test:test@localhost/test")
+os.environ["API_KEY"] = "test-read-key"
+os.environ["ADMIN_KEY"] = "test-admin-key"
 
 sys.path.insert(0, "/home/datnm/projects/trading")
 
@@ -13,6 +15,11 @@ from unittest.mock import MagicMock, patch
 from httpx import AsyncClient, ASGITransport
 
 from backend.api.main import app, trades_service, graduation_service
+
+
+READ_HEADERS = {"X-API-Key": "test-read-key"}
+ADMIN_HEADERS = {"X-API-Key": "test-read-key", "X-Admin-Key": "test-admin-key"}
+BAD_HEADERS = {"X-API-Key": "wrong-key"}
 
 
 @pytest.fixture(autouse=True)
@@ -39,9 +46,23 @@ async def test_health():
 
 
 @pytest.mark.asyncio
-async def test_strategies():
+async def test_strategies_no_key_403():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         r = await client.get("/api/v1/strategies")
+        assert r.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_strategies_bad_key_403():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        r = await client.get("/api/v1/strategies", headers=BAD_HEADERS)
+        assert r.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_strategies():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        r = await client.get("/api/v1/strategies", headers=READ_HEADERS)
         assert r.status_code == 200
         data = r.json()
         assert "strategies" in data
@@ -50,10 +71,19 @@ async def test_strategies():
 @pytest.mark.asyncio
 async def test_state():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        r = await client.get("/api/v1/state")
+        r = await client.get("/api/v1/state", headers=READ_HEADERS)
         assert r.status_code == 200
         data = r.json()
         assert "timestamp" in data
+
+
+@pytest.mark.asyncio
+async def test_rebalance_no_admin_key_403():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        r = await client.post("/api/v1/rebalance", json={
+            "allocations": [{"strategy": "RegimeEnsemble", "weight": 0.5}]
+        }, headers=READ_HEADERS)
+        assert r.status_code == 403
 
 
 @pytest.mark.asyncio
@@ -64,7 +94,7 @@ async def test_rebalance():
                 {"strategy": "RegimeEnsemble", "weight": 0.5},
                 {"strategy": "EMA-Trend", "weight": 0.5},
             ]
-        })
+        }, headers=ADMIN_HEADERS)
         assert r.status_code == 200
         data = r.json()
         assert data["status"] == "ok"
@@ -74,7 +104,7 @@ async def test_rebalance():
 @pytest.mark.asyncio
 async def test_market_ohlcv():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        r = await client.get("/api/v1/market/ohlcv?symbol=BTC/USDT&timeframe=1d&limit=5")
+        r = await client.get("/api/v1/market/ohlcv?symbol=BTC/USDT&timeframe=1d&limit=5", headers=READ_HEADERS)
         assert r.status_code == 200
         data = r.json()
         assert "candles" in data
@@ -84,7 +114,7 @@ async def test_market_ohlcv():
 @pytest.mark.asyncio
 async def test_market_tickers():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        r = await client.get("/api/v1/market/tickers")
+        r = await client.get("/api/v1/market/tickers", headers=READ_HEADERS)
         assert r.status_code == 200
         data = r.json()
         assert "tickers" in data
@@ -94,7 +124,7 @@ async def test_market_tickers():
 @pytest.mark.asyncio
 async def test_graduation():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        r = await client.get("/api/v1/graduation")
+        r = await client.get("/api/v1/graduation", headers=READ_HEADERS)
         assert r.status_code == 200
         data = r.json()
         assert "gates" in data

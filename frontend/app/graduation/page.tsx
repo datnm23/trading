@@ -5,7 +5,7 @@ import { useLang } from '@/components/layout/LangProvider';
 import { NeoCard } from '@/components/ui/NeoCard';
 import { NeoMetric } from '@/components/ui/NeoMetric';
 import { t } from '@/lib/i18n';
-import { API_BASE_URL } from '@/lib/api';
+import { API_BASE_URL, apiHeaders } from '@/lib/api';
 import { Award, Calendar, TrendingUp, TrendingDown, Zap, Trophy, AlertCircle } from 'lucide-react';
 
 interface GraduationMetrics {
@@ -31,7 +31,9 @@ export default function GraduationPage() {
   useEffect(() => {
     const fetchMetrics = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/v1/graduation`);
+        const res = await fetch(`${API_BASE_URL}/api/v1/graduation`, {
+          headers: apiHeaders(),
+        });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         setMetrics(data);

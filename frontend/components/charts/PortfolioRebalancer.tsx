@@ -8,7 +8,7 @@ import { NeoButton } from '@/components/ui/NeoButton';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { useState, useMemo, useCallback } from 'react';
 import { t } from '@/lib/i18n';
-import { API_BASE_URL } from '@/lib/api';
+import { API_BASE_URL, adminHeaders } from '@/lib/api';
 import { RefreshCw } from 'lucide-react';
 
 const COLORS = ['#FDC800', '#B9FF66', '#FF6B6B'];
@@ -57,7 +57,7 @@ export function PortfolioRebalancer() {
     try {
       const res = await fetch(`${API_BASE_URL}/api/v1/rebalance`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...adminHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({
           allocations: allocations.map((a) => ({
             strategy: a.strategy,

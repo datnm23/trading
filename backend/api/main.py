@@ -1,11 +1,12 @@
 """FastAPI gateway — unified API + Socket.IO for Next.js frontend."""
 
 import asyncio
+import os
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Dict, List, Optional
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel
@@ -16,6 +17,7 @@ from backend.api.socket_manager import SocketManager
 from backend.api.market_data import MarketDataProvider
 from backend.api.trades_service import TradesService
 from backend.api.graduation_service import GraduationService
+from backend.api.auth import verify_read_key, verify_admin_key
 from knowledge_engine.rag import WikiRAG
 
 
@@ -81,12 +83,16 @@ app = FastAPI(
 # Prometheus metrics instrumentation
 Instrumentator().instrument(app).expose(app)
 
-# CORS for Next.js dev server
+# CORS — restrict to known origins
+cors_origins = os.environ.get(
+    "CORS_ORIGINS",
+    "http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001",
+).split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000", "http://127.0.0.1:3001"],
+    allow_origins=[o.strip() for o in cors_origins if o.strip()],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
@@ -99,7 +105,7 @@ async def health_check():
     return {"status": "healthy", "gateway": True}
 
 
-@app.get("/api/v1/strategies")
+@app.get("/api/v1/strategies", dependencies=[Depends(verify_read_key)])
 async def get_strategies():
     return {
         "strategies": [s.model_dump() for s in aggregator.strategies.values()],
@@ -107,12 +113,12 @@ async def get_strategies():
     }
 
 
-@app.get("/api/v1/state")
+@app.get("/api/v1/state", dependencies=[Depends(verify_read_key)])
 async def get_full_state():
     return aggregator.get_state()
 
 
-@app.get("/api/v1/trades")
+@app.get("/api/v1/trades", dependencies=[Depends(verify_read_key)])
 async def get_trades(
     sub_strategy: Optional[str] = None,
     symbol: Optional[str] = None,
@@ -138,7 +144,7 @@ async def get_trades(
         return {"trades": [], "count": 0, "error": str(e)}
 
 
-@app.get("/api/v1/trades/export")
+@app.get("/api/v1/trades/export", dependencies=[Depends(verify_read_key)])
 async def export_trades(
     format: str = "csv",
     sub_strategy: Optional[str] = None,
@@ -172,13 +178,12 @@ async def export_trades(
         return {"error": str(e)}
 
 
-@app.post("/api/v1/rebalance")
+@app.post("/api/v1/rebalance", dependencies=[Depends(verify_admin_key)])
 async def rebalance_portfolio(req: RebalanceRequest):
     """Store rebalance targets for strategies.
 
-    In a production system, this would trigger actual capital reallocation
-    across strategy accounts. For paper trading, we store targets and
-    expose them via the health endpoint for bots to read.
+    Requires admin key. In a production system, this would trigger actual
+    capital reallocation across strategy accounts.
     """
     global rebalance_targets
     for alloc in req.allocations:
@@ -192,12 +197,12 @@ async def rebalance_portfolio(req: RebalanceRequest):
     }
 
 
-@app.get("/api/v1/rebalance")
+@app.get("/api/v1/rebalance", dependencies=[Depends(verify_read_key)])
 async def get_rebalance_targets():
     return {"targets": rebalance_targets}
 
 
-@app.get("/api/v1/market/ohlcv")
+@app.get("/api/v1/market/ohlcv", dependencies=[Depends(verify_read_key)])
 async def get_market_ohlcv(symbol: str = "BTC/USDT", timeframe: str = "1d", limit: int = 100):
     """Fetch OHLCV candles for a symbol."""
     try:
@@ -208,7 +213,7 @@ async def get_market_ohlcv(symbol: str = "BTC/USDT", timeframe: str = "1d", limi
         return {"symbol": symbol, "timeframe": timeframe, "candles": [], "error": str(e)}
 
 
-@app.get("/api/v1/market/tickers")
+@app.get("/api/v1/market/tickers", dependencies=[Depends(verify_read_key)])
 async def get_market_tickers():
     """Fetch current prices and 24h change for tracked symbols."""
     try:
@@ -220,7 +225,7 @@ async def get_market_tickers():
         return {"tickers": {}, "timestamp": datetime.utcnow().isoformat(), "error": str(e)}
 
 
-@app.get("/api/v1/graduation")
+@app.get("/api/v1/graduation", dependencies=[Depends(verify_read_key)])
 async def get_graduation_status():
     """Return paper trading graduation progress."""
     try:
@@ -243,7 +248,7 @@ async def get_graduation_status():
         }
 
 
-@app.post("/api/v1/wiki/search")
+@app.post("/api/v1/wiki/search", dependencies=[Depends(verify_read_key)])
 async def wiki_search(req: WikiSearchRequest):
     """Search Turtle Trading Wiki concepts via RAG.
 

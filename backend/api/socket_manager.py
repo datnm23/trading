@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import os
 from typing import Set
 from datetime import datetime
 
@@ -18,13 +19,21 @@ def _serialize_datetime(obj):
     raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
 
+# Restrict Socket.IO CORS to known origins
+_socket_cors = os.environ.get(
+    "CORS_ORIGINS",
+    "http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001",
+).split(",")
+_socket_cors = [o.strip() for o in _socket_cors if o.strip()]
+
+
 class SocketManager:
     """Manages Socket.IO connections and broadcasts."""
 
     def __init__(self, aggregator: StateAggregator, broadcast_interval: float = 5.0):
         self.sio = socketio.AsyncServer(
             async_mode="asgi",
-            cors_allowed_origins=["*"],
+            cors_allowed_origins=_socket_cors,
             json=json,  # use standard json with custom default
         )
         self.aggregator = aggregator

@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useLang } from '@/components/layout/LangProvider';
 import { NeoCard } from '@/components/ui/NeoCard';
 import { NeoButton } from '@/components/ui/NeoButton';
-import { API_BASE_URL } from '@/lib/api';
+import { API_BASE_URL, apiHeaders } from '@/lib/api';
 import { t } from '@/lib/i18n';
 import { Search, BookOpen, Tag, ArrowLeft, Sparkles, Loader2 } from 'lucide-react';
 
@@ -74,7 +74,7 @@ export default function WikiPage() {
       setSemanticError(null);
       fetch(`${API_BASE_URL}/api/v1/wiki/search`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, top_k: 10 }),
       })
         .then((r) => r.json())

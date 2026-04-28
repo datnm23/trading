@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { API_BASE_URL } from '@/lib/api';
+import { API_BASE_URL, apiHeaders } from '@/lib/api';
 
 export interface Trade {
   id: number | string;
@@ -47,7 +47,9 @@ export function useTrades(options: UseTradesOptions = {}) {
       if (symbol) params.set('symbol', symbol);
       params.set('limit', String(limit));
 
-      const res = await fetch(`${API_BASE_URL}/api/v1/trades?${params}`);
+      const res = await fetch(`${API_BASE_URL}/api/v1/trades?${params}`, {
+        headers: apiHeaders(),
+      });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setTrades(data.trades || []);

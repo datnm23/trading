@@ -6,7 +6,7 @@ import { NeoCard } from '@/components/ui/NeoCard';
 import { NeoMetric } from '@/components/ui/NeoMetric';
 import { MarketPriceChart } from '@/components/charts/MarketPriceChart';
 import { t } from '@/lib/i18n';
-import { API_BASE_URL } from '@/lib/api';
+import { API_BASE_URL, apiHeaders } from '@/lib/api';
 import { TrendingUp, TrendingDown, Activity } from 'lucide-react';
 
 const SYMBOLS = [
@@ -38,8 +38,8 @@ export default function MarketPage() {
     setLoading(true);
     try {
       const [ohlcvRes, tickerRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/v1/market/ohlcv?symbol=${activeSymbol}&timeframe=${activeTf}&limit=100`),
-        fetch(`${API_BASE_URL}/api/v1/market/tickers`),
+        fetch(`${API_BASE_URL}/api/v1/market/ohlcv?symbol=${activeSymbol}&timeframe=${activeTf}&limit=100`, { headers: apiHeaders() }),
+        fetch(`${API_BASE_URL}/api/v1/market/tickers`, { headers: apiHeaders() }),
       ]);
 
       if (ohlcvRes.ok) {
