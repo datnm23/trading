@@ -25,6 +25,8 @@ class TradesService:
         self,
         sub_strategy: Optional[str] = None,
         symbol: Optional[str] = None,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
         limit: int = 50,
     ) -> List[Dict]:
         """Fetch closed trades with parsed sub-strategy metadata.
@@ -52,6 +54,12 @@ class TradesService:
             if symbol:
                 query += " AND symbol = %s"
                 params.append(symbol)
+            if start_date:
+                query += " AND timestamp >= %s"
+                params.append(start_date)
+            if end_date:
+                query += " AND timestamp <= %s"
+                params.append(end_date)
 
             query += " ORDER BY timestamp DESC LIMIT %s"
             params.append(limit)

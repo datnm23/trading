@@ -6,7 +6,7 @@ interface NeoMetricProps {
   label: string;
   value: string | number | React.ReactNode;
   delta?: string | number;
-  variant?: 'neutral' | 'bullish' | 'bearish';
+  variant?: 'neutral' | 'bullish' | 'bearish' | 'warning';
   prefix?: string;
   suffix?: string;
 }

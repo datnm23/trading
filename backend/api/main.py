@@ -107,6 +107,8 @@ async def get_full_state():
 async def get_trades(
     sub_strategy: Optional[str] = None,
     symbol: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
     limit: int = 50,
 ):
     """Fetch closed trade history with sub-strategy breakdown.
@@ -117,12 +119,48 @@ async def get_trades(
         trades = trades_service.get_trades(
             sub_strategy=sub_strategy,
             symbol=symbol,
+            start_date=start_date,
+            end_date=end_date,
             limit=limit,
         )
         return {"trades": trades, "count": len(trades)}
     except Exception as e:
         logger.error(f"Trades fetch failed: {e}")
         return {"trades": [], "count": 0, "error": str(e)}
+
+
+@app.get("/api/v1/trades/export")
+async def export_trades(
+    format: str = "csv",
+    sub_strategy: Optional[str] = None,
+    symbol: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+):
+    """Export trades to CSV or JSON."""
+    try:
+        trades = trades_service.get_trades(
+            sub_strategy=sub_strategy,
+            symbol=symbol,
+            start_date=start_date,
+            end_date=end_date,
+            limit=10000,
+        )
+        if format == "json":
+            return {"trades": trades, "count": len(trades)}
+        else:
+            # CSV format
+            import csv
+            import io
+            output = io.StringIO()
+            if trades:
+                writer = csv.DictWriter(output, fieldnames=trades[0].keys())
+                writer.writeheader()
+                writer.writerows(trades)
+            return {"csv": output.getvalue(), "count": len(trades)}
+    except Exception as e:
+        logger.error(f"Export failed: {e}")
+        return {"error": str(e)}
 
 
 @app.post("/api/v1/rebalance")

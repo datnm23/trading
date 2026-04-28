@@ -33,6 +33,9 @@ interface SystemState {
   positions: any[];
   alerts: any[];
   equity_history?: { timestamp: string; equity: number; strategy: string }[];
+  trailing_stops?: any[];
+  slippage?: any[];
+  partial_exits?: any[];
   sub_strategy?: SubStrategyState;
   current_regime?: string;
   directional_regime?: string;

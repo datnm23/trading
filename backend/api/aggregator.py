@@ -28,6 +28,7 @@ class StateAggregator:
         self.positions: List[Position] = []
         self.trailing_stops: List[TrailingStopState] = []
         self.slippage: List[SlippageSummary] = []
+        self.partial_exits: List[dict] = []
         self.equity_history: List[dict] = []
         self._latest_raw: Dict[str, dict] = {}
         self._running = False
@@ -183,6 +184,7 @@ class StateAggregator:
         self._extract_positions()
         self._extract_trailing_stops()
         self._extract_slippage()
+        self._extract_partial_exits()
 
     def _extract_positions(self):
         """Extract positions from raw bot health data."""
@@ -232,6 +234,21 @@ class StateAggregator:
                 ))
         self.slippage = slippage
 
+    def _extract_partial_exits(self):
+        """Extract partial exit states from raw bot health data."""
+        from backend.api.models import PartialExitState
+        exits: List[PartialExitState] = []
+        for name, data in self._latest_raw.items():
+            for symbol, info in data.get("partial_exits", {}).items():
+                exits.append(PartialExitState(
+                    symbol=symbol,
+                    entry=info.get("entry", 0.0),
+                    initial_size=info.get("initial_size", 0.0),
+                    remaining=info.get("remaining", 0.0),
+                    executed_count=len(info.get("executed", [])),
+                ))
+        self.partial_exits = exits
+
     def get_state(self) -> dict:
         """Return current unified state."""
         return {
@@ -240,6 +257,7 @@ class StateAggregator:
             "positions": [p.model_dump() for p in self.positions],
             "trailing_stops": [t.model_dump() for t in self.trailing_stops],
             "slippage": [s.model_dump() for s in self.slippage],
+            "partial_exits": [p.model_dump() for p in self.partial_exits],
             "equity_history": self.equity_history,
             "alerts": [],
             "sub_strategy": self._latest_raw.get("RegimeEnsemble", {}).get("sub_strategy", {}),

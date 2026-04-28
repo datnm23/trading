@@ -50,6 +50,14 @@ class SlippageSummary(BaseModel):
     total_cost: float
 
 
+class PartialExitState(BaseModel):
+    symbol: str
+    entry: float
+    initial_size: float
+    remaining: float
+    executed_count: int
+
+
 class Alert(BaseModel):
     level: str  # info, warning, error
     message: str
