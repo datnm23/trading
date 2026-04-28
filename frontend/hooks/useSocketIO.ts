@@ -42,7 +42,9 @@ interface SystemState {
   regime_distribution?: Record<string, number>;
 }
 
-export function useSocketIO(url: string = 'http://localhost:8090') {
+import { API_BASE_URL } from '@/lib/api';
+
+export function useSocketIO(url: string = API_BASE_URL) {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [connected, setConnected] = useState(false);
   const [state, setState] = useState<SystemState | null>(null);

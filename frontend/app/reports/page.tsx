@@ -6,6 +6,7 @@ import { useLang } from '@/components/layout/LangProvider';
 import { NeoCard } from '@/components/ui/NeoCard';
 import { NeoMetric } from '@/components/ui/NeoMetric';
 import { t } from '@/lib/i18n';
+import { API_BASE_URL } from '@/lib/api';
 import { Calendar, TrendingUp, Download } from 'lucide-react';
 
 export default function ReportsPage() {
@@ -61,7 +62,7 @@ export default function ReportsPage() {
     params.set('format', 'csv');
     if (startDate) params.set('start_date', startDate);
     if (endDate) params.set('end_date', endDate);
-    window.open(`http://localhost:8090/api/v1/trades/export?${params}`, '_blank');
+    window.open(`${API_BASE_URL}/api/v1/trades/export?${params}`, '_blank');
   };
 
   return (

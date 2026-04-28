@@ -15,10 +15,12 @@ from backend.api.aggregator import StateAggregator
 from backend.api.socket_manager import SocketManager
 from backend.api.market_data import MarketDataProvider
 from backend.api.trades_service import TradesService
+from knowledge_engine.rag import WikiRAG
 
 
 market_provider = MarketDataProvider()
 trades_service = TradesService()
+wiki_rag = WikiRAG()
 
 
 class AllocationItem(BaseModel):
@@ -28,6 +30,11 @@ class AllocationItem(BaseModel):
 
 class RebalanceRequest(BaseModel):
     allocations: List[AllocationItem]
+
+
+class WikiSearchRequest(BaseModel):
+    query: str
+    top_k: int = 5
 
 
 # Global instances
@@ -209,6 +216,35 @@ async def get_market_tickers():
     except Exception as e:
         logger.error(f"Ticker fetch failed: {e}")
         return {"tickers": {}, "timestamp": datetime.utcnow().isoformat(), "error": str(e)}
+
+
+@app.post("/api/v1/wiki/search")
+async def wiki_search(req: WikiSearchRequest):
+    """Search Turtle Trading Wiki concepts via RAG.
+
+    Returns top-k matching concepts with relevance scores.
+    """
+    try:
+        results = wiki_rag.search(req.query)
+        # Limit to requested top_k
+        results = results[: req.top_k]
+        return {
+            "query": req.query,
+            "results": [
+                {
+                    "id": r["document"]["id"],
+                    "title": r["document"]["title"],
+                    "source_url": r["document"].get("source_url", ""),
+                    "content_preview": r["document"]["content"][:500],
+                    "relevance": round(r["score"], 4),
+                }
+                for r in results
+            ],
+            "count": len(results),
+        }
+    except Exception as e:
+        logger.error(f"Wiki search failed: {e}")
+        return {"query": req.query, "results": [], "count": 0, "error": str(e)}
 
 
 if __name__ == "__main__":
