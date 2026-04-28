@@ -226,6 +226,7 @@ curl http://localhost:8080/health
 curl http://localhost:8090/health
 curl http://localhost:8090/api/v1/state
 curl http://localhost:8090/api/v1/trades?limit=5
+curl http://localhost:8090/api/v1/graduation
 
 # Frontend
 open http://localhost:3001
@@ -233,6 +234,28 @@ open http://localhost:3001
 # Prometheus
 open http://localhost:9090
 ```
+
+## 7. Paper Trading Graduation
+
+Truy cập `/graduation` trên frontend hoặc gọi API để xem tiến độ:
+
+```bash
+curl http://localhost:8090/api/v1/graduation | jq .
+```
+
+**Criteria** (cần đạt đủ 5 điều kiện):
+| Gate | Threshold | Mô tả |
+|------|-----------|-------|
+| Days Traded | ≥ 30 | Số ngày có giao dịch |
+| Return | > 0% | Lợi nhuận ròng |
+| Max Drawdown | < 10% | Mức giảm tối đa từ đỉnh |
+| Sharpe Ratio | > 0.5 | Risk-adjusted return |
+| Winrate | > 40% | Tỷ lệ giao dịch thắng |
+
+Khi đạt đủ điều kiện:
+- Frontend hiển thị banner "Ready for Live Trading"
+- Telegram alert tự động gửi tin nhắn thông báo
+- Có thể chuyển sang live trading
 
 ## 7. Data
 
