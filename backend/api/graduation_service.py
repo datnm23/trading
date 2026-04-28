@@ -2,7 +2,7 @@
 
 import os
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
 
 import psycopg2
@@ -27,7 +27,34 @@ class GraduationService:
         self.db_url = db_url or os.environ.get("TRADING_DB_URL")
         self.initial_capital = initial_capital
         self._alerter = TelegramAlerter()
-        self._notified = False  # prevent duplicate alerts
+        self._notified_path = os.environ.get(
+            "GRADUATION_NOTIFY_FILE", ".graduation_notified"
+        )
+        self._notified = self._load_notified()
+
+    def _load_notified(self) -> bool:
+        """Check if graduation alert was already sent (persisted across restarts)."""
+        try:
+            return os.path.exists(self._notified_path)
+        except Exception:
+            return False
+
+    def _save_notified(self):
+        """Persist notification state to prevent duplicate alerts on restart."""
+        try:
+            with open(self._notified_path, "w") as f:
+                f.write(datetime.now(timezone.utc).isoformat())
+        except Exception as e:
+            logger.warning(f"Failed to persist graduation notification: {e}")
+
+    def reset_notification(self):
+        """Clear persisted notification state (for testing or re-graduation)."""
+        self._notified = False
+        try:
+            if os.path.exists(self._notified_path):
+                os.remove(self._notified_path)
+        except Exception as e:
+            logger.warning(f"Failed to reset graduation notification: {e}")
 
     def _connect(self):
         return psycopg2.connect(self.db_url)
@@ -37,7 +64,7 @@ class GraduationService:
         if not self.db_url:
             return self._empty_result("No database configured")
 
-        cutoff = datetime.utcnow() - timedelta(days=30)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=30)
         cutoff_str = cutoff.isoformat()
 
         conn = self._connect()
@@ -143,6 +170,7 @@ class GraduationService:
             if approved and not self._notified:
                 self._send_graduation_alert(result)
                 self._notified = True
+                self._save_notified()
 
             return result
 

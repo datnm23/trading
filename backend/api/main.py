@@ -3,7 +3,7 @@
 import asyncio
 import os
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 from fastapi import FastAPI, Depends
@@ -219,10 +219,10 @@ async def get_market_tickers():
     try:
         symbols = ["BTC/USDT", "ETH/USDT", "SOL/USDT"]
         data = await market_provider.get_tickers(symbols)
-        return {"tickers": data, "timestamp": datetime.utcnow().isoformat()}
+        return {"tickers": data, "timestamp": datetime.now(timezone.utc).isoformat()}
     except Exception as e:
         logger.error(f"Ticker fetch failed: {e}")
-        return {"tickers": {}, "timestamp": datetime.utcnow().isoformat(), "error": str(e)}
+        return {"tickers": {}, "timestamp": datetime.now(timezone.utc).isoformat(), "error": str(e)}
 
 
 @app.get("/api/v1/graduation", dependencies=[Depends(verify_read_key)])

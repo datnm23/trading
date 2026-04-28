@@ -49,6 +49,7 @@ logs/
 
 # Docker
 .dockerignore
+!frontend/.dockerignore
 
 # OS
 .DS_Store

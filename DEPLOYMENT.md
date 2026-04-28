@@ -257,6 +257,8 @@ Khi đạt đủ điều kiện:
 - Telegram alert tự động gửi tin nhắn thông báo
 - Có thể chuyển sang live trading
 
+**Persistence**: Trạng thái đã gửi alert được lưu vào file `.graduation_notified` (hoặc đường dẫn từ env `GRADUATION_NOTIFY_FILE`) để tránh gửi lại khi restart bot. Xóa file này nếu muốn reset và gửi lại.
+
 ## 7. Data
 
 File OHLCV 1h đã có sẵn trong `data/raw/`:

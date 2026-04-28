@@ -1,7 +1,7 @@
 """Market data module — fetches OHLCV from free sources."""
 
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 import pandas as pd
@@ -40,7 +40,7 @@ class MarketDataProvider:
         """Fetch OHLCV candles as list of dicts for JSON serialization."""
         cache_key = f"{symbol}:{timeframe}"
         cached = self._cache.get(cache_key)
-        if cached and (datetime.utcnow() - cached["ts"]).seconds < self._cache_ttl:
+        if cached and (datetime.now(timezone.utc) - cached["ts"]).seconds < self._cache_ttl:
             return cached["data"]
 
         mapped = SYMBOL_MAP.get(symbol, {"coingecko": "bitcoin", "ccxt": symbol})
@@ -65,7 +65,7 @@ class MarketDataProvider:
                     if pd.isna(row[key]):
                         row[key] = None
 
-            self._cache[cache_key] = {"data": result, "ts": datetime.utcnow()}
+            self._cache[cache_key] = {"data": result, "ts": datetime.now(timezone.utc)}
             return result
 
         except Exception as e:

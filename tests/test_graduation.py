@@ -1,7 +1,7 @@
 """Tests for GraduationService."""
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from unittest.mock import MagicMock, patch
 
 from backend.api.graduation_service import GraduationService
@@ -40,7 +40,7 @@ class TestGraduationService:
     def test_approved_when_all_gates_pass(self):
         svc = GraduationService(initial_capital=100000)
         svc.db_url = "postgresql://test:test@localhost/test"
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         trades = []
         for i in range(30):
             ts = now - timedelta(days=i)
@@ -65,7 +65,7 @@ class TestGraduationService:
     def test_not_approved_with_negative_return(self):
         svc = GraduationService(initial_capital=100000)
         svc.db_url = "postgresql://test:test@localhost/test"
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         trades = [make_fake_trade(now - timedelta(days=i), -500) for i in range(30)]
 
         with patch.object(svc, '_connect') as mock_conn:
@@ -79,7 +79,7 @@ class TestGraduationService:
     def test_not_approved_with_high_drawdown(self):
         svc = GraduationService(initial_capital=100000)
         svc.db_url = "postgresql://test:test@localhost/test"
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         trades = []
         for i in range(30):
             pnl = 100 if i != 15 else -15000  # one massive loss
@@ -93,10 +93,12 @@ class TestGraduationService:
             assert result["approved"] is False
             assert result["gates"]["drawdown"] is False
 
-    def test_telegram_alert_sent_once(self):
+    def test_telegram_alert_sent_once(self, tmp_path, monkeypatch):
+        notify_file = tmp_path / "graduation_notified"
+        monkeypatch.setenv("GRADUATION_NOTIFY_FILE", str(notify_file))
         svc = GraduationService(initial_capital=100000)
         svc.db_url = "postgresql://test:test@localhost/test"
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         # Need variance in daily returns for sharpe > 0.5
         trades = []
         for i in range(30):
@@ -117,3 +119,22 @@ class TestGraduationService:
                 # Second call should not send again
                 result2 = svc.compute_metrics()
                 mock_send.assert_called_once()
+                # Persistence file should exist
+                assert notify_file.exists()
+
+    def test_notification_persisted_across_restarts(self, tmp_path, monkeypatch):
+        notify_file = tmp_path / "graduation_notified"
+        notify_file.write_text("2026-01-01T00:00:00+00:00")
+        monkeypatch.setenv("GRADUATION_NOTIFY_FILE", str(notify_file))
+        svc = GraduationService(initial_capital=100000)
+        assert svc._notified is True
+
+    def test_reset_notification(self, tmp_path, monkeypatch):
+        notify_file = tmp_path / "graduation_notified"
+        notify_file.write_text("2026-01-01T00:00:00+00:00")
+        monkeypatch.setenv("GRADUATION_NOTIFY_FILE", str(notify_file))
+        svc = GraduationService(initial_capital=100000)
+        assert svc._notified is True
+        svc.reset_notification()
+        assert svc._notified is False
+        assert not notify_file.exists()

@@ -1,7 +1,7 @@
 """Aggregator — polls strategy health endpoints and builds unified state."""
 
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 import httpx
@@ -60,7 +60,7 @@ class StateAggregator:
                 return_pct=(equity / initial - 1.0) if initial > 0 else 0.0,
                 daily_pnl=data.get("psychology", {}).get("total_pnl_today", 0.0),
                 strategy_type=data.get("strategy", ""),
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
             )
         except Exception as e:
             logger.warning(f"Failed to poll {name} on port {port}: {e}")
@@ -128,7 +128,7 @@ class StateAggregator:
                 return_pct=sub_return,
                 daily_pnl=0.0,
                 strategy_type=sd["type"],
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 meta={
                     "active_signal": active_signal,
                     "is_active_regime": is_active_regime,
@@ -264,7 +264,7 @@ class StateAggregator:
     def get_state(self) -> dict:
         """Return current unified state."""
         return {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "strategies": [s.model_dump() for s in self.strategies.values()],
             "positions": [p.model_dump() for p in self.positions],
             "trailing_stops": [t.model_dump() for t in self.trailing_stops],

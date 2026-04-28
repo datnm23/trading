@@ -1,8 +1,8 @@
 """Pydantic models for FastAPI gateway."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class StrategyState(BaseModel):
@@ -16,7 +16,7 @@ class StrategyState(BaseModel):
     return_pct: float = 0.0
     daily_pnl: float = 0.0
     strategy_type: str = ""
-    timestamp: datetime = datetime.utcnow()
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     meta: Optional[Dict[str, Any]] = None
 
 
@@ -61,7 +61,7 @@ class PartialExitState(BaseModel):
 class Alert(BaseModel):
     level: str  # info, warning, error
     message: str
-    timestamp: datetime = datetime.utcnow()
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     source: str = ""
 
 
