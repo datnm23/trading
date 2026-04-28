@@ -99,7 +99,26 @@ services:
         max-file: "3"
 
   # -----------------------------------------------------------
-  # 4. Prometheus — Metrics collection
+  # 4. Frontend — Next.js static export served by nginx
+  # -----------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: trading-frontend
+    restart: unless-stopped
+    ports:
+      - "3001:80"
+    networks:
+      - trading-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # -----------------------------------------------------------
+  # 5. Prometheus — Metrics collection
   # -----------------------------------------------------------
   prometheus:
     image: prom/prometheus:latest

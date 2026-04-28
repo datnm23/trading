@@ -1,12 +1,33 @@
 """Integration test for backend API."""
 
+import os
 import sys
+
+# Set env before any imports that depend on it
+os.environ["TRADING_DB_URL"] = os.environ.get("TRADING_DB_URL", "postgresql://test:test@localhost/test")
+
 sys.path.insert(0, "/home/datnm/projects/trading")
 
 import pytest
-import asyncio
+from unittest.mock import MagicMock, patch
 from httpx import AsyncClient, ASGITransport
-from backend.api.main import app
+
+from backend.api.main import app, trades_service, graduation_service
+
+
+@pytest.fixture(autouse=True)
+def mock_backend_services(monkeypatch):
+    """Mock DB-dependent services for all backend API tests."""
+    fake_trades = [
+        {"id": 1, "symbol": "BTC/USDT", "sub_strategy": "ema", "timestamp": "2026-04-01"},
+    ]
+    monkeypatch.setattr(trades_service, "get_trades", lambda **kwargs: fake_trades)
+    monkeypatch.setattr(graduation_service, "compute_metrics", lambda: {
+        "days_traded": 0, "days_required": 30, "return_pct": 0,
+        "max_drawdown_pct": 0, "sharpe": 0, "winrate": 0,
+        "trade_count": 0, "total_pnl": 0, "gates": {}, "approved": False,
+        "message": "test",
+    })
 
 
 @pytest.mark.asyncio
@@ -68,6 +89,15 @@ async def test_market_tickers():
         data = r.json()
         assert "tickers" in data
         assert "BTC/USDT" in data["tickers"]
+
+
+@pytest.mark.asyncio
+async def test_graduation():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        r = await client.get("/api/v1/graduation")
+        assert r.status_code == 200
+        data = r.json()
+        assert "gates" in data
 
 
 if __name__ == "__main__":

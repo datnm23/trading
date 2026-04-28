@@ -1,11 +1,29 @@
 """Quick integration test: MLStrategy + LiveTradingEngine."""
 
+import os
 import sys
+
+sys.path.insert(0, "/home/datnm/projects/trading")
+
+import pytest
+
+# Skip entire module if DB not reachable
+_db_url = os.environ.get("TRADING_DB_URL", "")
+_db_reachable = False
+if _db_url:
+    try:
+        import psycopg2
+        conn = psycopg2.connect(_db_url, connect_timeout=3)
+        conn.close()
+        _db_reachable = True
+    except Exception:
+        pass
+if not _db_reachable:
+    pytest.skip("PostgreSQL not reachable — skipping DB-dependent integration test", allow_module_level=True)
+
 import tempfile
 import pandas as pd
 import numpy as np
-
-sys.path.insert(0, "/home/datnm/projects/trading")
 
 from strategies.ml_based import MLStrategy
 from ml.pipelines.xgboost_pipeline import MLClassifierPipeline
@@ -25,7 +43,7 @@ config = {
     },
     "backtest": {"initial_capital": 100000},
     "execution": {"paper": True, "exchange_id": "binance", "testnet": True},
-    "journal": {"db_url": "postgresql://trader:trading123@localhost:5432/trading_journal"},
+    "journal": {"db_url": os.environ.get("TRADING_DB_URL", "")},
     "monitoring": {"health_port": 18080, "alert_telegram": False},
     "psychology": {},
 }
