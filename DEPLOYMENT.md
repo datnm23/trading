@@ -51,7 +51,20 @@ TELEGRAM_CHAT_ID=your_chat_id
 # Exchange API (khi chạy live)
 BINANCE_API_KEY=your_key
 BINANCE_SECRET=your_secret
+
+# Frontend API URL (cho production build)
+NEXT_PUBLIC_API_URL=https://api.yourdomain.com
 ```
+
+| Variable | Required | Mô tả |
+|----------|----------|-------|
+| `TRADING_DB_URL` | ✅ | PostgreSQL connection string |
+| `NEXT_PUBLIC_API_URL` | ❌ | API base URL cho frontend build. Default: `http://localhost:8090` |
+| `BINANCE_API_KEY` | ❌ (paper) / ✅ (live) | Binance API key |
+| `BINANCE_SECRET` | ❌ (paper) / ✅ (live) | Binance API secret |
+| `TELEGRAM_BOT_TOKEN` | ❌ | Telegram bot token cho alerts |
+| `TELEGRAM_CHAT_ID` | ❌ | Telegram chat ID nhận alerts |
+| `OPENAI_API_KEY` | ❌ | OpenAI key cho LLM-enhanced wiki validation |
 
 ### Config files
 
@@ -110,10 +123,36 @@ uvicorn backend.api.main:app --host 0.0.0.0 --port 8090 --reload
 
 ### Frontend
 
+#### Development
+
 ```bash
 cd frontend
 npm run dev -- -p 3001
 ```
+
+#### Production Build (Static Export)
+
+```bash
+cd frontend
+# Build static files (output: frontend/dist/)
+npm run build
+
+# Serve with any static file server, e.g.:
+npx serve dist/ -p 3001
+# Or copy dist/ to nginx, Vercel, Cloudflare Pages, S3, etc.
+```
+
+**Build output**: `frontend/dist/` contains pure static HTML/CSS/JS (~4MB).
+- `index.html` — Dashboard
+- `live.html`, `risk.html`, `reports.html`, `wiki.html`, `market.html` — Pages
+- `wiki-index.json` — Static wiki data (required for /wiki)
+- `_next/static/` — JS/CSS chunks
+
+**Note**: `output: 'export'` is set in `next.config.ts`. This means:
+- No server-side rendering (fine for a dashboard that calls a separate API)
+- Socket.IO works client-side (connects to `API_BASE_URL`)
+- Images are unoptimized (set in config)
+- Not supported: Server Actions, cookies, dynamic routes without `generateStaticParams()`
 
 ### Monitoring (Prometheus + Grafana)
 
@@ -123,7 +162,61 @@ docker compose up -d prometheus grafana
 
 Truy cập Grafana: http://localhost:3000 (admin/admin)
 
-## 5. Kiểm tra hoạt động
+## 5. Deployment Options
+
+### Option A: Docker Compose (All-in-One)
+
+Phù hợp cho single VPS hoặc local development.
+
+```bash
+# Build frontend static files trước khi compose
+cd frontend && npm run build && cd ..
+
+# Khởi động toàn bộ stack
+docker compose up -d
+```
+
+Frontend được serve qua nginx container từ `frontend/dist/`.
+
+### Option B: Split Deploy (Backend VPS + Static Frontend)
+
+Phù hợp cho production: backend trên VPS, frontend trên CDN.
+
+**Backend** (VPS / EC2 / Droplet):
+```bash
+# Chỉ chạy backend services
+docker compose up -d postgres trading-bot backend-api prometheus grafana
+# Hoặc dùng systemd / PM2 cho backend-api
+```
+
+**Frontend** (Vercel / Cloudflare Pages / S3 + CloudFront):
+```bash
+cd frontend
+# Build với API URL production
+NEXT_PUBLIC_API_URL=https://api.yourdomain.com npm run build
+
+# Deploy dist/ lên static host
+# Vercel: npx vercel --prod dist/
+# Cloudflare Pages: npx wrangler pages deploy dist/
+```
+
+**Ưu điểm Split Deploy**:
+- Frontend được phục vụ từ CDN toàn cầu (nhanh hơn)
+- Backend API chỉ cần 1 instance (tiết kiệm)
+- SSL + HTTPS tự động từ CDN
+- Giảm tải cho VPS
+
+**Lưu ý CORS**:
+Nếu frontend và backend ở domain khác nhau, cập nhật `allow_origins` trong `backend/api/main.py`:
+```python
+allow_origins=[
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "https://your-frontend-domain.com",
+]
+```
+
+## 6. Kiểm tra hoạt động
 
 ```bash
 # Bot health
@@ -141,7 +234,7 @@ open http://localhost:3001
 open http://localhost:9090
 ```
 
-## 6. Data
+## 7. Data
 
 File OHLCV 1h đã có sẵn trong `data/raw/`:
 - `BTC_USDT_1h.csv`
@@ -150,7 +243,7 @@ File OHLCV 1h đã có sẵn trong `data/raw/`:
 
 Bot sẽ tự động tải data mới khi chạy.
 
-## 7. Chuyển sang Live Trading
+## 8. Chuyển sang Live Trading
 
 **⚠️ Cảnh báo**: Live trading yêu cầu graduation gate:
 - Paper trading 30 ngày có lãi
