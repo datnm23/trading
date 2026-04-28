@@ -2,7 +2,6 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Optional
 
 import pandas as pd
 
@@ -10,17 +9,19 @@ import pandas as pd
 @dataclass
 class Signal:
     """Trading signal produced by a strategy."""
+
     timestamp: pd.Timestamp
     symbol: str
-    side: str          # "buy" | "sell" | "close"
-    strength: float    # 0.0 - 1.0
-    price: Optional[float] = None
-    meta: Optional[dict] = None
+    side: str  # "buy" | "sell" | "close"
+    strength: float  # 0.0 - 1.0
+    price: float | None = None
+    meta: dict | None = None
 
 
 @dataclass
 class StrategyContext:
     """Context passed to strategy on each bar."""
+
     symbol: str
     bar: pd.Series
     history: pd.DataFrame
@@ -31,7 +32,7 @@ class StrategyContext:
 class BaseStrategy(ABC):
     """Abstract base class for all strategies."""
 
-    def __init__(self, name: str, params: Optional[dict] = None):
+    def __init__(self, name: str, params: dict | None = None):
         self.name = name
         self.params = params or {}
         self.is_warm = False
@@ -42,7 +43,7 @@ class BaseStrategy(ABC):
         pass
 
     @abstractmethod
-    def on_bar(self, context: StrategyContext) -> Optional[Signal]:
+    def on_bar(self, context: StrategyContext) -> Signal | None:
         """Process new bar and optionally return a signal."""
         pass
 

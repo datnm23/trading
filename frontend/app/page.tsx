@@ -1,6 +1,6 @@
 'use client';
 
-import { useSocketIO } from '@/hooks/useSocketIO';
+import { useSocketIO, StrategyState } from '@/hooks/useSocketIO';
 import { useLang } from '@/components/layout/LangProvider';
 import { NeoCard } from '@/components/ui/NeoCard';
 import { NeoMetric } from '@/components/ui/NeoMetric';
@@ -16,13 +16,13 @@ export default function OverviewPage() {
   const { lang } = useLang();
 
   const strategies = state?.strategies || [];
-  const subStrategies = strategies.filter((s: any) => s.meta);
+  const subStrategies = strategies.filter((s: StrategyState) => s.meta);
   const displayStrategies = subStrategies.length > 0 ? subStrategies : strategies;
-  const totalEquity = displayStrategies.reduce((sum: number, s: any) => sum + s.equity, 0);
+  const totalEquity = displayStrategies.reduce((sum: number, s: StrategyState) => sum + s.equity, 0);
   const avgReturn = displayStrategies.length > 0
-    ? displayStrategies.reduce((sum: number, s: any) => sum + s.return_pct, 0) / displayStrategies.length
+    ? displayStrategies.reduce((sum: number, s: StrategyState) => sum + s.return_pct, 0) / displayStrategies.length
     : 0;
-  const totalPositions = displayStrategies.reduce((sum: number, s: any) => sum + s.open_positions, 0);
+  const totalPositions = displayStrategies.reduce((sum: number, s: StrategyState) => sum + s.open_positions, 0);
 
   const regimeColors: Record<string, string> = {
     trending: 'text-neo-bullish',
@@ -95,10 +95,10 @@ export default function OverviewPage() {
               </tr>
             </thead>
             <tbody>
-              {displayStrategies.map((strategy: any) => {
+              {displayStrategies.map((strategy: StrategyState) => {
                 const meta = strategy.meta || {};
-                const isActive = meta.is_active_regime;
-                const signal = meta.active_signal;
+                const isActive = meta.is_active_regime as boolean;
+                const signal = meta.active_signal as string | undefined;
                 return (
                   <tr key={strategy.name}>
                     <td className="font-bold">{strategy.name}</td>
@@ -109,8 +109,8 @@ export default function OverviewPage() {
                     </td>
                     <td className="font-mono">{strategy.open_positions}</td>
                     <td>
-                      <span className={`font-bold uppercase text-xs ${regimeColors[meta.current_regime] || 'text-neo-muted'}`}>
-                        {meta.current_regime || '-'}
+                      <span className={`font-bold uppercase text-xs ${regimeColors[meta.current_regime as string] || 'text-neo-muted'}`}>
+                        {(meta.current_regime as string) || '-'}
                       </span>
                     </td>
                     <td>

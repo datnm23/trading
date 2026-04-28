@@ -44,7 +44,7 @@ export function PnLBarChart({ data }: PnLBarChartProps) {
               boxShadow: '4px 4px 0 #000',
               fontFamily: 'JetBrains Mono',
             }}
-                formatter={(value: any) => [`$${Number(value).toFixed(2)}`, 'P&L']}
+                formatter={(value: unknown) => [`$${Number(value).toFixed(2)}`, 'P&L']}
           />
           <Bar dataKey="pnl" radius={[0, 0, 0, 0]} stroke="#000" strokeWidth={2}>
             {chartData.map((entry, index) => (

@@ -1,15 +1,15 @@
 """Trailing Stop Manager — Auto-adjusts stop-loss as price moves favorably."""
 
-from dataclasses import dataclass, field
-from typing import Dict, Optional
+from dataclasses import dataclass
+
 from loguru import logger
 
 
 @dataclass
 class TrailingStopConfig:
-    activation_pct: float = 0.05      # 5% profit to activate trailing
-    trail_pct: float = 0.30           # Trail at 30% of peak profit
-    min_profit_lock: float = 0.02     # Lock in 2% minimum profit once activated
+    activation_pct: float = 0.05  # 5% profit to activate trailing
+    trail_pct: float = 0.30  # Trail at 30% of peak profit
+    min_profit_lock: float = 0.02  # Lock in 2% minimum profit once activated
 
 
 class TrailingStopManager:
@@ -23,11 +23,13 @@ class TrailingStopManager:
             exit_position()
     """
 
-    def __init__(self, config: Optional[TrailingStopConfig] = None):
+    def __init__(self, config: TrailingStopConfig | None = None):
         self.config = config or TrailingStopConfig()
-        self.positions: Dict[str, dict] = {}
+        self.positions: dict[str, dict] = {}
 
-    def add_position(self, symbol: str, entry_price: float, initial_stop: float, side: str = "long"):
+    def add_position(
+        self, symbol: str, entry_price: float, initial_stop: float, side: str = "long"
+    ):
         """Register a new position for trailing stop tracking."""
         self.positions[symbol] = {
             "entry_price": entry_price,
@@ -38,14 +40,16 @@ class TrailingStopManager:
             "activated": False,
             "highest_profit_pct": 0.0,
         }
-        logger.info(f"Trailing stop registered for {symbol} | Entry: {entry_price:.2f} | Initial stop: {initial_stop:.2f}")
+        logger.info(
+            f"Trailing stop registered for {symbol} | Entry: {entry_price:.2f} | Initial stop: {initial_stop:.2f}"
+        )
 
     def remove_position(self, symbol: str):
         """Remove position from tracking."""
         if symbol in self.positions:
             del self.positions[symbol]
 
-    def update(self, symbol: str, current_price: float) -> Optional[float]:
+    def update(self, symbol: str, current_price: float) -> float | None:
         """Update trailing stop for a position. Returns new stop level if changed."""
         pos = self.positions.get(symbol)
         if not pos:
@@ -68,7 +72,9 @@ class TrailingStopManager:
             if profit_pct >= self.config.activation_pct:
                 pos["activated"] = True
                 pos["highest_profit_pct"] = profit_pct
-                logger.info(f"🎯 Trailing stop ACTIVATED for {symbol} | Profit: {profit_pct:.2%}")
+                logger.info(
+                    f"🎯 Trailing stop ACTIVATED for {symbol} | Profit: {profit_pct:.2%}"
+                )
             return None
 
         # Update highest profit
@@ -90,7 +96,10 @@ class TrailingStopManager:
             if new_stop > pos["current_stop"]:
                 old_stop = pos["current_stop"]
                 pos["current_stop"] = new_stop
-                logger.info(f"🔄 Trailing stop MOVED for {symbol} | {old_stop:.2f} → {new_stop:.2f} | Peak: {pos['peak_price']:.2f}")
+                logger.info(
+                    f"🔄 Trailing stop MOVED for {symbol} | {old_stop:.2f} → {new_stop:.2f} | "
+                    f"Peak: {pos['peak_price']:.2f}"
+                )
                 return new_stop
         else:
             # Short position
@@ -104,7 +113,9 @@ class TrailingStopManager:
             if new_stop < pos["current_stop"]:
                 old_stop = pos["current_stop"]
                 pos["current_stop"] = new_stop
-                logger.info(f"🔄 Trailing stop MOVED for {symbol} | {old_stop:.2f} → {new_stop:.2f}")
+                logger.info(
+                    f"🔄 Trailing stop MOVED for {symbol} | {old_stop:.2f} → {new_stop:.2f}"
+                )
                 return new_stop
 
         return None
@@ -119,17 +130,20 @@ class TrailingStopManager:
             return current_price <= pos["current_stop"]
         return current_price >= pos["current_stop"]
 
-    def get_stop(self, symbol: str) -> Optional[float]:
+    def get_stop(self, symbol: str) -> float | None:
         """Get current stop level."""
         pos = self.positions.get(symbol)
         return pos["current_stop"] if pos else None
 
-    def summary(self) -> Dict[str, dict]:
+    def summary(self) -> dict[str, dict]:
         """Return summary of all tracked positions."""
-        return {k: {
-            "entry": v["entry_price"],
-            "current_stop": v["current_stop"],
-            "peak": v["peak_price"],
-            "activated": v["activated"],
-            "profit_pct": v["highest_profit_pct"],
-        } for k, v in self.positions.items()}
+        return {
+            k: {
+                "entry": v["entry_price"],
+                "current_stop": v["current_stop"],
+                "peak": v["peak_price"],
+                "activated": v["activated"],
+                "profit_pct": v["highest_profit_pct"],
+            }
+            for k, v in self.positions.items()
+        }

@@ -5,9 +5,8 @@ by a configurable multiplier (e.g., 2x, 3x). Sends bilingual
 Telegram alerts when unusual volume is detected.
 """
 
+from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
-from dataclasses import dataclass, field
 
 import pandas as pd
 from loguru import logger
@@ -18,7 +17,8 @@ from monitoring.telegram import TelegramAlerter
 @dataclass
 class VolumeAlertState:
     """Track volume alert state per symbol."""
-    last_alerted: Optional[datetime] = None
+
+    last_alerted: datetime | None = None
     cooldown_hours: float = 4.0
 
 
@@ -31,7 +31,7 @@ class VolumeAlertManager:
 
     def __init__(
         self,
-        alerter: Optional[TelegramAlerter] = None,
+        alerter: TelegramAlerter | None = None,
         enabled: bool = True,
         lookback_bars: int = 20,
         multiplier: float = 2.5,
@@ -42,8 +42,8 @@ class VolumeAlertManager:
         self.lookback_bars = lookback_bars
         self.multiplier = multiplier
         self.cooldown = timedelta(hours=cooldown_hours)
-        self._states: Dict[str, VolumeAlertState] = {}
-        self._history: Dict[str, List[float]] = {}  # recent volume history per symbol
+        self._states: dict[str, VolumeAlertState] = {}
+        self._history: dict[str, list[float]] = {}  # recent volume history per symbol
 
     def check(self, symbol: str, df: pd.DataFrame):
         """Check if current bar volume is abnormal.

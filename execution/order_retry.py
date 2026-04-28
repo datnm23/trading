@@ -1,16 +1,18 @@
 """Order Retry Manager — Exponential backoff retry for failed orders."""
 
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable, Optional, Any
+from typing import Any
+
 from loguru import logger
 
 
 @dataclass
 class RetryConfig:
     max_retries: int = 3
-    base_delay: float = 1.0       # seconds
-    max_delay: float = 30.0       # seconds
+    base_delay: float = 1.0  # seconds
+    max_delay: float = 30.0  # seconds
     exponential_base: float = 2.0
     retryable_exceptions: tuple = (Exception,)  # override with specific exceptions
 
@@ -27,7 +29,7 @@ class OrderRetryManager:
         )
     """
 
-    def __init__(self, config: Optional[RetryConfig] = None):
+    def __init__(self, config: RetryConfig | None = None):
         self.config = config or RetryConfig()
         self.stats = {"total_attempts": 0, "successes": 0, "failures": 0}
 
@@ -40,14 +42,17 @@ class OrderRetryManager:
             try:
                 result = func(*args, **kwargs)
                 if attempt > 0:
-                    logger.info(f"✅ Order succeeded on attempt {attempt + 1}/{self.config.max_retries + 1}")
+                    logger.info(
+                        f"✅ Order succeeded on attempt {attempt + 1}/{self.config.max_retries + 1}"
+                    )
                 self.stats["successes"] += 1
                 return result
             except self.config.retryable_exceptions as e:
                 last_exception = e
                 if attempt < self.config.max_retries:
                     delay = min(
-                        self.config.base_delay * (self.config.exponential_base ** attempt),
+                        self.config.base_delay
+                        * (self.config.exponential_base**attempt),
                         self.config.max_delay,
                     )
                     logger.warning(
@@ -55,7 +60,9 @@ class OrderRetryManager:
                     )
                     time.sleep(delay)
                 else:
-                    logger.error(f"❌ Order failed after {self.config.max_retries + 1} attempts: {e}")
+                    logger.error(
+                        f"❌ Order failed after {self.config.max_retries + 1} attempts: {e}"
+                    )
 
         self.stats["failures"] += 1
         raise last_exception

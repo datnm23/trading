@@ -2,13 +2,12 @@
 
 import numpy as np
 import pandas as pd
-import pytest
 
 from ml.drift_detection import (
-    PredictionDriftDetector,
-    FeatureDriftDetector,
     ErrorRateDriftDetector,
+    FeatureDriftDetector,
     ModelDriftMonitor,
+    PredictionDriftDetector,
 )
 
 
@@ -26,7 +25,7 @@ class TestPredictionDriftDetector:
         for _ in range(30):
             det.update(np.random.beta(7, 3))
         result = det.detect()
-        assert result["drifted"] == False
+        assert not result["drifted"]
         assert result["score"] < 0.8
 
     def test_drift_low_confidence(self):
@@ -36,7 +35,7 @@ class TestPredictionDriftDetector:
         for _ in range(30):
             det.update(np.random.beta(4, 4))  # Lower confidence
         result = det.detect()
-        assert result["drifted"] == True
+        assert result["drifted"]
         assert result["score"] > 0.5
 
 
@@ -47,16 +46,18 @@ class TestFeatureDriftDetector:
         det.set_baseline(baseline)
         recent = pd.DataFrame(np.random.randn(50, 3), columns=["a", "b", "c"])
         result = det.detect(recent)
-        assert result["drifted"] == False
+        assert not result["drifted"]
         assert result["avg_psi"] < 0.2
 
     def test_drift_shifted(self):
         det = FeatureDriftDetector(psi_threshold=0.2)
         baseline = pd.DataFrame(np.random.randn(500, 3), columns=["a", "b", "c"])
         det.set_baseline(baseline)
-        recent = pd.DataFrame(np.random.randn(50, 3) + 3, columns=["a", "b", "c"])  # Shifted
+        recent = pd.DataFrame(
+            np.random.randn(50, 3) + 3, columns=["a", "b", "c"]
+        )  # Shifted
         result = det.detect(recent)
-        assert result["drifted"] == True
+        assert result["drifted"]
         assert result["avg_psi"] > 0.2
 
 
@@ -67,7 +68,7 @@ class TestErrorRateDriftDetector:
         for _ in range(50):
             det.log_prediction(1, 1)  # All correct
         result = det.detect()
-        assert result["drifted"] == False
+        assert not result["drifted"]
         assert result["recent_error_rate"] == 0.0
 
     def test_drift_high_errors(self):
@@ -76,7 +77,7 @@ class TestErrorRateDriftDetector:
         for _ in range(50):
             det.log_prediction(1, 0)  # All wrong
         result = det.detect()
-        assert result["drifted"] == True
+        assert result["drifted"]
         assert result["recent_error_rate"] == 1.0
 
 
@@ -92,7 +93,8 @@ class TestModelDriftMonitor:
             monitor.log_prediction(
                 pd.Series(np.random.randn(3)),
                 np.random.beta(7, 3),
-                1, 1,
+                1,
+                1,
             )
         report = monitor.check()
         # May drift randomly due to beta sampling; just verify structure
@@ -111,7 +113,8 @@ class TestModelDriftMonitor:
             monitor.log_prediction(
                 pd.Series(np.random.randn(3) + 3),  # Feature shift
                 np.random.beta(3, 5),  # Low confidence
-                1, 0,  # Wrong
+                1,
+                0,  # Wrong
             )
         report = monitor.check()
         # Degraded predictions should show higher drift score

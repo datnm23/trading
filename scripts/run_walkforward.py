@@ -5,24 +5,24 @@ Strategies: RegimeEnsemble (wiki+psych), ML-XGBoost, Buy&Hold
 """
 
 import sys
+
 sys.path.insert(0, "/home/datnm/projects/trading")
 
 import argparse
-import yaml
 from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import yaml
 from loguru import logger
 
-import pandas as pd
-import numpy as np
-
-from data.feed import DataFeed
-from backtest.walkforward import WalkForwardEngine
 from backtest.engine import BacktestEngine
-from risk.manager import RiskManager, RegimeAwareRiskManager
-from strategies.ensemble.regime_ensemble import RegimeEnsembleStrategy
+from backtest.walkforward import WalkForwardEngine
+from data.feed import DataFeed
+from risk.manager import RegimeAwareRiskManager, RiskManager
 from strategies.benchmarks import BuyHoldStrategy
+from strategies.ensemble.regime_ensemble import RegimeEnsembleStrategy
 from strategies.ml_based import MLStrategy
-from ml.pipelines.train import train_optimized
 
 
 def load_config():
@@ -30,12 +30,20 @@ def load_config():
         return yaml.safe_load(f)
 
 
-def run_regime_ensemble_walkforward(df: pd.DataFrame, config: dict, label: str, train_bars: int = 180, test_bars: int = 90):
+def run_regime_ensemble_walkforward(
+    df: pd.DataFrame,
+    config: dict,
+    label: str,
+    train_bars: int = 180,
+    test_bars: int = 90,
+):
     """Run walk-forward for RegimeEnsemble with wiki + psych + regime-aware risk."""
     logger.info(f"\n{'='*80}\nRegimeEnsemble Walk-Forward ({label})\n{'='*80}")
 
     def make_strategy():
-        return RegimeEnsembleStrategy(params=config["strategies"]["registry"][2]["params"])
+        return RegimeEnsembleStrategy(
+            params=config["strategies"]["registry"][2]["params"]
+        )
 
     risk = RegimeAwareRiskManager(config["risk"])
     engine = WalkForwardEngine(
@@ -54,7 +62,13 @@ def run_regime_ensemble_walkforward(df: pd.DataFrame, config: dict, label: str, 
     return results
 
 
-def run_buyhold_walkforward(df: pd.DataFrame, config: dict, label: str, train_bars: int = 180, test_bars: int = 90):
+def run_buyhold_walkforward(
+    df: pd.DataFrame,
+    config: dict,
+    label: str,
+    train_bars: int = 180,
+    test_bars: int = 90,
+):
     """Run walk-forward for Buy & Hold benchmark."""
     logger.info(f"\n{'='*80}\nBuy&Hold Walk-Forward ({label})\n{'='*80}")
 
@@ -77,7 +91,13 @@ def run_buyhold_walkforward(df: pd.DataFrame, config: dict, label: str, train_ba
     return results
 
 
-def run_ml_walkforward(df: pd.DataFrame, config: dict, label: str, train_bars: int = 180, test_bars: int = 90):
+def run_ml_walkforward(
+    df: pd.DataFrame,
+    config: dict,
+    label: str,
+    train_bars: int = 180,
+    test_bars: int = 90,
+):
     """Run walk-forward for ML-XGBoost with rolling retrain each period."""
     logger.info(f"\n{'='*80}\nML-XGBoost Walk-Forward ({label})\n{'='*80}")
 
@@ -99,12 +119,15 @@ def run_ml_walkforward(df: pd.DataFrame, config: dict, label: str, train_bars: i
         test_df = df.iloc[train_end:test_end]
 
         period_label = f"{df.index[train_end].strftime('%Y-%m-%d')}_{df.index[test_end-1].strftime('%Y-%m-%d')}"
-        logger.info(f"ML Period {period_label} | Train: {len(train_df)} | Test: {len(test_df)}")
+        logger.info(
+            f"ML Period {period_label} | Train: {len(train_df)} | Test: {len(test_df)}"
+        )
 
         # Train model on train data
         try:
-            from ml.pipelines.xgboost_pipeline import MLClassifierPipeline
             from ml.features.engineering import LONG_TERM_WHITELIST
+            from ml.pipelines.xgboost_pipeline import MLClassifierPipeline
+
             # Phase 3: Long-term whitelist + target horizon 20d + threshold 0.80 + trend filter
             pipeline = MLClassifierPipeline(
                 n_splits=3,
@@ -136,8 +159,11 @@ def run_ml_walkforward(df: pd.DataFrame, config: dict, label: str, train_bars: i
             result = be.run(combined, strategy, risk)
 
             from backtest.walkforward import WalkForwardResult
+
             total_trades = len(result.trades)
-            gross_return = result.total_return + (result.total_cost / initial_capital if initial_capital else 0)
+            gross_return = result.total_return + (
+                result.total_cost / initial_capital if initial_capital else 0
+            )
             wf_result = WalkForwardResult(
                 period_label=period_label,
                 train_start=train_df.index[0],
@@ -150,7 +176,9 @@ def run_ml_walkforward(df: pd.DataFrame, config: dict, label: str, train_bars: i
                     "total_return": result.total_return,
                     "gross_return": gross_return,
                     "total_cost": result.total_cost,
-                    "avg_cost_per_trade": result.total_cost / total_trades if total_trades else 0,
+                    "avg_cost_per_trade": (
+                        result.total_cost / total_trades if total_trades else 0
+                    ),
                     "sharpe": result.sharpe,
                     "max_drawdown": result.max_drawdown,
                     "winrate": result.winrate,
@@ -169,6 +197,7 @@ def run_ml_walkforward(df: pd.DataFrame, config: dict, label: str, train_bars: i
 
     # Save aggregate
     import json
+
     data = {
         "meta": {"strategy": "ML-XGBoost", "label": label, "periods": len(results)},
         "periods": [
@@ -181,12 +210,18 @@ def run_ml_walkforward(df: pd.DataFrame, config: dict, label: str, train_bars: i
         ],
         "aggregate": {
             "total_return": sum(r.metrics["total_return"] for r in results),
-            "avg_sharpe": np.mean([r.metrics["sharpe"] for r in results]) if results else 0,
-            "avg_max_dd": np.mean([r.metrics["max_drawdown"] for r in results]) if results else 0,
+            "avg_sharpe": (
+                np.mean([r.metrics["sharpe"] for r in results]) if results else 0
+            ),
+            "avg_max_dd": (
+                np.mean([r.metrics["max_drawdown"] for r in results]) if results else 0
+            ),
             "total_trades": sum(r.metrics["total_trades"] for r in results),
         },
     }
-    with open(f"/home/datnm/projects/trading/data/walkforward_ml_p3_{label}.json", "w") as f:
+    with open(
+        f"/home/datnm/projects/trading/data/walkforward_ml_p3_{label}.json", "w"
+    ) as f:
         json.dump(data, f, indent=2, default=str)
 
     return results
@@ -204,24 +239,28 @@ def compare_results(results_map: dict, label: str):
         if not results:
             continue
         total_return = sum(r.metrics["total_return"] for r in results)
-        gross_return = sum(r.metrics.get("gross_return", r.metrics["total_return"]) for r in results)
+        gross_return = sum(
+            r.metrics.get("gross_return", r.metrics["total_return"]) for r in results
+        )
         total_cost = sum(r.metrics.get("total_cost", 0) for r in results)
         total_trades = sum(r.metrics["total_trades"] for r in results)
         avg_cost = total_cost / total_trades if total_trades else 0
         avg_sharpe = np.mean([r.metrics["sharpe"] for r in results])
         avg_max_dd = np.mean([r.metrics["max_drawdown"] for r in results])
         win_months = sum(1 for r in results if r.metrics["total_return"] > 0)
-        summary_rows.append({
-            "Strategy": strategy_name,
-            "Net Return": total_return,
-            "Gross Return": gross_return,
-            "Total Cost": total_cost,
-            "Avg Cost/Trade": avg_cost,
-            "Avg Sharpe": avg_sharpe,
-            "Avg Max DD": avg_max_dd,
-            "Total Trades": total_trades,
-            "Win Periods": f"{win_months}/{len(results)}",
-        })
+        summary_rows.append(
+            {
+                "Strategy": strategy_name,
+                "Net Return": total_return,
+                "Gross Return": gross_return,
+                "Total Cost": total_cost,
+                "Avg Cost/Trade": avg_cost,
+                "Avg Sharpe": avg_sharpe,
+                "Avg Max DD": avg_max_dd,
+                "Total Trades": total_trades,
+                "Win Periods": f"{win_months}/{len(results)}",
+            }
+        )
 
     df = pd.DataFrame(summary_rows)
     print(df.to_string(index=False))
@@ -239,16 +278,18 @@ def compare_results(results_map: dict, label: str):
             f.write(f"### {strategy_name}\n\n")
             rows = []
             for r in results:
-                rows.append({
-                    "Period": r.period_label,
-                    "Net Return": f"{r.metrics['total_return']:.2%}",
-                    "Gross Return": f"{r.metrics.get('gross_return', r.metrics['total_return']):.2%}",
-                    "Total Cost": f"{r.metrics.get('total_cost', 0):,.2f}",
-                    "Avg Cost/Trade": f"{r.metrics.get('avg_cost_per_trade', 0):,.2f}",
-                    "Sharpe": f"{r.metrics['sharpe']:.2f}",
-                    "Max DD": f"{r.metrics['max_drawdown']:.2%}",
-                    "Trades": r.metrics["total_trades"],
-                })
+                rows.append(
+                    {
+                        "Period": r.period_label,
+                        "Net Return": f"{r.metrics['total_return']:.2%}",
+                        "Gross Return": f"{r.metrics.get('gross_return', r.metrics['total_return']):.2%}",
+                        "Total Cost": f"{r.metrics.get('total_cost', 0):,.2f}",
+                        "Avg Cost/Trade": f"{r.metrics.get('avg_cost_per_trade', 0):,.2f}",
+                        "Sharpe": f"{r.metrics['sharpe']:.2f}",
+                        "Max DD": f"{r.metrics['max_drawdown']:.2%}",
+                        "Trades": r.metrics["total_trades"],
+                    }
+                )
             pdf = pd.DataFrame(rows)
             f.write(pdf.to_markdown(index=False))
             f.write("\n\n")
@@ -270,7 +311,9 @@ def main():
     parser = argparse.ArgumentParser(description="Walk-forward blind test")
     parser.add_argument("--symbol", default="BTC/USDT")
     parser.add_argument("--timeframe", default="1d")
-    parser.add_argument("--skip-ml", action="store_true", help="Skip ML training (faster)")
+    parser.add_argument(
+        "--skip-ml", action="store_true", help="Skip ML training (faster)"
+    )
     args = parser.parse_args()
 
     config = load_config()
@@ -282,24 +325,34 @@ def main():
     # Fetch data (use larger limit for finer timeframes; cache will be used if present)
     fetch_limit = 1500 if args.timeframe == "1d" else 10000
     feed = DataFeed()
-    df = feed.fetch(args.symbol, timeframe=args.timeframe, limit=fetch_limit, use_cache=True)
+    df = feed.fetch(
+        args.symbol, timeframe=args.timeframe, limit=fetch_limit, use_cache=True
+    )
     if df.empty:
         raise ValueError("No data available")
 
-    print(f"\nData loaded: {args.symbol} {args.timeframe} | {len(df)} bars | {df.index[0]} to {df.index[-1]}")
+    print(
+        f"\nData loaded: {args.symbol} {args.timeframe} | {len(df)} bars | {df.index[0]} to {df.index[-1]}"
+    )
     print(f"Walk-forward windows: train={train_bars} bars | test={test_bars} bars")
 
     results_map = {}
 
     # 1. RegimeEnsemble
-    results_map["RegimeEnsemble"] = run_regime_ensemble_walkforward(df, config, label, train_bars, test_bars)
+    results_map["RegimeEnsemble"] = run_regime_ensemble_walkforward(
+        df, config, label, train_bars, test_bars
+    )
 
     # 2. Buy&Hold
-    results_map["BuyHold"] = run_buyhold_walkforward(df, config, label, train_bars, test_bars)
+    results_map["BuyHold"] = run_buyhold_walkforward(
+        df, config, label, train_bars, test_bars
+    )
 
     # 3. ML-XGBoost Phase 3 (whitelist 28 features + target 20d + threshold 0.80 + trend filter)
     if not args.skip_ml:
-        results_map["ML-XGBoost-p3"] = run_ml_walkforward(df, config, label, train_bars, test_bars)
+        results_map["ML-XGBoost-p3"] = run_ml_walkforward(
+            df, config, label, train_bars, test_bars
+        )
 
     # Compare
     compare_results(results_map, label)

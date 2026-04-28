@@ -1,12 +1,10 @@
 """API key authentication for production endpoints."""
 
 import os
-from typing import Optional
 
-from fastapi import HTTPException, Header, Depends
+from fastapi import Header, HTTPException
 from fastapi.security import APIKeyHeader
 from loguru import logger
-
 
 _READ_KEY = os.environ.get("API_KEY", "")
 _ADMIN_KEY = os.environ.get("ADMIN_KEY", "")
@@ -23,7 +21,7 @@ def _check_keys_loaded():
         logger.warning("ADMIN_KEY not set — admin endpoints are UNPROTECTED")
 
 
-def verify_read_key(api_key: Optional[str] = Header(None, alias="X-API-Key")):
+def verify_read_key(api_key: str | None = Header(None, alias="X-API-Key")):
     """Verify read-level API key."""
     if not _READ_KEY:
         return True  # Auth disabled if not configured
@@ -33,8 +31,8 @@ def verify_read_key(api_key: Optional[str] = Header(None, alias="X-API-Key")):
 
 
 def verify_admin_key(
-    api_key: Optional[str] = Header(None, alias="X-API-Key"),
-    admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
+    api_key: str | None = Header(None, alias="X-API-Key"),
+    admin_key: str | None = Header(None, alias="X-Admin-Key"),
 ):
     """Verify both read key AND admin key for sensitive operations."""
     verify_read_key(api_key)

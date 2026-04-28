@@ -1,14 +1,11 @@
 """Market data module — fetches OHLCV from free sources."""
 
-import asyncio
-from datetime import datetime, timezone
-from typing import Dict, List, Optional
+from datetime import UTC, datetime
 
 import pandas as pd
 from loguru import logger
 
 from data.free_apis import CoinGeckoAPI
-
 
 SYMBOL_MAP = {
     "BTC/USDT": {"coingecko": "bitcoin", "ccxt": "BTC/USDT"},
@@ -28,7 +25,7 @@ class MarketDataProvider:
 
     def __init__(self):
         self.cg = CoinGeckoAPI()
-        self._cache: Dict[str, dict] = {}
+        self._cache: dict[str, dict] = {}
         self._cache_ttl = 60  # seconds
 
     async def get_ohlcv(
@@ -36,11 +33,11 @@ class MarketDataProvider:
         symbol: str = "BTC/USDT",
         timeframe: str = "1d",
         limit: int = 100,
-    ) -> List[dict]:
+    ) -> list[dict]:
         """Fetch OHLCV candles as list of dicts for JSON serialization."""
         cache_key = f"{symbol}:{timeframe}"
         cached = self._cache.get(cache_key)
-        if cached and (datetime.now(timezone.utc) - cached["ts"]).seconds < self._cache_ttl:
+        if cached and (datetime.now(UTC) - cached["ts"]).seconds < self._cache_ttl:
             return cached["data"]
 
         mapped = SYMBOL_MAP.get(symbol, {"coingecko": "bitcoin", "ccxt": symbol})
@@ -58,29 +55,39 @@ class MarketDataProvider:
             # Limit to last N candles
             df = df.tail(limit).reset_index()
             df["timestamp"] = df["timestamp"].dt.strftime("%Y-%m-%d %H:%M:%S")
-            result = df[["timestamp", "open", "high", "low", "close", "volume"]].to_dict("records")
+            result = df[
+                ["timestamp", "open", "high", "low", "close", "volume"]
+            ].to_dict("records")
             # Replace NaN with None for JSON serialization
             for row in result:
                 for key in row:
                     if pd.isna(row[key]):
                         row[key] = None
 
-            self._cache[cache_key] = {"data": result, "ts": datetime.now(timezone.utc)}
+            self._cache[cache_key] = {"data": result, "ts": datetime.now(UTC)}
             return result
 
         except Exception as e:
             logger.warning(f"Market data fetch failed for {symbol}: {e}")
             return []
 
-    async def get_tickers(self, symbols: List[str]) -> Dict[str, dict]:
+    async def get_tickers(self, symbols: list[str]) -> dict[str, dict]:
         """Fetch current ticker info for multiple symbols."""
         try:
-            ids = ",".join(SYMBOL_MAP.get(s, {"coingecko": "bitcoin"})["coingecko"] for s in symbols)
-            url = f"https://api.coingecko.com/api/v3/simple/price"
+            ids = ",".join(
+                SYMBOL_MAP.get(s, {"coingecko": "bitcoin"})["coingecko"]
+                for s in symbols
+            )
+            url = "https://api.coingecko.com/api/v3/simple/price"
             import requests
+
             resp = requests.get(
                 url,
-                params={"ids": ids, "vs_currencies": "usd", "include_24hr_change": "true"},
+                params={
+                    "ids": ids,
+                    "vs_currencies": "usd",
+                    "include_24hr_change": "true",
+                },
                 timeout=10,
             )
             resp.raise_for_status()

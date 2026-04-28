@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
 """ML-based strategy adapter with Stop-Loss / Take-Profit management."""
 
-from typing import Optional
-
 import pandas as pd
-import numpy as np
 from loguru import logger
 
-from strategies.base import BaseStrategy, Signal, StrategyContext
 from ml.drift_detection import ModelDriftMonitor
+from strategies.base import BaseStrategy, Signal, StrategyContext
 from strategies.regime_detector import RegimeDetector
 
 
-def _atr(high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14) -> pd.Series:
+def _atr(
+    high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14
+) -> pd.Series:
     """Compute Average True Range."""
     prev_close = close.shift(1)
     tr1 = high - low
@@ -36,7 +35,13 @@ class MLStrategy(BaseStrategy):
         - Exit reasons tracked in signal meta
     """
 
-    def __init__(self, model_pipeline, name: str = "ML-Strategy", drift_monitor: Optional[ModelDriftMonitor] = None, use_trend_filter: bool = True):
+    def __init__(
+        self,
+        model_pipeline,
+        name: str = "ML-Strategy",
+        drift_monitor: ModelDriftMonitor | None = None,
+        use_trend_filter: bool = True,
+    ):
         super().__init__(name=name, params={})
         self.pipeline = model_pipeline
         self.in_position = False
@@ -53,9 +58,9 @@ class MLStrategy(BaseStrategy):
         # SL/TP config
         params = self.params or {}
         self.sl_method = params.get("sl_method", "atr")  # atr | fixed_pct | none
-        self.sl_value = params.get("sl_value", 2.0)      # ATR multiplier or pct
+        self.sl_value = params.get("sl_value", 2.0)  # ATR multiplier or pct
         self.tp_method = params.get("tp_method", "atr")  # atr | fixed_pct | none
-        self.tp_value = params.get("tp_value", 3.0)      # ATR multiplier or pct
+        self.tp_value = params.get("tp_value", 3.0)  # ATR multiplier or pct
         self.trailing_sl = params.get("trailing_sl", False)
         self.trailing_activation = params.get("trailing_activation", 0.02)
 
@@ -64,7 +69,9 @@ class MLStrategy(BaseStrategy):
 
     def warmup(self, history: pd.DataFrame) -> None:
         if len(history) < self.warmup_bars:
-            logger.warning(f"ML strategy needs {self.warmup_bars} bars, got {len(history)}")
+            logger.warning(
+                f"ML strategy needs {self.warmup_bars} bars, got {len(history)}"
+            )
             return
         self.is_warm = True
 
@@ -76,7 +83,9 @@ class MLStrategy(BaseStrategy):
         self.take_price = 0.0
         self.position_size = 0.0
 
-    def _compute_sl_tp(self, entry: float, bar: pd.Series, history: pd.DataFrame) -> tuple:
+    def _compute_sl_tp(
+        self, entry: float, bar: pd.Series, history: pd.DataFrame
+    ) -> tuple:
         """Compute stop-loss and take-profit prices."""
         stop = None
         take = None
@@ -111,7 +120,7 @@ class MLStrategy(BaseStrategy):
                 self.stop_price = new_stop
                 logger.debug(f"Trailing stop updated: {self.stop_price:.2f}")
 
-    def on_bar(self, context: StrategyContext) -> Optional[Signal]:
+    def on_bar(self, context: StrategyContext) -> Signal | None:
         if not self.is_warm:
             return None
         if len(context.history) < self.warmup_bars:
@@ -139,7 +148,8 @@ class MLStrategy(BaseStrategy):
                         "entry_price": self.entry_price,
                         "stop_price": self.stop_price,
                         "take_price": self.take_price,
-                        "pnl_pct": (self.stop_price - self.entry_price) / self.entry_price,
+                        "pnl_pct": (self.stop_price - self.entry_price)
+                        / self.entry_price,
                     },
                 )
 
@@ -156,7 +166,8 @@ class MLStrategy(BaseStrategy):
                         "entry_price": self.entry_price,
                         "stop_price": self.stop_price,
                         "take_price": self.take_price,
-                        "pnl_pct": (self.take_price - self.entry_price) / self.entry_price,
+                        "pnl_pct": (self.take_price - self.entry_price)
+                        / self.entry_price,
                     },
                 )
 
@@ -185,7 +196,9 @@ class MLStrategy(BaseStrategy):
                 ema50 = hist["close"].ewm(span=50).mean().iloc[-1]
                 trend_ok = ema20 >= ema50
                 if not trend_ok:
-                    logger.debug(f"ML trend filter blocked BUY: ema20={ema20:.2f} < ema50={ema50:.2f}")
+                    logger.debug(
+                        f"ML trend filter blocked BUY: ema20={ema20:.2f} < ema50={ema50:.2f}"
+                    )
 
         # Entry
         if signal_val == 1 and not self.in_position and trend_ok:

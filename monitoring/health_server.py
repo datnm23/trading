@@ -7,9 +7,9 @@ Runs in a background thread and exposes:
 
 import json
 import threading
+from collections.abc import Callable
 from datetime import datetime
-from http.server import HTTPServer, BaseHTTPRequestHandler
-from typing import Optional, Callable
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
 from loguru import logger
 
@@ -95,16 +95,20 @@ class _HealthHandler(BaseHTTPRequestHandler):
 class HealthServer:
     """Background HTTP server for health checks."""
 
-    def __init__(self, port: int = 8080, status_provider: Optional[Callable[[], dict]] = None):
+    def __init__(
+        self, port: int = 8080, status_provider: Callable[[], dict] | None = None
+    ):
         self.port = port
         self.status_provider = status_provider
-        self._server: Optional[HTTPServer] = None
-        self._thread: Optional[threading.Thread] = None
+        self._server: HTTPServer | None = None
+        self._thread: threading.Thread | None = None
 
     def start(self):
         self._server = HTTPServer(
             ("0.0.0.0", self.port),
-            lambda *args, **kwargs: _HealthHandler(*args, status_provider=self.status_provider, **kwargs),
+            lambda *args, **kwargs: _HealthHandler(
+                *args, status_provider=self.status_provider, **kwargs
+            ),
         )
         self._thread = threading.Thread(target=self._server.serve_forever, daemon=True)
         self._thread.start()
@@ -130,4 +134,5 @@ if __name__ == "__main__":
     server = HealthServer(port=8080, status_provider=demo_status)
     server.start()
     import time
+
     time.sleep(60)

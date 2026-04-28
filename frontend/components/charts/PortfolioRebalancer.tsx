@@ -125,7 +125,7 @@ export function PortfolioRebalancer() {
                     boxShadow: '4px 4px 0 #000',
                     fontFamily: 'JetBrains Mono',
                   }}
-                  formatter={(value: any) => [`${Number(value).toFixed(1)}%`, '']}
+                  formatter={(value: unknown) => [`${Number(value).toFixed(1)}%`, '']}
                 />
               </PieChart>
             </ResponsiveContainer>

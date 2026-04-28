@@ -1,7 +1,5 @@
 """Monthly Breakout Strategy."""
 
-from typing import Optional
-
 import pandas as pd
 from loguru import logger
 
@@ -12,7 +10,7 @@ from strategies.rule_based.ema_trend import _atr
 class MonthlyBreakoutStrategy(BaseStrategy):
     """Breakout above/below N-month high/low with ATR stop."""
 
-    def __init__(self, params: Optional[dict] = None):
+    def __init__(self, params: dict | None = None):
         super().__init__(name="Monthly-Breakout", params=params)
         self.lookback = self.params.get("lookback_months", 3) * 30  # approximate days
         self.atr_period = self.params.get("atr_period", 14)
@@ -28,7 +26,7 @@ class MonthlyBreakoutStrategy(BaseStrategy):
         super().reset()
         self.in_position = False
 
-    def on_bar(self, context: StrategyContext) -> Optional[Signal]:
+    def on_bar(self, context: StrategyContext) -> Signal | None:
         if not self.is_warm:
             return None
 
@@ -43,7 +41,7 @@ class MonthlyBreakoutStrategy(BaseStrategy):
         atr_val = _atr(high, low, close, self.atr_period).iloc[-1]
 
         # Monthly lookback levels (exclude current bar)
-        window = hist.iloc[-self.lookback - 1:-1]
+        window = hist.iloc[-self.lookback - 1 : -1]
         highest = window["high"].max()
         lowest = window["low"].min()
 
@@ -58,7 +56,13 @@ class MonthlyBreakoutStrategy(BaseStrategy):
                 side="buy",
                 strength=0.9,
                 price=curr_close,
-                meta={"highest": highest, "lowest": lowest, "atr": atr_val, "breakout": "up", "reason": "breakout"},
+                meta={
+                    "highest": highest,
+                    "lowest": lowest,
+                    "atr": atr_val,
+                    "breakout": "up",
+                    "reason": "breakout",
+                },
             )
 
         # Breakdown — close long when close below previous N-day low
@@ -70,7 +74,13 @@ class MonthlyBreakoutStrategy(BaseStrategy):
                 side="sell",
                 strength=0.9,
                 price=curr_close,
-                meta={"highest": highest, "lowest": lowest, "atr": atr_val, "breakout": "down", "reason": "breakdown"},
+                meta={
+                    "highest": highest,
+                    "lowest": lowest,
+                    "atr": atr_val,
+                    "breakout": "down",
+                    "reason": "breakdown",
+                },
             )
 
         # Trend continuation — weak signal for ensemble when price is near breakout level
@@ -78,14 +88,22 @@ class MonthlyBreakoutStrategy(BaseStrategy):
             # Price is within 2% of the high — potential breakout forming
             dist_to_high = (highest - curr_close) / highest
             if 0 < dist_to_high < 0.02:
-                strength = 0.3 * (1 - dist_to_high / 0.02)  # Scale 0→0.3 as price approaches high
+                strength = 0.3 * (
+                    1 - dist_to_high / 0.02
+                )  # Scale 0→0.3 as price approaches high
                 return Signal(
                     timestamp=context.bar.name,
                     symbol=context.symbol,
                     side="buy",
                     strength=strength,
                     price=curr_close,
-                    meta={"highest": highest, "lowest": lowest, "atr": atr_val, "breakout": "none", "reason": "approaching_high"},
+                    meta={
+                        "highest": highest,
+                        "lowest": lowest,
+                        "atr": atr_val,
+                        "breakout": "none",
+                        "reason": "approaching_high",
+                    },
                 )
             # Price is within 2% of the low — potential breakdown forming
             dist_to_low = (curr_close - lowest) / lowest
@@ -97,7 +115,13 @@ class MonthlyBreakoutStrategy(BaseStrategy):
                     side="sell",
                     strength=strength,
                     price=curr_close,
-                    meta={"highest": highest, "lowest": lowest, "atr": atr_val, "breakout": "none", "reason": "approaching_low"},
+                    meta={
+                        "highest": highest,
+                        "lowest": lowest,
+                        "atr": atr_val,
+                        "breakout": "none",
+                        "reason": "approaching_low",
+                    },
                 )
 
         return None

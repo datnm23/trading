@@ -1,8 +1,7 @@
 """Tests for RegimeDetector."""
 
-import pytest
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 from strategies.regime_detector import RegimeDetector
 
@@ -11,7 +10,7 @@ def make_history(n: int = 100, trend: str = "sideways") -> pd.DataFrame:
     """Generate OHLCV history with specified trend."""
     np.random.seed(42)
     dates = pd.date_range("2024-01-01", periods=n, freq="h")
-    
+
     if trend == "uptrend":
         close = np.linspace(100, 150, n) + np.random.randn(n) * 2
     elif trend == "downtrend":
@@ -20,19 +19,22 @@ def make_history(n: int = 100, trend: str = "sideways") -> pd.DataFrame:
         close = 100 + np.cumsum(np.random.randn(n) * 0.5)
     else:
         close = 100 + np.random.randn(n) * 5
-    
+
     close = np.maximum(close, 1)
     high = close + np.abs(np.random.randn(n)) * 3
     low = close - np.abs(np.random.randn(n)) * 3
     low = np.maximum(low, close * 0.95)
-    
-    return pd.DataFrame({
-        "open": close - np.random.randn(n) * 1,
-        "high": high,
-        "low": low,
-        "close": close,
-        "volume": np.random.randint(1000, 10000, n),
-    }, index=dates)
+
+    return pd.DataFrame(
+        {
+            "open": close - np.random.randn(n) * 1,
+            "high": high,
+            "low": low,
+            "close": close,
+            "volume": np.random.randint(1000, 10000, n),
+        },
+        index=dates,
+    )
 
 
 class TestRegimeDetector:

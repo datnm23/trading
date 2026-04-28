@@ -5,12 +5,11 @@ are not available or rate limits are hit.
 """
 
 import os
-from typing import Optional, Dict
 from datetime import datetime
 
-import requests
-import pandas as pd
 import numpy as np
+import pandas as pd
+import requests
 from loguru import logger
 
 
@@ -43,7 +42,9 @@ class FearGreedAPI:
         for _ in range(limit):
             val = np.clip(val + np.random.normal(0, 5), 0, 100)
             values.append(val)
-        df = pd.DataFrame({"value": values, "value_classification": "neutral"}, index=dates)
+        df = pd.DataFrame(
+            {"value": values, "value_classification": "neutral"}, index=dates
+        )
         return df
 
 
@@ -52,10 +53,12 @@ class GlassnodeAPI:
 
     BASE_URL = "https://api.glassnode.com/v1"
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: str | None = None):
         self.api_key = api_key or os.getenv("GLASSNODE_API_KEY", "")
 
-    def fetch_metric(self, metric: str, asset: str = "BTC", interval: str = "1d") -> pd.DataFrame:
+    def fetch_metric(
+        self, metric: str, asset: str = "BTC", interval: str = "1d"
+    ) -> pd.DataFrame:
         """Fetch a specific on-chain metric."""
         if not self.api_key:
             logger.warning("Glassnode API key not set. Using fallback.")
@@ -70,7 +73,9 @@ class GlassnodeAPI:
 
             df = pd.DataFrame(data)
             df["t"] = pd.to_datetime(df["t"], unit="s")
-            df = df.rename(columns={"v": metric, "t": "timestamp"}).set_index("timestamp")
+            df = df.rename(columns={"v": metric, "t": "timestamp"}).set_index(
+                "timestamp"
+            )
             return df
         except Exception as e:
             logger.warning(f"Glassnode API failed: {e}. Using fallback.")
@@ -93,7 +98,7 @@ class FREDAPI:
 
     BASE_URL = "https://api.stlouisfed.org/fred/series/observations"
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: str | None = None):
         self.api_key = api_key or os.getenv("FRED_API_KEY", "")
 
     def fetch_series(self, series_id: str) -> pd.DataFrame:
@@ -127,7 +132,9 @@ class FREDAPI:
         """Generate synthetic macro data."""
         dates = pd.date_range(end=datetime.now(), periods=365, freq="D")
         if "DGS" in series_id or "FED" in series_id:
-            values = np.clip(np.cumsum(np.random.normal(0, 0.02, len(dates))) + 4.5, 0, 10)
+            values = np.clip(
+                np.cumsum(np.random.normal(0, 0.02, len(dates))) + 4.5, 0, 10
+            )
         elif "DEX" in series_id:
             values = np.cumsum(np.random.normal(0, 0.1, len(dates))) + 100
         else:
@@ -143,7 +150,7 @@ class DataIntegrator:
         self.glassnode = GlassnodeAPI()
         self.fred = FREDAPI()
 
-    def fetch_all(self) -> Dict[str, pd.DataFrame]:
+    def fetch_all(self) -> dict[str, pd.DataFrame]:
         """Fetch all available external data."""
         results = {}
 
@@ -151,8 +158,12 @@ class DataIntegrator:
         results["fear_greed"] = self.fear_greed.fetch(limit=365)
 
         # On-chain
-        results["active_addresses"] = self.glassnode.fetch_metric("addresses/active_count", asset="BTC")
-        results["exchange_inflow"] = self.glassnode.fetch_metric("flows/exchange_inflow", asset="BTC")
+        results["active_addresses"] = self.glassnode.fetch_metric(
+            "addresses/active_count", asset="BTC"
+        )
+        results["exchange_inflow"] = self.glassnode.fetch_metric(
+            "flows/exchange_inflow", asset="BTC"
+        )
 
         # Macro
         results["dxy"] = self.fred.fetch_series("DTWEXBGS")

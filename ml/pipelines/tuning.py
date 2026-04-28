@@ -1,17 +1,15 @@
 """Hyperparameter tuning with randomized search and walk-forward CV."""
 
-from typing import Dict, Any, Optional
 import time
+from typing import Any
 
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import TimeSeriesSplit, RandomizedSearchCV
-from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
-from sklearn.metrics import make_scorer, f1_score
-from xgboost import XGBClassifier
 from loguru import logger
-
-from ml.features.engineering import compute_features, prepare_train_data
+from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
+from sklearn.metrics import f1_score, make_scorer
+from sklearn.model_selection import RandomizedSearchCV, TimeSeriesSplit
+from xgboost import XGBClassifier
 
 
 class HyperparameterTuner:
@@ -25,7 +23,7 @@ class HyperparameterTuner:
         self.best_score = 0.0
         self.cv_results = None
 
-    def _get_param_distributions(self, model_type: str = "xgboost") -> Dict[str, Any]:
+    def _get_param_distributions(self, model_type: str = "xgboost") -> dict[str, Any]:
         """Get hyperparameter distributions for each model type."""
         if model_type == "xgboost":
             return {
@@ -59,30 +57,36 @@ class HyperparameterTuner:
 
     def tune(
         self,
-        X: np.ndarray,
+        X: np.ndarray,  # noqa: N803
         y: np.ndarray,
         model_type: str = "gradient_boosting",
         scoring: str = "f1",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Run randomized search with time series CV.
-        
+
         Returns best parameters and CV results.
         """
         param_distributions = self._get_param_distributions(model_type)
 
         if model_type == "xgboost":
-            base_model = XGBClassifier(random_state=self.random_state, eval_metric="logloss")
+            base_model = XGBClassifier(
+                random_state=self.random_state, eval_metric="logloss"
+            )
         elif model_type == "gradient_boosting":
             base_model = GradientBoostingClassifier(random_state=self.random_state)
         elif model_type == "random_forest":
-            base_model = RandomForestClassifier(random_state=self.random_state, n_jobs=-1)
+            base_model = RandomForestClassifier(
+                random_state=self.random_state, n_jobs=-1
+            )
         else:
             raise ValueError(f"Unknown model_type: {model_type}")
 
         tscv = TimeSeriesSplit(n_splits=self.n_splits)
         scorer = make_scorer(f1_score) if scoring == "f1" else scoring
 
-        logger.info(f"Starting randomized search: {self.n_iter} iterations, {self.n_splits}-fold TS CV")
+        logger.info(
+            f"Starting randomized search: {self.n_iter} iterations, {self.n_splits}-fold TS CV"
+        )
         start = time.time()
 
         search = RandomizedSearchCV(
@@ -102,7 +106,9 @@ class HyperparameterTuner:
         self.best_score = search.best_score_
         self.cv_results = search.cv_results_
 
-        logger.info(f"Tuning complete in {elapsed:.1f}s | Best {scoring}: {self.best_score:.4f}")
+        logger.info(
+            f"Tuning complete in {elapsed:.1f}s | Best {scoring}: {self.best_score:.4f}"
+        )
         logger.info(f"Best params: {self.best_params}")
 
         return {
@@ -119,4 +125,6 @@ class HyperparameterTuner:
 
         results = pd.DataFrame(self.cv_results)
         results = results.sort_values("mean_test_score", ascending=False)
-        return results[["rank_test_score", "mean_test_score", "std_test_score", "params"]].head(n)
+        return results[
+            ["rank_test_score", "mean_test_score", "std_test_score", "params"]
+        ].head(n)

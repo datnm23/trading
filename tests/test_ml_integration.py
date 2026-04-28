@@ -1,5 +1,7 @@
 """Quick integration test: MLStrategy + LiveTradingEngine."""
 
+# ruff: noqa: E402
+
 import os
 import sys
 
@@ -13,23 +15,24 @@ _db_reachable = False
 if _db_url:
     try:
         import psycopg2
+
         conn = psycopg2.connect(_db_url, connect_timeout=3)
         conn.close()
         _db_reachable = True
     except Exception:
         pass
 if not _db_reachable:
-    pytest.skip("PostgreSQL not reachable — skipping DB-dependent integration test", allow_module_level=True)
+    pytest.skip(
+        "PostgreSQL not reachable — skipping DB-dependent integration test",
+        allow_module_level=True,
+    )
 
-import tempfile
-import pandas as pd
 import numpy as np
+import pandas as pd
 
-from strategies.ml_based import MLStrategy
-from ml.pipelines.xgboost_pipeline import MLClassifierPipeline
 from execution.live_trading import LiveTradingEngine
-from risk.manager import RiskManager
-import yaml
+from ml.pipelines.xgboost_pipeline import MLClassifierPipeline
+from strategies.ml_based import MLStrategy
 
 # Create minimal config
 config = {
@@ -52,13 +55,16 @@ config = {
 np.random.seed(0)
 n = 300
 dates = pd.date_range(end="2026-04-21", periods=n, freq="D")
-df = pd.DataFrame({
-    "open": np.cumsum(np.random.randn(n)) + 50000,
-    "high": np.cumsum(np.random.randn(n)) + 50100,
-    "low": np.cumsum(np.random.randn(n)) + 49900,
-    "close": np.cumsum(np.random.randn(n)) + 50000,
-    "volume": np.random.randint(1000, 10000, n),
-}, index=dates)
+df = pd.DataFrame(
+    {
+        "open": np.cumsum(np.random.randn(n)) + 50000,
+        "high": np.cumsum(np.random.randn(n)) + 50100,
+        "low": np.cumsum(np.random.randn(n)) + 49900,
+        "close": np.cumsum(np.random.randn(n)) + 50000,
+        "volume": np.random.randint(1000, 10000, n),
+    },
+    index=dates,
+)
 df["high"] = df[["open", "close", "high"]].max(axis=1)
 df["low"] = df[["open", "close", "low"]].min(axis=1)
 
@@ -84,6 +90,7 @@ print(f"Risk manager: {engine.risk.__class__.__name__}")
 
 # Verify that the engine can process a bar without crashing
 from strategies.base import StrategyContext
+
 context = StrategyContext(
     symbol="BTC/USDT",
     bar=df.iloc[-1],

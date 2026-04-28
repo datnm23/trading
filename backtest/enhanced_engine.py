@@ -15,24 +15,23 @@ Usage:
     result = engine.run(data, strategy, risk)
 """
 
-from dataclasses import dataclass, field
-from typing import Optional, Dict
-from pathlib import Path
+from dataclasses import dataclass
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 from loguru import logger
 
 from backtest.engine import BacktestEngine, BacktestResult, Trade
-from strategies.base import BaseStrategy, Signal, StrategyContext
+from knowledge_engine.signal_validator import WikiSignalValidator
 from risk.manager import RiskManager
-from knowledge_engine.signal_validator import WikiSignalValidator, WikiValidationResult
 from risk.psychology import PsychologicalEnforcer, PsychologicalState
+from strategies.base import BaseStrategy, Signal, StrategyContext
 
 
 @dataclass
 class EnhancedBacktestResult(BacktestResult):
     """Extended result with wiki and psych stats."""
+
     wiki_blocked: int = 0
     wiki_downgraded: int = 0
     wiki_avg_alignment: float = 0.0
@@ -59,14 +58,18 @@ class EnhancedBacktestEngine(BacktestEngine):
         use_wiki: bool = True,
         use_psych: bool = True,
         wiki_min_align: float = 0.3,
-        psych_config: Optional[dict] = None,
+        psych_config: dict | None = None,
     ):
         super().__init__(initial_capital, commission, slippage)
         self.use_wiki = use_wiki
         self.use_psych = use_psych
 
-        self.wiki_validator = WikiSignalValidator(min_alignment=wiki_min_align) if use_wiki else None
-        self.psych_enforcer = PsychologicalEnforcer(psych_config or {}) if use_psych else None
+        self.wiki_validator = (
+            WikiSignalValidator(min_alignment=wiki_min_align) if use_wiki else None
+        )
+        self.psych_enforcer = (
+            PsychologicalEnforcer(psych_config or {}) if use_psych else None
+        )
 
         # Stats tracking
         self.wiki_blocked = 0
@@ -75,14 +78,16 @@ class EnhancedBacktestEngine(BacktestEngine):
         self.psych_paused_bars = 0
         self.psych_size_reductions = 0
 
-    def run(self, data: pd.DataFrame, strategy: BaseStrategy, risk_manager: RiskManager) -> EnhancedBacktestResult:
+    def run(
+        self, data: pd.DataFrame, strategy: BaseStrategy, risk_manager: RiskManager
+    ) -> EnhancedBacktestResult:
         """Run enhanced backtest."""
         strategy.reset()
         strategy.warmup(data.iloc[:100])
 
         for i in range(100, len(data)):
             bar = data.iloc[i]
-            history = data.iloc[:i+1]
+            history = data.iloc[: i + 1]
 
             context = StrategyContext(
                 symbol=data.name if hasattr(data, "name") else "UNKNOWN",
@@ -105,7 +110,9 @@ class EnhancedBacktestEngine(BacktestEngine):
                     self.psych_paused_bars += 1
                     # Still update equity but skip signals
                     self._update_equity(bar)
-                    self.equity_history.append({"timestamp": bar.name, "equity": self.equity})
+                    self.equity_history.append(
+                        {"timestamp": bar.name, "equity": self.equity}
+                    )
                     continue
 
             # Get signal from strategy
@@ -127,7 +134,7 @@ class EnhancedBacktestEngine(BacktestEngine):
 
         return self._build_enhanced_result()
 
-    def _apply_wiki_validation(self, signal: Signal, regime: str) -> Optional[Signal]:
+    def _apply_wiki_validation(self, signal: Signal, regime: str) -> Signal | None:
         """Validate signal against wiki and return adjusted signal or None."""
         result = self.wiki_validator.validate(signal, regime=regime)
         self.wiki_alignments.append(result.alignment_score)
@@ -150,7 +157,14 @@ class EnhancedBacktestEngine(BacktestEngine):
         signal.meta["wiki_alignment"] = result.alignment_score
         return signal
 
-    def _process_signal(self, signal: Signal, bar: pd.Series, risk_manager: RiskManager, status: dict, psych_state: Optional[PsychologicalState]):
+    def _process_signal(
+        self,
+        signal: Signal,
+        bar: pd.Series,
+        risk_manager: RiskManager,
+        status: dict,
+        psych_state: PsychologicalState | None,
+    ):
         """Process signal with optional psychological size multiplier."""
         # Apply psych size multiplier
         size_multiplier = psych_state.size_multiplier if psych_state else 1.0
@@ -163,10 +177,14 @@ class EnhancedBacktestEngine(BacktestEngine):
             entry_price = bar["close"] * (1 + self.slippage)
             atr = signal.meta.get("atr") if signal.meta else None
             if atr and atr > 0:
-                stop_price = risk_manager.stop.atr_based(entry_price, "buy", atr, multiplier=2.0)
+                stop_price = risk_manager.stop.atr_based(
+                    entry_price, "buy", atr, multiplier=2.0
+                )
             else:
                 stop_price = entry_price * 0.95
-            size = risk_manager.sizer.size(self.equity, entry_price, stop_price, atr=atr)
+            size = risk_manager.sizer.size(
+                self.equity, entry_price, stop_price, atr=atr
+            )
             if size <= 0:
                 return
 
@@ -176,14 +194,16 @@ class EnhancedBacktestEngine(BacktestEngine):
                 size *= size_multiplier
                 logger.debug(f"Psych reduced size: {original:.4f} → {size:.4f}")
 
-            self.positions.append({
-                "symbol": signal.symbol,
-                "side": "long",
-                "entry_price": entry_price,
-                "size": size,
-                "stop": stop_price,
-                "entry_time": signal.timestamp,
-            })
+            self.positions.append(
+                {
+                    "symbol": signal.symbol,
+                    "side": "long",
+                    "entry_price": entry_price,
+                    "size": size,
+                    "stop": stop_price,
+                    "entry_time": signal.timestamp,
+                }
+            )
             self.capital -= size * entry_price * (1 + self.commission)
 
         elif signal.side == "sell":
@@ -193,17 +213,19 @@ class EnhancedBacktestEngine(BacktestEngine):
                     pnl = (exit_price - pos["entry_price"]) * pos["size"]
                     pnl -= pos["size"] * exit_price * self.commission
                     self.capital += pos["size"] * exit_price * (1 - self.commission)
-                    self.trades.append(Trade(
-                        entry_time=pos["entry_time"],
-                        exit_time=signal.timestamp,
-                        symbol=pos["symbol"],
-                        side="long",
-                        entry_price=pos["entry_price"],
-                        exit_price=exit_price,
-                        size=pos["size"],
-                        pnl=pnl,
-                        exit_reason="signal",
-                    ))
+                    self.trades.append(
+                        Trade(
+                            entry_time=pos["entry_time"],
+                            exit_time=signal.timestamp,
+                            symbol=pos["symbol"],
+                            side="long",
+                            entry_price=pos["entry_price"],
+                            exit_price=exit_price,
+                            size=pos["size"],
+                            pnl=pnl,
+                            exit_reason="signal",
+                        )
+                    )
                     self.positions.remove(pos)
 
                     # Update psychological state with P&L

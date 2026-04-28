@@ -9,21 +9,21 @@ Concepts applied:
     - walk_forward: continuous validation on recent data
 """
 
-from dataclasses import dataclass, field
-from typing import List, Optional, Dict
-from datetime import datetime, timedelta
-from pathlib import Path
 import json
+from dataclasses import dataclass, field
+from datetime import datetime
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from scipy import stats
 from loguru import logger
+from scipy import stats
 
 
 @dataclass
 class DriftReport:
     """Report of drift analysis."""
+
     timestamp: datetime
     is_drifted: bool
     confidence_drift_score: float
@@ -44,8 +44,8 @@ class PredictionDriftDetector:
     def __init__(self, window_size: int = 30, ks_threshold: float = 0.15):
         self.window_size = window_size
         self.ks_threshold = ks_threshold
-        self.baseline_confidences: Optional[np.ndarray] = None
-        self.confidence_history: List[float] = []
+        self.baseline_confidences: np.ndarray | None = None
+        self.confidence_history: list[float] = []
 
     def set_baseline(self, confidences: np.ndarray):
         """Set baseline from training/validation predictions."""
@@ -57,18 +57,27 @@ class PredictionDriftDetector:
         self.confidence_history.append(confidence)
         # Keep only recent window
         if len(self.confidence_history) > self.window_size * 3:
-            self.confidence_history = self.confidence_history[-self.window_size * 3:]
+            self.confidence_history = self.confidence_history[-self.window_size * 3 :]
 
-    def detect(self) -> Dict:
+    def detect(self) -> dict:
         """Detect confidence drift.
 
         Returns:
             dict with keys: drifted, ks_stat, p_value, mean_shift, score
         """
-        if self.baseline_confidences is None or len(self.confidence_history) < self.window_size:
-            return {"drifted": False, "ks_stat": 0.0, "p_value": 1.0, "mean_shift": 0.0, "score": 0.0}
+        if (
+            self.baseline_confidences is None
+            or len(self.confidence_history) < self.window_size
+        ):
+            return {
+                "drifted": False,
+                "ks_stat": 0.0,
+                "p_value": 1.0,
+                "mean_shift": 0.0,
+                "score": 0.0,
+            }
 
-        recent = np.array(self.confidence_history[-self.window_size:])
+        recent = np.array(self.confidence_history[-self.window_size :])
 
         # KS test
         ks_stat, p_value = stats.ks_2samp(self.baseline_confidences, recent)
@@ -105,8 +114,8 @@ class FeatureDriftDetector:
     def __init__(self, psi_threshold: float = 0.2, n_bins: int = 10):
         self.psi_threshold = psi_threshold
         self.n_bins = n_bins
-        self.baseline_features: Optional[pd.DataFrame] = None
-        self.bin_edges: Dict[str, np.ndarray] = {}
+        self.baseline_features: pd.DataFrame | None = None
+        self.bin_edges: dict[str, np.ndarray] = {}
 
     def set_baseline(self, features_df: pd.DataFrame):
         """Set baseline feature distributions."""
@@ -117,21 +126,31 @@ class FeatureDriftDetector:
             self.bin_edges[col] = edges
         logger.info(f"Feature drift baseline set: {len(features_df.columns)} features")
 
-    def compute_psi(self, expected: np.ndarray, actual: np.ndarray, epsilon: float = 1e-10) -> float:
+    def compute_psi(
+        self, expected: np.ndarray, actual: np.ndarray, epsilon: float = 1e-10
+    ) -> float:
         """Compute PSI between two distributions."""
         expected_pct = expected / np.sum(expected)
         actual_pct = actual / np.sum(actual)
-        psi = np.sum((expected_pct - actual_pct) * np.log((expected_pct + epsilon) / (actual_pct + epsilon)))
+        psi = np.sum(
+            (expected_pct - actual_pct)
+            * np.log((expected_pct + epsilon) / (actual_pct + epsilon))
+        )
         return psi
 
-    def detect(self, recent_features: pd.DataFrame) -> Dict:
+    def detect(self, recent_features: pd.DataFrame) -> dict:
         """Detect feature drift.
 
         Returns:
             dict with keys: drifted, psi_scores, avg_psi, max_psi_feature
         """
         if self.baseline_features is None:
-            return {"drifted": False, "psi_scores": {}, "avg_psi": 0.0, "max_psi_feature": None}
+            return {
+                "drifted": False,
+                "psi_scores": {},
+                "avg_psi": 0.0,
+                "max_psi_feature": None,
+            }
 
         psi_scores = {}
         for col in self.baseline_features.columns:
@@ -141,7 +160,9 @@ class FeatureDriftDetector:
             if edges is None:
                 continue
 
-            expected_counts, _ = np.histogram(self.baseline_features[col].dropna(), bins=edges)
+            expected_counts, _ = np.histogram(
+                self.baseline_features[col].dropna(), bins=edges
+            )
             actual_counts, _ = np.histogram(recent_features[col].dropna(), bins=edges)
 
             # Add small constant to avoid division by zero
@@ -152,7 +173,12 @@ class FeatureDriftDetector:
             psi_scores[col] = psi
 
         if not psi_scores:
-            return {"drifted": False, "psi_scores": {}, "avg_psi": 0.0, "max_psi_feature": None}
+            return {
+                "drifted": False,
+                "psi_scores": {},
+                "avg_psi": 0.0,
+                "max_psi_feature": None,
+            }
 
         avg_psi = float(np.mean(list(psi_scores.values())))
         max_feature = max(psi_scores, key=psi_scores.get)
@@ -176,8 +202,8 @@ class ErrorRateDriftDetector:
     def __init__(self, window_size: int = 50, threshold: float = 0.55):
         self.window_size = window_size
         self.threshold = threshold  # error rate above this triggers drift
-        self.baseline_error: Optional[float] = None
-        self.recent_errors: List[int] = []  # 1 = error, 0 = correct
+        self.baseline_error: float | None = None
+        self.recent_errors: list[int] = []  # 1 = error, 0 = correct
 
     def set_baseline(self, error_rate: float):
         """Set baseline error rate from validation."""
@@ -188,14 +214,18 @@ class ErrorRateDriftDetector:
         """Log whether a prediction was correct."""
         self.recent_errors.append(0 if predicted == actual else 1)
         if len(self.recent_errors) > self.window_size * 2:
-            self.recent_errors = self.recent_errors[-self.window_size * 2:]
+            self.recent_errors = self.recent_errors[-self.window_size * 2 :]
 
-    def detect(self) -> Dict:
+    def detect(self) -> dict:
         """Detect error rate drift."""
         if self.baseline_error is None or len(self.recent_errors) < self.window_size:
-            return {"drifted": False, "recent_error_rate": 0.0, "relative_increase": 0.0}
+            return {
+                "drifted": False,
+                "recent_error_rate": 0.0,
+                "relative_increase": 0.0,
+            }
 
-        recent = self.recent_errors[-self.window_size:]
+        recent = self.recent_errors[-self.window_size :]
         recent_error_rate = float(np.mean(recent))
         relative = recent_error_rate / max(self.baseline_error, 0.01)
 
@@ -230,29 +260,33 @@ class ModelDriftMonitor:
         error_threshold: float = 0.55,
         drift_cooldown_days: int = 7,
     ):
-        self.confidence_detector = PredictionDriftDetector(window_size=confidence_window)
+        self.confidence_detector = PredictionDriftDetector(
+            window_size=confidence_window
+        )
         self.feature_detector = FeatureDriftDetector(psi_threshold=psi_threshold)
         self.error_detector = ErrorRateDriftDetector(threshold=error_threshold)
         self.drift_cooldown_days = drift_cooldown_days
 
-        self.last_drift_time: Optional[datetime] = None
-        self.reports: List[DriftReport] = []
-        self._feature_buffer: List[pd.DataFrame] = []
+        self.last_drift_time: datetime | None = None
+        self.reports: list[DriftReport] = []
+        self._feature_buffer: list[pd.DataFrame] = []
 
     def set_baseline(self, pipeline):
         """Set baselines from a trained MLClassifierPipeline."""
         # Confidence baseline from training CV
         if hasattr(pipeline, "metrics") and "folds" in pipeline.metrics:
             # Use per-fold validation accuracies as confidence proxy
-            fold_accuracies = np.array([
-                f["accuracy"] for f in pipeline.metrics["folds"]
-            ])
+            fold_accuracies = np.array(
+                [f["accuracy"] for f in pipeline.metrics["folds"]]
+            )
             # Repeat to get ~100 samples for PSI calculation
             repeated = np.tile(fold_accuracies, 100 // len(fold_accuracies) + 1)[:100]
             self.confidence_detector.set_baseline(repeated)
             logger.info(f"Drift baselines set from {len(fold_accuracies)} CV folds")
         else:
-            logger.warning("No CV fold metrics found — using default confidence baseline")
+            logger.warning(
+                "No CV fold metrics found — using default confidence baseline"
+            )
             self.confidence_detector.set_baseline(np.array([0.7] * 100))
 
         # Feature baseline would need training features stored
@@ -274,7 +308,7 @@ class ModelDriftMonitor:
         features: pd.Series,
         confidence: float,
         predicted: int,
-        actual: Optional[int] = None,
+        actual: int | None = None,
     ):
         """Log a single prediction for drift tracking."""
         self.confidence_detector.update(confidence)
@@ -288,23 +322,25 @@ class ModelDriftMonitor:
         """Run all drift checks and return unified report."""
         conf_result = self.confidence_detector.detect()
         feature_result = self.feature_detector.detect(
-            pd.concat(self._feature_buffer, ignore_index=True) if self._feature_buffer else pd.DataFrame()
+            pd.concat(self._feature_buffer, ignore_index=True)
+            if self._feature_buffer
+            else pd.DataFrame()
         )
         error_result = self.error_detector.detect()
 
         # Overall drift score: weighted combination
         overall = float(
-            conf_result.get("score", 0) * 0.4 +
-            min(1.0, feature_result.get("avg_psi", 0) / 0.25) * 0.3 +
-            error_result.get("recent_error_rate", 0) * 0.3
+            conf_result.get("score", 0) * 0.4
+            + min(1.0, feature_result.get("avg_psi", 0) / 0.25) * 0.3
+            + error_result.get("recent_error_rate", 0) * 0.3
         )
 
         # Determine if drifted
         is_drifted = bool(
-            conf_result.get("drifted", False) or
-            feature_result.get("drifted", False) or
-            error_result.get("drifted", False) or
-            overall > 0.7
+            conf_result.get("drifted", False)
+            or feature_result.get("drifted", False)
+            or error_result.get("drifted", False)
+            or overall > 0.7
         )
 
         # Cooldown check
@@ -318,7 +354,9 @@ class ModelDriftMonitor:
 
         # Recommendation
         if is_drifted:
-            recommendation = "RETRAIN: Significant drift detected. Schedule model retraining."
+            recommendation = (
+                "RETRAIN: Significant drift detected. Schedule model retraining."
+            )
         elif overall > 0.4:
             recommendation = "WATCH: Elevated drift indicators. Monitor closely."
         else:
@@ -341,7 +379,7 @@ class ModelDriftMonitor:
         self.reports.append(report)
         return report
 
-    def get_summary(self) -> Dict:
+    def get_summary(self) -> dict:
         """Return summary of drift history."""
         if not self.reports:
             return {}
@@ -349,12 +387,15 @@ class ModelDriftMonitor:
         return {
             "total_checks": len(self.reports),
             "drifted_count": drifted_count,
-            "last_drift": self.last_drift_time.isoformat() if self.last_drift_time else None,
+            "last_drift": (
+                self.last_drift_time.isoformat() if self.last_drift_time else None
+            ),
             "avg_overall_score": np.mean([r.overall_drift_score for r in self.reports]),
         }
 
     def save(self, path: str):
         """Save drift history to JSON."""
+
         def _convert(obj):
             if isinstance(obj, (np.bool_, bool)):
                 return bool(obj)
@@ -390,7 +431,9 @@ if __name__ == "__main__":
     monitor = ModelDriftMonitor()
     monitor.set_baseline_manual(
         confidences=np.random.beta(7, 3, 500),  # High confidence baseline
-        features=pd.DataFrame(np.random.randn(500, 5), columns=[f"f{i}" for i in range(5)]),
+        features=pd.DataFrame(
+            np.random.randn(500, 5), columns=[f"f{i}" for i in range(5)]
+        ),
         error_rate=0.35,
     )
 
@@ -404,7 +447,9 @@ if __name__ == "__main__":
         )
 
     report = monitor.check()
-    print(f"Normal period: drift={report.is_drifted}, score={report.overall_drift_score:.3f}")
+    print(
+        f"Normal period: drift={report.is_drifted}, score={report.overall_drift_score:.3f}"
+    )
 
     # Simulate degraded predictions (lower confidence, higher errors)
     for _ in range(30):
@@ -416,5 +461,7 @@ if __name__ == "__main__":
         )
 
     report2 = monitor.check()
-    print(f"Degraded period: drift={report2.is_drifted}, score={report2.overall_drift_score:.3f}")
+    print(
+        f"Degraded period: drift={report2.is_drifted}, score={report2.overall_drift_score:.3f}"
+    )
     print(f"Recommendation: {report2.recommendation}")

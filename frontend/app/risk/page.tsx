@@ -1,6 +1,6 @@
 'use client';
 
-import { useSocketIO } from '@/hooks/useSocketIO';
+import { useSocketIO, Position, TrailingStop, PartialExit, SlippageItem } from '@/hooks/useSocketIO';
 import { useLang } from '@/components/layout/LangProvider';
 import { NeoCard } from '@/components/ui/NeoCard';
 import { NeoMetric } from '@/components/ui/NeoMetric';
@@ -46,7 +46,7 @@ export default function RiskPage() {
   })();
 
   // Total open exposure
-  const openExposure = positions.reduce((sum: number, p: any) => {
+  const openExposure = positions.reduce((sum: number, p: Position) => {
     return sum + (p.size || 0) * (p.entry_price || 0);
   }, 0);
 
@@ -106,7 +106,7 @@ export default function RiskPage() {
             <Lock size={20} className="text-neo-accent" />
             <span className="font-bold">Activated:</span>
             <span className="font-mono font-bold ml-auto text-neo-bullish">
-              {trailingStops.filter((s: any) => s.activated).length}
+              {trailingStops.filter((s: TrailingStop) => s.activated).length}
             </span>
           </div>
         </div>
@@ -124,7 +124,7 @@ export default function RiskPage() {
                 </tr>
               </thead>
               <tbody>
-                {trailingStops.map((stop: any, i: number) => (
+                {trailingStops.map((stop: TrailingStop, i: number) => (
                   <tr key={`${stop.symbol}-${i}`}>
                     <td className="font-mono font-bold">{stop.symbol}</td>
                     <td className="font-mono">${stop.entry_price?.toLocaleString()}</td>
@@ -160,7 +160,7 @@ export default function RiskPage() {
             <CheckCircle size={20} className="text-neo-bullish" />
             <span className="font-bold">Triggered:</span>
             <span className="font-mono font-bold ml-auto">
-              {partialExits.reduce((sum: number, p: any) => sum + (p.executed_count || 0), 0)}
+              {partialExits.reduce((sum: number, p: PartialExit) => sum + (p.executed_count || 0), 0)}
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -182,7 +182,7 @@ export default function RiskPage() {
                 </tr>
               </thead>
               <tbody>
-                {partialExits.map((exit: any, i: number) => (
+                {partialExits.map((exit: PartialExit, i: number) => (
                   <tr key={`${exit.symbol}-${i}`}>
                     <td className="font-mono font-bold">{exit.symbol}</td>
                     <td className="font-mono">${exit.entry?.toLocaleString()}</td>
@@ -214,7 +214,7 @@ export default function RiskPage() {
                 </tr>
               </thead>
               <tbody>
-                {slippage.map((s: any, i: number) => (
+                {slippage.map((s: SlippageItem, i: number) => (
                   <tr key={`${s.symbol}-${i}`}>
                     <td className="font-mono font-bold">{s.symbol}</td>
                     <td className="font-mono">{s.trades}</td>
@@ -247,7 +247,7 @@ export default function RiskPage() {
                 </tr>
               </thead>
               <tbody>
-                {positions.map((pos: any, i: number) => {
+                {positions.map((pos: Position, i: number) => {
                   const risk = (pos.entry_price || 0) - (pos.stop_price || 0);
                   const reward = pos.unrealized_pnl || 0;
                   const rr = risk > 0 ? reward / risk : 0;

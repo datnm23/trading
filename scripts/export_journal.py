@@ -15,16 +15,14 @@ import csv
 import json
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
-
 DEFAULT_DB_URL = os.getenv(
-    "TRADING_DB_URL",
-    "postgresql://trader:trading123@localhost:5432/trading_journal"
+    "TRADING_DB_URL", "postgresql://trader:trading123@localhost:5432/trading_journal"
 )
 
 TABLES = ["trades", "journal", "snapshots", "equity_snapshots", "wiki_feedback"]
@@ -68,22 +66,36 @@ def export_to_json(cursor, table: str, output_path: Path):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Export trading journal from PostgreSQL")
-    parser.add_argument("--db-url", default=DEFAULT_DB_URL, help="PostgreSQL connection string")
-    parser.add_argument("--output-dir", default="./data/exports", help="Output directory")
-    parser.add_argument("--format", choices=["csv", "json", "both"], default="both",
-                        help="Export format")
-    parser.add_argument("--today-only", action="store_true",
-                        help="Only export today's data (for daily snapshots)")
-    parser.add_argument("--tables", nargs="+", default=TABLES,
-                        help="Tables to export (default: all)")
+    parser = argparse.ArgumentParser(
+        description="Export trading journal from PostgreSQL"
+    )
+    parser.add_argument(
+        "--db-url", default=DEFAULT_DB_URL, help="PostgreSQL connection string"
+    )
+    parser.add_argument(
+        "--output-dir", default="./data/exports", help="Output directory"
+    )
+    parser.add_argument(
+        "--format",
+        choices=["csv", "json", "both"],
+        default="both",
+        help="Export format",
+    )
+    parser.add_argument(
+        "--today-only",
+        action="store_true",
+        help="Only export today's data (for daily snapshots)",
+    )
+    parser.add_argument(
+        "--tables", nargs="+", default=TABLES, help="Tables to export (default: all)"
+    )
     args = parser.parse_args()
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+    today_str = datetime.now(UTC).strftime("%Y-%m-%d")
 
     try:
         conn = psycopg2.connect(args.db_url)

@@ -84,7 +84,7 @@ export function MarketPriceChart({ data }: MarketPriceChartProps) {
                 fontFamily: 'JetBrains Mono',
                 fontSize: 12,
               }}
-              formatter={(value: any, name: any) => {
+              formatter={(value, name) => {
                 const label = String(name);
                 if (label === 'close') return [`$${Number(value).toLocaleString()}`, 'Close'];
                 if (label === 'high') return [`$${Number(value).toLocaleString()}`, 'High'];
@@ -136,7 +136,7 @@ export function MarketPriceChart({ data }: MarketPriceChartProps) {
                 fontFamily: 'JetBrains Mono',
                 fontSize: 12,
               }}
-              formatter={(value: any) => [`${(Number(value) / 1e9).toFixed(2)}B`, 'Volume']}
+              formatter={(value) => [`${(Number(value) / 1e9).toFixed(2)}B`, 'Volume']}
             />
             <Bar dataKey="volume" fill="#00000033" stroke="#000" strokeWidth={1} />
           </ComposedChart>

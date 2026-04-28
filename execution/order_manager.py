@@ -4,22 +4,23 @@ Integrates with CCXTConnector to provide robust order execution
 with automatic retries, partial-fill reconciliation, and state tracking.
 """
 
+import json
 import time
 import uuid
-from dataclasses import dataclass, field, asdict
+from collections.abc import Callable
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from enum import Enum
-from typing import Optional, Dict, List, Callable
+from enum import StrEnum
 from pathlib import Path
 
-import json
 from loguru import logger
 
 from execution.connectors.ccxt_connector import CCXTConnector
 
 
-class OrderStatus(str, Enum):
+class OrderStatus(StrEnum):
     """Order lifecycle states."""
+
     PENDING = "pending"
     PARTIALLY_FILLED = "partially_filled"
     FILLED = "filled"
@@ -28,12 +29,12 @@ class OrderStatus(str, Enum):
     EXPIRED = "expired"
 
 
-class OrderSide(str, Enum):
+class OrderSide(StrEnum):
     BUY = "buy"
     SELL = "sell"
 
 
-class OrderType(str, Enum):
+class OrderType(StrEnum):
     MARKET = "market"
     LIMIT = "limit"
 
@@ -41,23 +42,24 @@ class OrderType(str, Enum):
 @dataclass
 class Order:
     """Represents a single order with full lifecycle tracking."""
+
     id: str
     symbol: str
     side: OrderSide
     order_type: OrderType
     amount: float
-    price: Optional[float] = None
+    price: float | None = None
     status: OrderStatus = OrderStatus.PENDING
     filled: float = 0.0
     remaining: float = 0.0
-    average_price: Optional[float] = None
+    average_price: float | None = None
     fee: float = 0.0
-    error_message: Optional[str] = None
+    error_message: str | None = None
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
-    raw_response: Optional[dict] = field(default=None, repr=False)
-    strategy_name: Optional[str] = None
-    reason: Optional[str] = None
+    raw_response: dict | None = field(default=None, repr=False)
+    strategy_name: str | None = None
+    reason: str | None = None
 
     def to_dict(self) -> dict:
         d = asdict(self)
@@ -72,9 +74,10 @@ class Order:
 @dataclass
 class OrderResult:
     """Result of an order submission attempt."""
+
     success: bool
-    order: Optional[Order] = None
-    error: Optional[str] = None
+    order: Order | None = None
+    error: str | None = None
     retries: int = 0
 
 
@@ -83,8 +86,8 @@ class OrderValidator:
 
     def __init__(
         self,
-        min_order_size: float = 10.0,      # minimum notional in quote currency
-        max_order_size: Optional[float] = None,
+        min_order_size: float = 10.0,  # minimum notional in quote currency
+        max_order_size: float | None = None,
         price_precision: int = 8,
         amount_precision: int = 8,
         max_slippage_pct: float = 0.02,
@@ -95,7 +98,7 @@ class OrderValidator:
         self.amount_precision = amount_precision
         self.max_slippage_pct = max_slippage_pct
 
-    def validate(self, order: Order, last_price: Optional[float] = None) -> Optional[str]:
+    def validate(self, order: Order, last_price: float | None = None) -> str | None:
         """Return error message if invalid, None if valid."""
         if not order.symbol or "/" not in order.symbol:
             return f"Invalid symbol format: {order.symbol}"
@@ -103,15 +106,21 @@ class OrderValidator:
         if order.amount <= 0:
             return f"Amount must be > 0, got {order.amount}"
 
-        if order.order_type == OrderType.LIMIT and (order.price is None or order.price <= 0):
+        if order.order_type == OrderType.LIMIT and (
+            order.price is None or order.price <= 0
+        ):
             return "Limit order requires valid price"
 
         notional = order.amount * (order.price or last_price or 0)
         if notional < self.min_order_size:
-            return f"Order notional ${notional:.2f} below minimum ${self.min_order_size}"
+            return (
+                f"Order notional ${notional:.2f} below minimum ${self.min_order_size}"
+            )
 
         if self.max_order_size and notional > self.max_order_size:
-            return f"Order notional ${notional:.2f} exceeds maximum ${self.max_order_size}"
+            return (
+                f"Order notional ${notional:.2f} exceeds maximum ${self.max_order_size}"
+            )
 
         if last_price and order.price:
             slippage = abs(order.price - last_price) / last_price
@@ -134,14 +143,14 @@ class OrderManager:
 
     def __init__(
         self,
-        connector: Optional[CCXTConnector] = None,
-        validator: Optional[OrderValidator] = None,
+        connector: CCXTConnector | None = None,
+        validator: OrderValidator | None = None,
         paper_mode: bool = False,
         max_retries: int = 3,
         retry_base_delay: float = 1.0,
         retry_max_delay: float = 30.0,
         retry_backoff_multiplier: float = 2.0,
-        persist_path: Optional[str] = "./data/orders.jsonl",
+        persist_path: str | None = "./data/orders.jsonl",
     ):
         self.connector = connector
         self.validator = validator or OrderValidator()
@@ -152,9 +161,9 @@ class OrderManager:
         self.retry_backoff_multiplier = retry_backoff_multiplier
         self.persist_path = Path(persist_path) if persist_path else None
 
-        self.orders: Dict[str, Order] = {}
+        self.orders: dict[str, Order] = {}
         self._order_counter = 0
-        self._callbacks: List[Callable[[Order], None]] = []
+        self._callbacks: list[Callable[[Order], None]] = []
 
         if self.persist_path:
             self.persist_path.parent.mkdir(parents=True, exist_ok=True)
@@ -188,9 +197,9 @@ class OrderManager:
         side: OrderSide,
         amount: float,
         order_type: OrderType = OrderType.MARKET,
-        price: Optional[float] = None,
-        strategy_name: Optional[str] = None,
-        reason: Optional[str] = None,
+        price: float | None = None,
+        strategy_name: str | None = None,
+        reason: str | None = None,
     ) -> Order:
         """Create an Order object (not yet submitted)."""
         return Order(
@@ -208,7 +217,7 @@ class OrderManager:
     def submit(
         self,
         order: Order,
-        last_price: Optional[float] = None,
+        last_price: float | None = None,
     ) -> OrderResult:
         """Validate and submit order to exchange (or simulate in paper mode).
 
@@ -236,7 +245,7 @@ class OrderManager:
         self._notify(order)
         return result
 
-    def _execute_paper(self, order: Order, last_price: Optional[float]) -> OrderResult:
+    def _execute_paper(self, order: Order, last_price: float | None) -> OrderResult:
         """Simulate immediate fill in paper mode."""
         fill_price = order.price or last_price or 0.0
         if fill_price <= 0:
@@ -281,22 +290,31 @@ class OrderManager:
             retries += 1
             if retries <= self.max_retries:
                 delay = min(
-                    self.retry_base_delay * (self.retry_backoff_multiplier ** (retries - 1)),
+                    self.retry_base_delay
+                    * (self.retry_backoff_multiplier ** (retries - 1)),
                     self.retry_max_delay,
                 )
-                logger.info(f"Retrying order in {delay:.1f}s... (attempt {retries + 1}/{self.max_retries + 1})")
+                logger.info(
+                    f"Retrying order in {delay:.1f}s... (attempt {retries + 1}/{self.max_retries + 1})"
+                )
                 time.sleep(delay)
 
         order.status = OrderStatus.FAILED
         order.error_message = last_error or "Unknown error"
         order.updated_at = datetime.now()
-        logger.error(f"Order failed after {retries} retries [{order.id}]: {order.error_message}")
-        return OrderResult(success=False, order=order, error=order.error_message, retries=retries)
+        logger.error(
+            f"Order failed after {retries} retries [{order.id}]: {order.error_message}"
+        )
+        return OrderResult(
+            success=False, order=order, error=order.error_message, retries=retries
+        )
 
     def _submit_to_exchange(self, order: Order) -> OrderResult:
         """Low-level exchange submission."""
         if not self.connector:
-            return OrderResult(success=False, order=order, error="No connector configured")
+            return OrderResult(
+                success=False, order=order, error="No connector configured"
+            )
 
         raw = self.connector.create_market_order(
             symbol=order.symbol,
@@ -304,7 +322,9 @@ class OrderManager:
             amount=order.amount,
         )
         if raw is None:
-            return OrderResult(success=False, order=order, error="Exchange returned None")
+            return OrderResult(
+                success=False, order=order, error="Exchange returned None"
+            )
 
         order.raw_response = raw
         order.updated_at = datetime.now()
@@ -340,7 +360,10 @@ class OrderManager:
 
         if order.status == OrderStatus.FAILED:
             return OrderResult(success=False, order=order, error=order.error_message)
-        return OrderResult(success=order.status in (OrderStatus.FILLED, OrderStatus.PARTIALLY_FILLED), order=order)
+        return OrderResult(
+            success=order.status in (OrderStatus.FILLED, OrderStatus.PARTIALLY_FILLED),
+            order=order,
+        )
 
     def _is_retryable_error(self, error: str) -> bool:
         """Determine if an error message warrants a retry."""
@@ -361,7 +384,7 @@ class OrderManager:
         err_lower = error.lower()
         return any(keyword in err_lower for keyword in retryable)
 
-    def reconcile(self, order_id: str) -> Optional[Order]:
+    def reconcile(self, order_id: str) -> Order | None:
         """Fetch latest order status from exchange and update local record.
 
         Useful for recovering state after restart or tracking partial fills.
@@ -375,7 +398,10 @@ class OrderManager:
             if raw:
                 order.filled = float(raw.get("filled", order.filled))
                 order.remaining = float(raw.get("remaining", order.remaining))
-                order.average_price = float(raw.get("average", order.average_price or 0)) or order.average_price
+                order.average_price = (
+                    float(raw.get("average", order.average_price or 0))
+                    or order.average_price
+                )
                 order.status = self._map_status(raw.get("status", "open"))
                 order.updated_at = datetime.now()
                 self._persist(order)
@@ -403,7 +429,9 @@ class OrderManager:
             logger.warning(f"Cancel failed: order {order_id} not found")
             return False
         if order.status not in (OrderStatus.PENDING, OrderStatus.PARTIALLY_FILLED):
-            logger.info(f"Cancel skipped: order {order_id} already {order.status.value}")
+            logger.info(
+                f"Cancel skipped: order {order_id} already {order.status.value}"
+            )
             return False
 
         if self.paper_mode:
@@ -428,19 +456,25 @@ class OrderManager:
             logger.error(f"Cancel failed for {order_id}: {e}")
             return False
 
-    def get_open_orders(self) -> List[Order]:
+    def get_open_orders(self) -> list[Order]:
         """Return all orders not yet fully filled or failed."""
-        return [o for o in self.orders.values() if o.status in (
-            OrderStatus.PENDING, OrderStatus.PARTIALLY_FILLED
-        )]
+        return [
+            o
+            for o in self.orders.values()
+            if o.status in (OrderStatus.PENDING, OrderStatus.PARTIALLY_FILLED)
+        ]
 
     def get_summary(self) -> dict:
         """Return summary statistics of all orders."""
         total = len(self.orders)
         filled = sum(1 for o in self.orders.values() if o.status == OrderStatus.FILLED)
-        partial = sum(1 for o in self.orders.values() if o.status == OrderStatus.PARTIALLY_FILLED)
+        partial = sum(
+            1 for o in self.orders.values() if o.status == OrderStatus.PARTIALLY_FILLED
+        )
         failed = sum(1 for o in self.orders.values() if o.status == OrderStatus.FAILED)
-        cancelled = sum(1 for o in self.orders.values() if o.status == OrderStatus.CANCELLED)
+        cancelled = sum(
+            1 for o in self.orders.values() if o.status == OrderStatus.CANCELLED
+        )
         total_fees = sum(o.fee for o in self.orders.values())
 
         return {

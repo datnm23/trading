@@ -7,9 +7,11 @@ Usage:
     python scripts/compare_strategies.py --save --db-url postgresql://...
 """
 
+# ruff: noqa: E402
+
+import argparse
 import sys
 import time
-import argparse
 from pathlib import Path
 
 # Add project root
@@ -22,10 +24,24 @@ from monitoring.comparison_engine import StrategyComparison
 
 def main():
     parser = argparse.ArgumentParser(description="Compare running trading strategies")
-    parser.add_argument("--watch", "-w", action="store_true", help="Continuous polling mode")
-    parser.add_argument("--interval", "-i", type=int, default=10, help="Polling interval in seconds (default: 10)")
-    parser.add_argument("--save", "-s", action="store_true", help="Save snapshots to PostgreSQL")
-    parser.add_argument("--db-url", default="postgresql://trader:trading123@localhost:5432/trading_journal", help="PostgreSQL URL")
+    parser.add_argument(
+        "--watch", "-w", action="store_true", help="Continuous polling mode"
+    )
+    parser.add_argument(
+        "--interval",
+        "-i",
+        type=int,
+        default=10,
+        help="Polling interval in seconds (default: 10)",
+    )
+    parser.add_argument(
+        "--save", "-s", action="store_true", help="Save snapshots to PostgreSQL"
+    )
+    parser.add_argument(
+        "--db-url",
+        default="postgresql://trader:trading123@localhost:5432/trading_journal",
+        help="PostgreSQL URL",
+    )
     args = parser.parse_args()
 
     comp = StrategyComparison()

@@ -1,7 +1,6 @@
 """Risk analysis: Monte Carlo simulation and drawdown analysis."""
 
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -11,6 +10,7 @@ from loguru import logger
 @dataclass
 class MonteCarloResult:
     """Results from Monte Carlo simulation."""
+
     original_cagr: float
     original_max_dd: float
     mc_mean_cagr: float
@@ -30,13 +30,15 @@ class MonteCarloSimulator:
         self.n_simulations = n_simulations
         self.n_days = n_days
 
-    def run(self, returns: pd.Series, initial_capital: float = 100000) -> MonteCarloResult:
+    def run(
+        self, returns: pd.Series, initial_capital: float = 100000
+    ) -> MonteCarloResult:
         """Run Monte Carlo by reshuffling returns with replacement.
-        
+
         Args:
             returns: Daily returns series (can include 0 for non-trading days)
             initial_capital: Starting capital
-        
+
         Returns:
             MonteCarloResult with statistics and equity paths
         """
@@ -156,7 +158,9 @@ class DrawdownAnalyzer:
         current_type = "win" if positive.iloc[0] else "loss"
 
         for is_pos in positive.iloc[1:]:
-            if (is_pos and current_type == "win") or (not is_pos and current_type == "loss"):
+            if (is_pos and current_type == "win") or (
+                not is_pos and current_type == "loss"
+            ):
                 current_streak += 1
             else:
                 streaks.append({"type": current_type, "length": current_streak})
@@ -170,9 +174,15 @@ class DrawdownAnalyzer:
             win_streaks = df[df["type"] == "win"]["length"]
             loss_streaks = df[df["type"] == "loss"]["length"]
 
-            logger.info(f"Max win streak:  {win_streaks.max() if not win_streaks.empty else 0} days")
-            logger.info(f"Max loss streak: {loss_streaks.max() if not loss_streaks.empty else 0} days")
-            logger.info(f"Avg loss streak: {loss_streaks.mean() if not loss_streaks.empty else 0:.1f} days")
+            logger.info(
+                f"Max win streak:  {win_streaks.max() if not win_streaks.empty else 0} days"
+            )
+            logger.info(
+                f"Max loss streak: {loss_streaks.max() if not loss_streaks.empty else 0} days"
+            )
+            logger.info(
+                f"Avg loss streak: {loss_streaks.mean() if not loss_streaks.empty else 0:.1f} days"
+            )
 
         return df
 

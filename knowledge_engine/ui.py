@@ -8,33 +8,36 @@ project_root = Path(__file__).parent.parent.resolve()
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-import json
 
 import pandas as pd
-import numpy as np
 
 # Streamlit imports are inside functions to allow file import without streamlit installed
 
 
 def _load_backtest_results():
     """Load any saved backtest results."""
+    # ruff: noqa: E402
     results_dir = Path("./data/processed")
     if not results_dir.exists():
         return []
-    files = sorted(results_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+    files = sorted(
+        results_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True
+    )
     return files[:10]
 
 
 def run_dashboard():
-    import streamlit as st
     import plotly.graph_objects as go
-    from plotly.subplots import make_subplots
+    import streamlit as st
 
     st.set_page_config(page_title="Hybrid Trading System", layout="wide")
 
     # --- Sidebar ---
     st.sidebar.title("Navigation")
-    page = st.sidebar.radio("Go to", ["Backtest", "Wiki Chat", "Live Status", "Strategy Comparison", "ML Models"])
+    page = st.sidebar.radio(
+        "Go to",
+        ["Backtest", "Wiki Chat", "Live Status", "Strategy Comparison", "ML Models"],
+    )
 
     # --- Page: Backtest ---
     if page == "Backtest":
@@ -43,7 +46,7 @@ def run_dashboard():
         # Strategy selector
         strategy = st.selectbox(
             "Strategy",
-            ["EMA-Trend", "Monthly-Breakout", "Grid-MeanReversion", "RegimeEnsemble"]
+            ["EMA-Trend", "Monthly-Breakout", "Grid-MeanReversion", "RegimeEnsemble"],
         )
         symbol = st.selectbox("Symbol", ["BTC/USDT", "ETH/USDT", "SOL/USDT"])
         timeframe = st.selectbox("Timeframe", ["1d", "4h", "1h"])
@@ -51,26 +54,39 @@ def run_dashboard():
         if st.button("Run Backtest"):
             with st.spinner("Running backtest..."):
                 from backtest.run import run_backtest
-                metrics = run_backtest(strategy, symbol, timeframe, "config/system.yaml")
+
+                metrics = run_backtest(
+                    strategy, symbol, timeframe, "config/system.yaml"
+                )
 
             col1, col2, col3, col4 = st.columns(4)
             col1.metric("Total Return", f"{metrics['total_return']:.2%}")
             col2.metric("Sharpe", f"{metrics['sharpe']:.2f}")
             col3.metric("Max Drawdown", f"{metrics['max_drawdown']:.2%}")
-            col4.metric("Trades", metrics['total_trades'])
+            col4.metric("Trades", metrics["total_trades"])
 
             # Equity curve (mock if not saved)
             st.subheader("Equity Curve")
-            st.info("Equity curve visualization requires saving results to processed/ directory.")
+            st.info(
+                "Equity curve visualization requires saving results to processed/ directory."
+            )
 
             # Comparison table
             if st.checkbox("Compare all strategies"):
                 from backtest.run import run_backtest
-                strategies = ["EMA-Trend", "Monthly-Breakout", "Grid-MeanReversion", "RegimeEnsemble"]
+
+                strategies = [
+                    "EMA-Trend",
+                    "Monthly-Breakout",
+                    "Grid-MeanReversion",
+                    "RegimeEnsemble",
+                ]
                 results = []
                 for s in strategies:
                     try:
-                        results.append(run_backtest(s, symbol, timeframe, "config/system.yaml"))
+                        results.append(
+                            run_backtest(s, symbol, timeframe, "config/system.yaml")
+                        )
                     except Exception as e:
                         st.error(f"{s} failed: {e}")
 
@@ -79,7 +95,19 @@ def run_dashboard():
                     df["total_return"] = df["total_return"].apply(lambda x: f"{x:.2%}")
                     df["max_drawdown"] = df["max_drawdown"].apply(lambda x: f"{x:.2%}")
                     df["winrate"] = df["winrate"].apply(lambda x: f"{x:.2%}")
-                    st.dataframe(df[["strategy", "total_return", "sharpe", "max_drawdown", "winrate", "profit_factor", "total_trades"]])
+                    st.dataframe(
+                        df[
+                            [
+                                "strategy",
+                                "total_return",
+                                "sharpe",
+                                "max_drawdown",
+                                "winrate",
+                                "profit_factor",
+                                "total_trades",
+                            ]
+                        ]
+                    )
 
     # --- Page: Wiki Chat ---
     elif page == "Wiki Chat":
@@ -131,13 +159,15 @@ def run_dashboard():
         col3.metric("Today P&L", "$+340.00")
 
         st.subheader("Recent Trades")
-        trades_df = pd.DataFrame({
-            "Time": ["2026-04-21 08:00", "2026-04-20 08:00"],
-            "Symbol": ["BTC/USDT", "BTC/USDT"],
-            "Side": ["BUY", "SELL"],
-            "Price": [75840.0, 74200.0],
-            "P&L": [0, 1840.0],
-        })
+        trades_df = pd.DataFrame(
+            {
+                "Time": ["2026-04-21 08:00", "2026-04-20 08:00"],
+                "Symbol": ["BTC/USDT", "BTC/USDT"],
+                "Side": ["BUY", "SELL"],
+                "Price": [75840.0, 74200.0],
+                "P&L": [0, 1840.0],
+            }
+        )
         st.dataframe(trades_df)
 
     # --- Page: Strategy Comparison ---
@@ -161,7 +191,9 @@ def run_dashboard():
         leaderboard = comp.leaderboard()
 
         if not leaderboard:
-            st.warning("No strategy bots are currently running. Start bots with `python3 -m execution.live_trading`.")
+            st.warning(
+                "No strategy bots are currently running. Start bots with `python3 -m execution.live_trading`."
+            )
         else:
             # Metrics row
             cols = st.columns(len(leaderboard))
@@ -191,11 +223,14 @@ def run_dashboard():
                     if points:
                         times = [p[0] for p in points]
                         equities = [p[1] for p in points]
-                        fig.add_trace(go.Scatter(
-                            x=times, y=equities,
-                            mode='lines',
-                            name=name,
-                        ))
+                        fig.add_trace(
+                            go.Scatter(
+                                x=times,
+                                y=equities,
+                                mode="lines",
+                                name=name,
+                            )
+                        )
                 fig.update_layout(
                     xaxis_title="Time",
                     yaxis_title="Equity ($)",

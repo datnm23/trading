@@ -1,7 +1,6 @@
 """Market regime detector: trending vs ranging."""
 
 import pandas as pd
-import numpy as np
 
 
 class RegimeDetector:
@@ -13,7 +12,7 @@ class RegimeDetector:
 
     def detect(self, history: pd.DataFrame) -> dict:
         """Return regime info for current bar.
-        
+
         Returns dict with:
             - regime: 'trending' | 'ranging' | 'neutral'
             - strength: 0.0 to 1.0 (confidence)
@@ -22,19 +21,19 @@ class RegimeDetector:
         if len(history) < self.lookback + self.atr_period:
             return {"regime": "neutral", "strength": 0.0, "metrics": {}}
 
-        window = history.iloc[-self.lookback:]
+        window = history.iloc[-self.lookback :]
 
         # Price range vs ATR ratio (proxy for trendiness)
         price_range = window["high"].max() - window["low"].min()
 
         # ATR calculation
-        h = history["high"].iloc[-self.atr_period:]
-        l = history["low"].iloc[-self.atr_period:]
-        c = history["close"].iloc[-self.atr_period:]
+        h = history["high"].iloc[-self.atr_period :]
+        low = history["low"].iloc[-self.atr_period :]
+        c = history["close"].iloc[-self.atr_period :]
         prev_c = c.shift(1)
-        tr1 = h - l
+        tr1 = h - low
         tr2 = (h - prev_c).abs()
-        tr3 = (l - prev_c).abs()
+        tr3 = (low - prev_c).abs()
         tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
         atr = tr.ewm(span=self.atr_period, adjust=False).mean().iloc[-1]
 
@@ -45,8 +44,12 @@ class RegimeDetector:
         minus_dm = ((down_move > up_move) & (down_move > 0)) * down_move
 
         atr_series = tr.ewm(span=self.atr_period, adjust=False).mean()
-        plus_di = 100 * plus_dm.ewm(span=self.atr_period, adjust=False).mean() / atr_series
-        minus_di = 100 * minus_dm.ewm(span=self.atr_period, adjust=False).mean() / atr_series
+        plus_di = (
+            100 * plus_dm.ewm(span=self.atr_period, adjust=False).mean() / atr_series
+        )
+        minus_di = (
+            100 * minus_dm.ewm(span=self.atr_period, adjust=False).mean() / atr_series
+        )
         dx = (abs(plus_di - minus_di) / (plus_di + minus_di + 1e-10)) * 100
         adx = dx.ewm(span=self.atr_period, adjust=False).mean().iloc[-1]
 
@@ -58,9 +61,9 @@ class RegimeDetector:
 
         # Composite trending score
         trend_score = (
-            0.4 * min(adx / 50.0, 1.0) +
-            0.3 * min(range_atr_ratio / 5.0, 1.0) +
-            0.3 * min(ema_slope * 50.0, 1.0)
+            0.4 * min(adx / 50.0, 1.0)
+            + 0.3 * min(range_atr_ratio / 5.0, 1.0)
+            + 0.3 * min(ema_slope * 50.0, 1.0)
         )
 
         if trend_score > 0.6:
@@ -71,7 +74,7 @@ class RegimeDetector:
             regime = "neutral"
 
         # Directional regime: bull / bear / sideways / neutral
-        close_now = history["close"].iloc[-1]
+        history["close"].iloc[-1]
         if regime == "trending":
             directional = "bull" if ema20 >= ema50 else "bear"
         elif regime == "ranging":
@@ -89,5 +92,5 @@ class RegimeDetector:
                 "range_atr_ratio": float(range_atr_ratio),
                 "ema_slope": float(ema_slope),
                 "trend_score": float(trend_score),
-            }
+            },
         }

@@ -3,7 +3,6 @@
 import asyncio
 import json
 import os
-from typing import Set
 from datetime import datetime
 
 import socketio
@@ -38,9 +37,9 @@ class SocketManager:
         )
         self.aggregator = aggregator
         self.broadcast_interval = broadcast_interval
-        self._clients: Set[str] = set()
+        self._clients: set[str] = set()
         self._running = False
-        
+
         # Register event handlers
         self.sio.on("connect")(self._on_connect)
         self.sio.on("disconnect")(self._on_disconnect)

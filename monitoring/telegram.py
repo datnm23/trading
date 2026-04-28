@@ -8,7 +8,6 @@ Setup:
 """
 
 import os
-from typing import Optional, List
 from datetime import datetime
 
 import requests
@@ -22,8 +21,8 @@ class TelegramAlerter:
 
     def __init__(
         self,
-        bot_token: Optional[str] = None,
-        chat_id: Optional[str] = None,
+        bot_token: str | None = None,
+        chat_id: str | None = None,
         enabled: bool = True,
     ):
         self.token = bot_token or os.getenv("TELEGRAM_BOT_TOKEN", "")
@@ -152,7 +151,7 @@ class TelegramAlerter:
         )
         self._send(text)
 
-    def send_startup(self, mode: str, symbols: List[str], strategies: List[str]):
+    def send_startup(self, mode: str, symbols: list[str], strategies: list[str]):
         """Send bot startup notification."""
         text = (
             f"<b>🚀 TRADING BOT STARTED</b>\n\n"
@@ -165,4 +164,6 @@ class TelegramAlerter:
 
     def test(self) -> bool:
         """Send test message to verify configuration."""
-        return self._send("<b>🧪 Test alert from Hybrid Trading System</b>\nConfiguration OK.")
+        return self._send(
+            "<b>🧪 Test alert from Hybrid Trading System</b>\nConfiguration OK."
+        )

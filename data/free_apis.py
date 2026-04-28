@@ -8,18 +8,17 @@ Sources:
 """
 
 import os
-from typing import Optional, Dict, List
-from datetime import datetime, timedelta
+from datetime import datetime
 
-import requests
-import pandas as pd
 import numpy as np
+import pandas as pd
+import requests
 from loguru import logger
 
 
 class CoinGeckoAPI:
     """Free crypto market data from CoinGecko.
-    
+
     No API key required for basic endpoints (< 10-30 calls/min).
     https://www.coingecko.com/en/api
     """
@@ -43,7 +42,9 @@ class CoinGeckoAPI:
             resp.raise_for_status()
             data = resp.json()
 
-            df = pd.DataFrame(data, columns=["timestamp", "open", "high", "low", "close"])
+            df = pd.DataFrame(
+                data, columns=["timestamp", "open", "high", "low", "close"]
+            )
             df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
             df = df.set_index("timestamp").sort_index()
             df["volume"] = np.nan  # CoinGecko /ohlc doesn't include volume
@@ -67,8 +68,12 @@ class CoinGeckoAPI:
             data = resp.json()
 
             prices = pd.DataFrame(data["prices"], columns=["timestamp", "price"])
-            volumes = pd.DataFrame(data["total_volumes"], columns=["timestamp", "volume"])
-            mcap = pd.DataFrame(data["market_caps"], columns=["timestamp", "market_cap"])
+            volumes = pd.DataFrame(
+                data["total_volumes"], columns=["timestamp", "volume"]
+            )
+            mcap = pd.DataFrame(
+                data["market_caps"], columns=["timestamp", "market_cap"]
+            )
 
             for d in [prices, volumes, mcap]:
                 d["timestamp"] = pd.to_datetime(d["timestamp"], unit="ms")
@@ -87,13 +92,21 @@ class CoinGeckoAPI:
             resp = self.session.get(url, timeout=15)
             resp.raise_for_status()
             data = resp.json()["data"]
-            return pd.DataFrame([{
-                "timestamp": datetime.now(),
-                "btc_dominance": data.get("market_cap_percentage", {}).get("btc", 0),
-                "eth_dominance": data.get("market_cap_percentage", {}).get("eth", 0),
-                "total_mcap": data.get("total_market_cap", {}).get("usd", 0),
-                "total_volume": data.get("total_volume", {}).get("usd", 0),
-            }]).set_index("timestamp")
+            return pd.DataFrame(
+                [
+                    {
+                        "timestamp": datetime.now(),
+                        "btc_dominance": data.get("market_cap_percentage", {}).get(
+                            "btc", 0
+                        ),
+                        "eth_dominance": data.get("market_cap_percentage", {}).get(
+                            "eth", 0
+                        ),
+                        "total_mcap": data.get("total_market_cap", {}).get("usd", 0),
+                        "total_volume": data.get("total_volume", {}).get("usd", 0),
+                    }
+                ]
+            ).set_index("timestamp")
         except Exception as e:
             logger.warning(f"CoinGecko global failed: {e}")
             return pd.DataFrame()
@@ -108,14 +121,16 @@ class CoinGeckoAPI:
             rows = []
             for item in data:
                 coin = item["item"]
-                rows.append({
-                    "timestamp": datetime.now(),
-                    "coin_id": coin["id"],
-                    "symbol": coin["symbol"],
-                    "name": coin["name"],
-                    "market_cap_rank": coin.get("market_cap_rank"),
-                    "score": coin.get("score"),
-                })
+                rows.append(
+                    {
+                        "timestamp": datetime.now(),
+                        "coin_id": coin["id"],
+                        "symbol": coin["symbol"],
+                        "name": coin["name"],
+                        "market_cap_rank": coin.get("market_cap_rank"),
+                        "score": coin.get("score"),
+                    }
+                )
             return pd.DataFrame(rows).set_index("timestamp")
         except Exception as e:
             logger.warning(f"CoinGecko trending failed: {e}")
@@ -124,14 +139,14 @@ class CoinGeckoAPI:
 
 class CryptoCompareAPI:
     """CryptoCompare free tier data.
-    
+
     Optional API key for higher rate limits.
     https://min-api.cryptocompare.com/
     """
 
     BASE_URL = "https://min-api.cryptocompare.com/data"
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: str | None = None):
         self.api_key = api_key or os.getenv("CRYPTOCOMPARE_API_KEY", "")
         self.session = requests.Session()
 
@@ -159,21 +174,27 @@ class CryptoCompareAPI:
                 "aggregate": aggregate,
                 "e": e,
             }
-            resp = self.session.get(url, params=params, headers=self._headers(), timeout=15)
+            resp = self.session.get(
+                url, params=params, headers=self._headers(), timeout=15
+            )
             resp.raise_for_status()
             data = resp.json()["Data"]["Data"]
 
             df = pd.DataFrame(data)
             df["timestamp"] = pd.to_datetime(df["time"], unit="s")
-            df = df.rename(columns={
-                "open": "open",
-                "high": "high",
-                "low": "low",
-                "close": "close",
-                "volumefrom": "volume",
-                "volumeto": "volume_quote",
-            }).set_index("timestamp")
-            return df[["open", "high", "low", "close", "volume", "volume_quote"]].sort_index()
+            df = df.rename(
+                columns={
+                    "open": "open",
+                    "high": "high",
+                    "low": "low",
+                    "close": "close",
+                    "volumefrom": "volume",
+                    "volumeto": "volume_quote",
+                }
+            ).set_index("timestamp")
+            return df[
+                ["open", "high", "low", "close", "volume", "volume_quote"]
+            ].sort_index()
         except Exception as e:
             logger.warning(f"CryptoCompare OHLCV failed: {e}")
             return pd.DataFrame()
@@ -183,19 +204,23 @@ class CryptoCompareAPI:
         try:
             url = f"{self.BASE_URL}/social/coin/histo/day"
             params = {"coinId": coin_id, "limit": 2000}
-            resp = self.session.get(url, params=params, headers=self._headers(), timeout=15)
+            resp = self.session.get(
+                url, params=params, headers=self._headers(), timeout=15
+            )
             resp.raise_for_status()
             data = resp.json()["Data"]
 
             df = pd.DataFrame(data)
             df["timestamp"] = pd.to_datetime(df["time"], unit="s")
             df = df.set_index("timestamp").sort_index()
-            return df[[
-                "reddit_subscribers",
-                "reddit_active_users",
-                "twitter_followers",
-                "twitter_favourites",
-            ]]
+            return df[
+                [
+                    "reddit_subscribers",
+                    "reddit_active_users",
+                    "twitter_followers",
+                    "twitter_favourites",
+                ]
+            ]
         except Exception as e:
             logger.warning(f"CryptoCompare social failed: {e}")
             return pd.DataFrame()
@@ -209,7 +234,9 @@ class CryptoCompareAPI:
         try:
             url = f"{self.BASE_URL}/blockchain/balancedistribution/day"
             params = {"fsym": symbol, "limit": limit}
-            resp = self.session.get(url, params=params, headers=self._headers(), timeout=15)
+            resp = self.session.get(
+                url, params=params, headers=self._headers(), timeout=15
+            )
             resp.raise_for_status()
             data = resp.json()["Data"]
 
@@ -224,7 +251,6 @@ class CryptoCompareAPI:
     def fetch_altcoin_index(self) -> pd.DataFrame:
         """Fetch AltCoin sentiment index (-1 to 1)."""
         try:
-            url = f"{self.BASE_URL}/index/cc/v1/latest/news"
             # Not a direct sentiment index, fallback to simple proxy
             return pd.DataFrame()
         except Exception:

@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useSocketIO } from '@/hooks/useSocketIO';
+import { useSocketIO, Position, StrategyState } from '@/hooks/useSocketIO';
 import { useTrades, Trade } from '@/hooks/useTrades';
 import { useLang } from '@/components/layout/LangProvider';
 import { NeoCard } from '@/components/ui/NeoCard';
@@ -66,7 +66,7 @@ export default function LivePage() {
 
   const strategies = state?.strategies || [];
   const positions = state?.positions || [];
-  const subStrategies = strategies.filter((s: any) => s.meta);
+  const subStrategies = strategies.filter((s) => s.meta);
   const displayStrategies = subStrategies.length > 0 ? subStrategies : strategies;
   const subStrategy = state?.sub_strategy;
   const currentRegime = state?.current_regime || 'unknown';
@@ -80,7 +80,7 @@ export default function LivePage() {
 
   // Merge open positions + closed trades
   const allTrades = useMemo(() => {
-    const openTrades: Trade[] = positions.map((pos: any) => ({
+    const openTrades: Trade[] = positions.map((pos: Position) => ({
       id: `open-${pos.symbol}`,
       timestamp: pos.entry_time || new Date().toISOString(),
       symbol: pos.symbol,
@@ -90,15 +90,15 @@ export default function LivePage() {
       size: pos.size,
       pnl: pos.unrealized_pnl || 0,
       pnl_pct: 0,
-      duration: calculateDuration(pos.entry_time),
+      duration: calculateDuration(pos.entry_time || null),
       exit_reason: 'Open',
       stop_price: pos.stop_price || null,
       target_price: null,
-      sub_strategy: pos.meta?.ensemble_source || null,
-      wiki_alignment: pos.meta?.wiki_alignment || null,
+      sub_strategy: (pos.meta?.ensemble_source as string | null) || null,
+      wiki_alignment: (pos.meta?.wiki_alignment as number | null) || null,
       wiki_action: null,
-      regime: pos.meta?.regime || null,
-      directional_regime: pos.meta?.directional_regime || null,
+      regime: (pos.meta?.regime as string | null) || null,
+      directional_regime: (pos.meta?.directional_regime as string | null) || null,
       status: 'open',
     }));
     return [...openTrades, ...closedTrades];
@@ -111,8 +111,8 @@ export default function LivePage() {
       filtered = filtered.filter((t) => t.sub_strategy === filterSubStrategy);
     }
     return filtered.sort((a, b) => {
-      const aVal = (a as any)[sortField];
-      const bVal = (b as any)[sortField];
+      const aVal = (a as unknown as Record<string, string | number | null>)[sortField];
+      const bVal = (b as unknown as Record<string, string | number | null>)[sortField];
       if (aVal === null || aVal === undefined) return 1;
       if (bVal === null || bVal === undefined) return -1;
       const cmp = aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
@@ -176,11 +176,11 @@ export default function LivePage() {
 
       {/* Sub-Strategy Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {displayStrategies.map((strategy: any) => {
+        {displayStrategies.map((strategy: StrategyState) => {
           const meta = strategy.meta || {};
-          const isActive = meta.is_active_regime;
-          const signal = meta.active_signal;
-          const reasons = meta.rejection_reasons || [];
+          const isActive = meta.is_active_regime as boolean;
+          const signal = meta.active_signal as string | undefined;
+          const reasons = (meta.rejection_reasons || []) as string[];
           return (
             <NeoCard key={strategy.name} title={strategy.name}>
               <div className="space-y-4">

@@ -1,11 +1,12 @@
 """Tests for risk management layer."""
 
 import pytest
+
 from risk.manager import (
-    PositionSizer,
-    StopLossManager,
     DrawdownGuard,
+    PositionSizer,
     RiskManager,
+    StopLossManager,
 )
 
 
@@ -54,16 +55,22 @@ class TestPositionSizer:
 
     def test_turtle_unit_size_static(self):
         # Capital $100,000, N = $500, risk = 1%
-        size = PositionSizer.turtle_unit_size(capital=100000, n_value=500, risk_pct=0.01)
+        size = PositionSizer.turtle_unit_size(
+            capital=100000, n_value=500, risk_pct=0.01
+        )
         # $1,000 / $500 = 2 units
         assert size == pytest.approx(2.0, rel=1e-3)
 
     def test_turtle_stop_buy(self):
-        stop = PositionSizer.turtle_stop(entry=50000, n_value=500, side="buy", n_multiple=2.0)
+        stop = PositionSizer.turtle_stop(
+            entry=50000, n_value=500, side="buy", n_multiple=2.0
+        )
         assert stop == pytest.approx(49000)
 
     def test_turtle_stop_sell(self):
-        stop = PositionSizer.turtle_stop(entry=50000, n_value=500, side="sell", n_multiple=2.0)
+        stop = PositionSizer.turtle_stop(
+            entry=50000, n_value=500, side="sell", n_multiple=2.0
+        )
         assert stop == pytest.approx(51000)
 
 
@@ -113,32 +120,38 @@ class TestDrawdownGuard:
 
 class TestRiskManager:
     def test_check_pass(self):
-        rm = RiskManager({
-            "max_risk_per_trade": 0.01,
-            "max_total_exposure": 0.50,
-            "max_drawdown_pct": 0.15,
-        })
+        rm = RiskManager(
+            {
+                "max_risk_per_trade": 0.01,
+                "max_total_exposure": 0.50,
+                "max_drawdown_pct": 0.15,
+            }
+        )
         status = rm.check(capital=100000, equity=100000, open_positions=[])
         assert status["halted"] is False
         assert status["exposure_ok"] is True
 
     def test_exposure_fail(self):
-        rm = RiskManager({
-            "max_risk_per_trade": 0.01,
-            "max_total_exposure": 0.05,
-            "max_drawdown_pct": 0.15,
-        })
+        rm = RiskManager(
+            {
+                "max_risk_per_trade": 0.01,
+                "max_total_exposure": 0.05,
+                "max_drawdown_pct": 0.15,
+            }
+        )
         positions = [{"notional": 10000}]
         status = rm.check(capital=100000, equity=100000, open_positions=positions)
         assert status["exposure_ok"] is False
         assert status["total_exposure"] == pytest.approx(0.10)
 
     def test_drawdown_halt(self):
-        rm = RiskManager({
-            "max_risk_per_trade": 0.01,
-            "max_total_exposure": 0.50,
-            "max_drawdown_pct": 0.10,
-        })
+        rm = RiskManager(
+            {
+                "max_risk_per_trade": 0.01,
+                "max_total_exposure": 0.50,
+                "max_drawdown_pct": 0.10,
+            }
+        )
         rm.guard.update(100000)
         rm.guard.update(90000)  # 10% drawdown
         status = rm.check(capital=100000, equity=85000, open_positions=[])

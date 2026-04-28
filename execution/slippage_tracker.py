@@ -1,8 +1,8 @@
 """Slippage Tracker — Measures and alerts on execution slippage."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, List, Optional
+
 from loguru import logger
 
 
@@ -31,10 +31,17 @@ class SlippageTracker:
     def __init__(self, warning_threshold_pct: float = 0.001, max_records: int = 1000):
         self.warning_threshold_pct = warning_threshold_pct
         self.max_records = max_records
-        self.records: List[SlippageRecord] = []
-        self.by_symbol: Dict[str, List[SlippageRecord]] = {}
+        self.records: list[SlippageRecord] = []
+        self.by_symbol: dict[str, list[SlippageRecord]] = {}
 
-    def record(self, symbol: str, side: str, expected_price: float, filled_price: float, size: float):
+    def record(
+        self,
+        symbol: str,
+        side: str,
+        expected_price: float,
+        filled_price: float,
+        size: float,
+    ):
         """Record a fill and calculate slippage."""
         if expected_price <= 0 or filled_price <= 0:
             return
@@ -81,12 +88,12 @@ class SlippageTracker:
                 f"Slippage: {slippage_pct:+.4%}"
             )
 
-    def last_slippage(self, symbol: str) -> Optional[float]:
+    def last_slippage(self, symbol: str) -> float | None:
         """Get last slippage % for a symbol."""
         recs = self.by_symbol.get(symbol, [])
         return recs[-1].slippage_pct if recs else None
 
-    def avg_slippage(self, symbol: str, n: int = 10) -> Optional[float]:
+    def avg_slippage(self, symbol: str, n: int = 10) -> float | None:
         """Get average slippage over last N trades."""
         recs = self.by_symbol.get(symbol, [])
         if not recs:
@@ -94,7 +101,7 @@ class SlippageTracker:
         recent = recs[-n:]
         return sum(r.slippage_pct for r in recent) / len(recent)
 
-    def summary(self) -> Dict[str, dict]:
+    def summary(self) -> dict[str, dict]:
         """Return slippage summary by symbol."""
         result = {}
         for sym, recs in self.by_symbol.items():

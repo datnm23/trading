@@ -46,11 +46,17 @@ MODE = "paper"
 def start_strategy(name: str, port: int, log_file: str) -> subprocess.Popen:
     """Start a single strategy bot as a subprocess."""
     cmd = [
-        sys.executable, "-m", "execution.live_trading",
-        "--config", CONFIG,
-        "--mode", MODE,
-        "--strategy", name,
-        "--health-port", str(port),
+        sys.executable,
+        "-m",
+        "execution.live_trading",
+        "--config",
+        CONFIG,
+        "--mode",
+        MODE,
+        "--strategy",
+        name,
+        "--health-port",
+        str(port),
     ]
     # Add symbols as separate args if module supports it
     # live_trading.py main() doesn't accept --symbols, only --symbol
@@ -84,14 +90,18 @@ def main():
     for s in STRATEGIES:
         print(f"\n▶ Starting {s['name']} on health port {s['port']}...")
         proc = start_strategy(s["name"], s["port"], s["log"])
-        processes.append({"name": s["name"], "port": s["port"], "proc": proc, "log": s["log"]})
+        processes.append(
+            {"name": s["name"], "port": s["port"], "proc": proc, "log": s["log"]}
+        )
         time.sleep(2)  # stagger startups to avoid DB lock conflicts
 
     print("\n" + "=" * 60)
     print("ALL STRATEGIES STARTED")
     print("=" * 60)
     for p in processes:
-        print(f"  {p['name']:20s}  PID:{p['proc'].pid:6d}  Health:http://localhost:{p['port']}/health")
+        print(
+            f"  {p['name']:20s}  PID:{p['proc'].pid:6d}  Health:http://localhost:{p['port']}/health"
+        )
     print("=" * 60)
     print("\nPress Ctrl+C to stop all strategies\n")
 

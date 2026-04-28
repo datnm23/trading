@@ -62,7 +62,7 @@ where = ["."]
 include = ["strategies*", "risk*", "backtest*", "execution*", "ml*", "knowledge_engine*", "data*", "config*", "journal*", "monitoring*"]
 
 [tool.ruff]
-line-length = 100
+line-length = 120
 target-version = "py311"
 
 [tool.ruff.lint]

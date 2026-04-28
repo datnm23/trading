@@ -1,7 +1,6 @@
 """Data feed: download and cache market data."""
 
 from pathlib import Path
-from typing import Optional
 
 import pandas as pd
 from loguru import logger
@@ -17,7 +16,13 @@ class DataFeed:
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.connector = CCXTConnector(exchange_id=exchange_id, testnet=True)
 
-    def fetch(self, symbol: str, timeframe: str = "1d", limit: int = 1000, use_cache: bool = True) -> pd.DataFrame:
+    def fetch(
+        self,
+        symbol: str,
+        timeframe: str = "1d",
+        limit: int = 1000,
+        use_cache: bool = True,
+    ) -> pd.DataFrame:
         """Fetch OHLCV as DataFrame. Merges cache with live data if cache is stale."""
         cache_file = self.data_dir / f"{symbol.replace('/', '_')}_{timeframe}.csv"
         df_cache = None
@@ -35,18 +40,26 @@ class DataFeed:
             if not df_cache.empty and (now - last) <= stale_threshold:
                 logger.info(f"Loading fresh cached data: {cache_file}")
                 return df_cache
-            logger.info(f"Cache stale ({df_cache.index[-1]}), refreshing from {self.connector.exchange_id}")
+            logger.info(
+                f"Cache stale ({df_cache.index[-1]}), refreshing from {self.connector.exchange_id}"
+            )
 
-        logger.info(f"Downloading {symbol} {timeframe} from {self.connector.exchange_id}")
+        logger.info(
+            f"Downloading {symbol} {timeframe} from {self.connector.exchange_id}"
+        )
         since_ms = None
         if df_cache is not None and not df_cache.empty:
             since_ms = int(df_cache.index[-1].timestamp() * 1000) + 1
-        ohlcv = self.connector.fetch_ohlcv(symbol, timeframe=timeframe, limit=limit, since=since_ms)
+        ohlcv = self.connector.fetch_ohlcv(
+            symbol, timeframe=timeframe, limit=limit, since=since_ms
+        )
         if not ohlcv:
             logger.warning("No data returned")
             return df_cache if df_cache is not None else pd.DataFrame()
 
-        df = pd.DataFrame(ohlcv, columns=["timestamp", "open", "high", "low", "close", "volume"])
+        df = pd.DataFrame(
+            ohlcv, columns=["timestamp", "open", "high", "low", "close", "volume"]
+        )
         df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
         df.set_index("timestamp", inplace=True)
 

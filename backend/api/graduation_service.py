@@ -1,13 +1,11 @@
 """Paper trading graduation monitor — computes metrics and checks graduation gates."""
 
 import os
-import json
-from datetime import datetime, timedelta, timezone
-from typing import Dict, List, Optional
+from datetime import UTC, datetime, timedelta
 
 import psycopg2
-from psycopg2.extras import RealDictCursor
 from loguru import logger
+from psycopg2.extras import RealDictCursor
 
 from monitoring.telegram import TelegramAlerter
 
@@ -23,7 +21,7 @@ class GraduationService:
         - Winrate > 40%
     """
 
-    def __init__(self, db_url: Optional[str] = None, initial_capital: float = 100000.0):
+    def __init__(self, db_url: str | None = None, initial_capital: float = 100000.0):
         self.db_url = db_url or os.environ.get("TRADING_DB_URL")
         self.initial_capital = initial_capital
         self._alerter = TelegramAlerter()
@@ -43,7 +41,7 @@ class GraduationService:
         """Persist notification state to prevent duplicate alerts on restart."""
         try:
             with open(self._notified_path, "w") as f:
-                f.write(datetime.now(timezone.utc).isoformat())
+                f.write(datetime.now(UTC).isoformat())
         except Exception as e:
             logger.warning(f"Failed to persist graduation notification: {e}")
 
@@ -59,12 +57,12 @@ class GraduationService:
     def _connect(self):
         return psycopg2.connect(self.db_url)
 
-    def compute_metrics(self) -> Dict:
+    def compute_metrics(self) -> dict:
         """Return graduation metrics based on last 30 days of trades."""
         if not self.db_url:
             return self._empty_result("No database configured")
 
-        cutoff = datetime.now(timezone.utc) - timedelta(days=30)
+        cutoff = datetime.now(UTC) - timedelta(days=30)
         cutoff_str = cutoff.isoformat()
 
         conn = self._connect()
@@ -72,7 +70,8 @@ class GraduationService:
             cur = conn.cursor(cursor_factory=RealDictCursor)
 
             # Fetch all trades in last 30 days
-            cur.execute("""
+            cur.execute(
+                """
                 SELECT timestamp, pnl, pnl_pct, exit_price, entry_price
                 FROM trades
                 WHERE timestamp >= %s
@@ -80,7 +79,9 @@ class GraduationService:
                   AND raw_metadata::text != ''
                   AND raw_metadata::text != '{}'
                 ORDER BY timestamp ASC
-            """, (cutoff_str,))
+            """,
+                (cutoff_str,),
+            )
             trades = cur.fetchall()
 
             if not trades:
@@ -101,7 +102,11 @@ class GraduationService:
 
             # Return %
             total_pnl = sum(float(t["pnl"] or 0) for t in trades)
-            return_pct = (total_pnl / self.initial_capital * 100) if self.initial_capital > 0 else 0.0
+            return_pct = (
+                (total_pnl / self.initial_capital * 100)
+                if self.initial_capital > 0
+                else 0.0
+            )
 
             # Winrate
             wins = sum(1 for t in trades if float(t["pnl"] or 0) > 0)
@@ -118,10 +123,14 @@ class GraduationService:
                 dd = peak - cumulative
                 if dd > max_dd:
                     max_dd = dd
-            max_drawdown_pct = (max_dd / self.initial_capital * 100) if self.initial_capital > 0 else 0.0
+            max_drawdown_pct = (
+                (max_dd / self.initial_capital * 100)
+                if self.initial_capital > 0
+                else 0.0
+            )
 
             # Sharpe ratio (daily returns)
-            daily_pnls: Dict[str, float] = {}
+            daily_pnls: dict[str, float] = {}
             for t in trades:
                 ts = t["timestamp"]
                 if isinstance(ts, datetime):
@@ -136,9 +145,12 @@ class GraduationService:
             daily_returns = [pnl / self.initial_capital for pnl in daily_pnls.values()]
             if len(daily_returns) > 1:
                 import statistics
+
                 avg_return = statistics.mean(daily_returns)
                 std_return = statistics.stdev(daily_returns)
-                sharpe = (avg_return / std_return * (252 ** 0.5)) if std_return > 0 else 0.0
+                sharpe = (
+                    (avg_return / std_return * (252**0.5)) if std_return > 0 else 0.0
+                )
             else:
                 sharpe = 0.0
 
@@ -163,7 +175,11 @@ class GraduationService:
                 "total_pnl": round(total_pnl, 2),
                 "gates": gates,
                 "approved": approved,
-                "message": "Graduation criteria met!" if approved else "Paper trading in progress",
+                "message": (
+                    "Graduation criteria met!"
+                    if approved
+                    else "Paper trading in progress"
+                ),
             }
 
             # Send Telegram alert once when approved
@@ -180,7 +196,7 @@ class GraduationService:
         finally:
             conn.close()
 
-    def _empty_result(self, message: str) -> Dict:
+    def _empty_result(self, message: str) -> dict:
         return {
             "days_traded": 0,
             "days_required": 30,
@@ -201,7 +217,7 @@ class GraduationService:
             "message": message,
         }
 
-    def _send_graduation_alert(self, result: Dict):
+    def _send_graduation_alert(self, result: dict):
         """Send Telegram alert when graduation criteria are met."""
         text = (
             "🎓 *Paper Trading Graduation Criteria Met!*\n\n"

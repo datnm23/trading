@@ -1,19 +1,18 @@
 """Trade history service — queries PostgreSQL for closed trades with sub-strategy metadata."""
 
-import os
 import json
+import os
 from datetime import datetime
-from typing import List, Dict, Optional
 
 import psycopg2
-from psycopg2.extras import RealDictCursor
 from loguru import logger
+from psycopg2.extras import RealDictCursor
 
 
 class TradesService:
     """Query closed trades from PostgreSQL, parse sub-strategy metadata."""
 
-    def __init__(self, db_url: Optional[str] = None):
+    def __init__(self, db_url: str | None = None):
         self.db_url = db_url or os.environ.get("TRADING_DB_URL")
         if not self.db_url:
             raise ValueError("TRADING_DB_URL required")
@@ -23,12 +22,12 @@ class TradesService:
 
     def get_trades(
         self,
-        sub_strategy: Optional[str] = None,
-        symbol: Optional[str] = None,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
+        sub_strategy: str | None = None,
+        symbol: str | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
         limit: int = 50,
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """Fetch closed trades with parsed sub-strategy metadata.
 
         Only returns trades with raw_metadata (sub-strategy info available).
@@ -46,7 +45,7 @@ class TradesService:
                   AND raw_metadata::text != ''
                   AND raw_metadata::text != '{}'
             """
-            params: List = []
+            params: list = []
 
             if sub_strategy:
                 query += " AND raw_metadata::jsonb->>'ensemble_source' = %s"
@@ -74,7 +73,7 @@ class TradesService:
         finally:
             conn.close()
 
-    def get_sub_strategy_stats(self) -> Dict[str, Dict]:
+    def get_sub_strategy_stats(self) -> dict[str, dict]:
         """Compute cumulative P&L per sub-strategy from closed trades.
 
         Returns:
@@ -118,7 +117,7 @@ class TradesService:
         finally:
             conn.close()
 
-    def _parse_row(self, row: Dict) -> Dict:
+    def _parse_row(self, row: dict) -> dict:
         """Parse DB row + extract sub-strategy metadata."""
         raw_meta = row.get("raw_metadata") or "{}"
         try:
@@ -152,7 +151,9 @@ class TradesService:
             "duration": duration,
             "exit_reason": row.get("exit_reason", ""),
             "stop_price": float(row["stop_price"]) if row.get("stop_price") else None,
-            "target_price": float(row["target_price"]) if row.get("target_price") else None,
+            "target_price": (
+                float(row["target_price"]) if row.get("target_price") else None
+            ),
             "sub_strategy": meta.get("ensemble_source"),
             "wiki_alignment": meta.get("wiki_alignment"),
             "wiki_action": meta.get("wiki_action"),

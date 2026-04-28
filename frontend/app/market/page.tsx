@@ -26,11 +26,20 @@ interface TickerData {
   change_24h_pct: number;
 }
 
+interface Candle {
+  timestamp: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
 export default function MarketPage() {
   const { lang } = useLang();
   const [activeSymbol, setActiveSymbol] = useState('BTC/USDT');
   const [activeTf, setActiveTf] = useState('1d');
-  const [candles, setCandles] = useState<any[]>([]);
+  const [candles, setCandles] = useState<Candle[]>([]);
   const [tickers, setTickers] = useState<Record<string, TickerData>>({});
   const [loading, setLoading] = useState(true);
 

@@ -17,17 +17,15 @@ Usage:
 import argparse
 import os
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from journal.trade_logger import TradeLogger
 
-
 DEFAULT_DB_URL = os.getenv(
-    "TRADING_DB_URL",
-    "postgresql://trader:trading123@localhost:5432/trading_journal"
+    "TRADING_DB_URL", "postgresql://trader:trading123@localhost:5432/trading_journal"
 )
 
 
@@ -69,11 +67,17 @@ def print_summary(logger: TradeLogger, symbol: str = None):
     print("=" * 60)
     trades = logger.get_trades(symbol=symbol, limit=10)
     if trades:
-        print(f"\n{'Time':<20} {'Symbol':<12} {'Side':<6} {'P&L':>12} {'P&L%':>8} {'Reason':<15}")
+        print(
+            f"\n{'Time':<20} {'Symbol':<12} {'Side':<6} {'P&L':>12} {'P&L%':>8} {'Reason':<15}"
+        )
         print("-" * 80)
         for t in trades:
             emoji = "🟢" if t.pnl > 0 else "🔴" if t.pnl < 0 else "⚪"
-            time_str = t.timestamp.strftime("%Y-%m-%d %H:%M") if isinstance(t.timestamp, datetime) else str(t.timestamp)[:16]
+            time_str = (
+                t.timestamp.strftime("%Y-%m-%d %H:%M")
+                if isinstance(t.timestamp, datetime)
+                else str(t.timestamp)[:16]
+            )
             print(
                 f"{time_str:<20} {t.symbol:<12} {t.side:<6} "
                 f"{emoji}{format_currency(t.pnl):>10} {format_pct(t.pnl_pct):>8} {t.exit_reason:<15}"
@@ -97,10 +101,16 @@ def print_summary(logger: TradeLogger, symbol: str = None):
     print("=" * 60)
     snaps = logger.get_snapshots(limit=5)
     if snaps:
-        print(f"\n{'Time':<20} {'Equity':>15} {'Cash':>15} {'Positions':>10} {'DD%':>8}")
+        print(
+            f"\n{'Time':<20} {'Equity':>15} {'Cash':>15} {'Positions':>10} {'DD%':>8}"
+        )
         print("-" * 72)
         for s in snaps:
-            time_str = s.timestamp.strftime("%Y-%m-%d %H:%M") if isinstance(s.timestamp, datetime) else str(s.timestamp)[:16]
+            time_str = (
+                s.timestamp.strftime("%Y-%m-%d %H:%M")
+                if isinstance(s.timestamp, datetime)
+                else str(s.timestamp)[:16]
+            )
             print(
                 f"{time_str:<20} {format_currency(s.equity):>15} "
                 f"{format_currency(s.cash):>15} {s.open_positions:>10} {format_pct(s.drawdown_pct):>8}"
@@ -119,8 +129,9 @@ def export_trades(logger: TradeLogger, path: str, symbol: str = None):
 
 def main():
     parser = argparse.ArgumentParser(description="Query trading journal (PostgreSQL)")
-    parser.add_argument("--pg-url", default=DEFAULT_DB_URL,
-                        help="PostgreSQL connection URL")
+    parser.add_argument(
+        "--pg-url", default=DEFAULT_DB_URL, help="PostgreSQL connection URL"
+    )
     parser.add_argument("--symbol", help="Filter by symbol (e.g. BTC/USDT)")
     parser.add_argument("--export", help="Export trades to CSV file")
     args = parser.parse_args()

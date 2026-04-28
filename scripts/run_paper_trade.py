@@ -17,14 +17,17 @@ The bot will:
 To stop: Ctrl+C
 """
 
-import sys
+# ruff: noqa: E402
+
 import argparse
+import sys
 from pathlib import Path
 
 sys.path.insert(0, "/home/datnm/projects/trading")
 
 # Load .env if present
 from dotenv import load_dotenv
+
 env_path = Path(__file__).parent.parent / ".env"
 if env_path.exists():
     load_dotenv(env_path)
@@ -77,9 +80,9 @@ def main():
     print("=" * 60)
     print(f"Symbols:    {', '.join(args.symbols)}")
     print(f"Timeframe:  {args.timeframe}")
-    print(f"Strategy:   RegimeEnsemble (+86% walk-forward proven)")
-    print(f"Mode:       PAPER (no real money)")
-    print(f"Health:     http://localhost:8080/health")
+    print("Strategy:   RegimeEnsemble (+86% walk-forward proven)")
+    print("Mode:       PAPER (no real money)")
+    print("Health:     http://localhost:8080/health")
     print("=" * 60)
     print("Press Ctrl+C to stop")
     print("=" * 60)

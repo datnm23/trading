@@ -14,16 +14,16 @@ Usage:
 """
 
 import json
-from dataclasses import dataclass, field
+from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, List, Dict, Optional
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 from loguru import logger
 
-from backtest.engine import BacktestEngine, BacktestResult, Trade
+from backtest.engine import BacktestEngine, Trade
 from risk.manager import RiskManager
 from strategies.base import BaseStrategy
 
@@ -31,6 +31,7 @@ from strategies.base import BaseStrategy
 @dataclass
 class WalkForwardResult:
     """Result of one walk-forward window."""
+
     period_label: str
     train_start: datetime
     train_end: datetime
@@ -41,7 +42,7 @@ class WalkForwardResult:
     metrics: dict
     trades: list
     equity_curve: pd.Series
-    model_checkpoint: Optional[str] = None
+    model_checkpoint: str | None = None
 
 
 class WalkForwardEngine:
@@ -74,9 +75,11 @@ class WalkForwardEngine:
         self.initial_capital = initial_capital
         self.commission = commission
         self.slippage = slippage
-        self.results: List[WalkForwardResult] = []
+        self.results: list[WalkForwardResult] = []
 
-    def run(self, data: pd.DataFrame, start_idx: Optional[int] = None) -> List[WalkForwardResult]:
+    def run(
+        self, data: pd.DataFrame, start_idx: int | None = None
+    ) -> list[WalkForwardResult]:
         """Run walk-forward on full dataset.
 
         Args:
@@ -100,7 +103,9 @@ class WalkForwardEngine:
             train_df = data.iloc[train_start:train_end]
             test_df = data.iloc[train_end:test_end]
 
-            period_label = self._make_label(data.index[train_end], data.index[test_end - 1])
+            period_label = self._make_label(
+                data.index[train_end], data.index[test_end - 1]
+            )
             logger.info(
                 f"Walk-forward | {period_label} | "
                 f"Train: {len(train_df)} bars | Test: {len(test_df)} bars"
@@ -125,7 +130,7 @@ class WalkForwardEngine:
         # last 100 bars of train data.  Trades only happen during the loop,
         # which covers exactly the test period.
         warmup_needed = 100
-        train_tail = train_df.iloc[-min(warmup_needed, len(train_df)):]
+        train_tail = train_df.iloc[-min(warmup_needed, len(train_df)) :]
         combined = pd.concat([train_tail, test_df])
 
         # Reset drawdown guard so each period starts fresh
@@ -146,17 +151,19 @@ class WalkForwardEngine:
                 exit_price = last_bar["close"] * (1 - engine.slippage)
                 pnl = (exit_price - pos["entry_price"]) * pos["size"]
                 pnl -= pos["size"] * exit_price * engine.commission
-                engine.trades.append(Trade(
-                    entry_time=pos["entry_time"],
-                    exit_time=last_bar.name,
-                    symbol=pos["symbol"],
-                    side=pos["side"],
-                    entry_price=pos["entry_price"],
-                    exit_price=exit_price,
-                    size=pos["size"],
-                    pnl=pnl,
-                    exit_reason="period_end",
-                ))
+                engine.trades.append(
+                    Trade(
+                        entry_time=pos["entry_time"],
+                        exit_time=last_bar.name,
+                        symbol=pos["symbol"],
+                        side=pos["side"],
+                        entry_price=pos["entry_price"],
+                        exit_price=exit_price,
+                        size=pos["size"],
+                        pnl=pnl,
+                        exit_reason="period_end",
+                    )
+                )
                 engine.positions.remove(pos)
 
         # Recalculate total cost including forced-close trades
@@ -164,11 +171,19 @@ class WalkForwardEngine:
         for t in engine.trades:
             entry_commission = t.size * t.entry_price * engine.commission
             exit_commission = t.size * t.exit_price * engine.commission
-            entry_slippage = t.size * t.entry_price * engine.slippage / (1 + engine.slippage)
-            exit_slippage = t.size * t.exit_price * engine.slippage / (1 - engine.slippage)
-            total_cost += entry_commission + exit_commission + entry_slippage + exit_slippage
+            entry_slippage = (
+                t.size * t.entry_price * engine.slippage / (1 + engine.slippage)
+            )
+            exit_slippage = (
+                t.size * t.exit_price * engine.slippage / (1 - engine.slippage)
+            )
+            total_cost += (
+                entry_commission + exit_commission + entry_slippage + exit_slippage
+            )
 
-        gross_return = result.total_return + (total_cost / self.initial_capital if self.initial_capital else 0)
+        gross_return = result.total_return + (
+            total_cost / self.initial_capital if self.initial_capital else 0
+        )
         total_trades = len(engine.trades)
 
         return WalkForwardResult(
@@ -192,8 +207,16 @@ class WalkForwardEngine:
             },
             trades=[
                 {
-                    "entry_time": t.entry_time.isoformat() if hasattr(t.entry_time, 'isoformat') else str(t.entry_time),
-                    "exit_time": t.exit_time.isoformat() if t.exit_time and hasattr(t.exit_time, 'isoformat') else None,
+                    "entry_time": (
+                        t.entry_time.isoformat()
+                        if hasattr(t.entry_time, "isoformat")
+                        else str(t.entry_time)
+                    ),
+                    "exit_time": (
+                        t.exit_time.isoformat()
+                        if t.exit_time and hasattr(t.exit_time, "isoformat")
+                        else None
+                    ),
                     "symbol": t.symbol,
                     "side": t.side,
                     "entry_price": t.entry_price,
@@ -249,7 +272,9 @@ class WalkForwardEngine:
             "aggregate": {
                 "total_return": sum(r.metrics["total_return"] for r in self.results),
                 "avg_sharpe": np.mean([r.metrics["sharpe"] for r in self.results]),
-                "avg_max_dd": np.mean([r.metrics["max_drawdown"] for r in self.results]),
+                "avg_max_dd": np.mean(
+                    [r.metrics["max_drawdown"] for r in self.results]
+                ),
                 "total_trades": sum(r.metrics["total_trades"] for r in self.results),
             },
         }

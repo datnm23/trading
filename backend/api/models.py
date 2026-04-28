@@ -1,7 +1,8 @@
 """Pydantic models for FastAPI gateway."""
 
-from datetime import datetime, timezone
-from typing import Dict, List, Optional, Any
+from datetime import UTC, datetime
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -16,8 +17,8 @@ class StrategyState(BaseModel):
     return_pct: float = 0.0
     daily_pnl: float = 0.0
     strategy_type: str = ""
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    meta: Optional[Dict[str, Any]] = None
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    meta: dict[str, Any] | None = None
 
 
 class Position(BaseModel):
@@ -25,12 +26,12 @@ class Position(BaseModel):
     side: str
     entry_price: float
     size: float
-    current_price: Optional[float] = None
-    unrealized_pnl: Optional[float] = None
-    stop_price: Optional[float] = None
+    current_price: float | None = None
+    unrealized_pnl: float | None = None
+    stop_price: float | None = None
     strategy: str = ""
-    entry_time: Optional[str] = None
-    meta: Optional[Dict[str, Any]] = None
+    entry_time: str | None = None
+    meta: dict[str, Any] | None = None
 
 
 class TrailingStopState(BaseModel):
@@ -61,7 +62,7 @@ class PartialExitState(BaseModel):
 class Alert(BaseModel):
     level: str  # info, warning, error
     message: str
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
     source: str = ""
 
 
@@ -79,8 +80,8 @@ class DailyReport(BaseModel):
 
 class SystemState(BaseModel):
     timestamp: datetime
-    strategies: List[StrategyState]
-    positions: List[Position]
-    trailing_stops: List[TrailingStopState]
-    slippage: List[SlippageSummary]
-    alerts: List[Alert]
+    strategies: list[StrategyState]
+    positions: list[Position]
+    trailing_stops: list[TrailingStopState]
+    slippage: list[SlippageSummary]
+    alerts: list[Alert]

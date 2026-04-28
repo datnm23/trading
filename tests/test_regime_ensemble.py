@@ -1,12 +1,9 @@
 """Tests for RegimeEnsemble strategy."""
 
-import pytest
-from unittest.mock import MagicMock, patch
-
-import pandas as pd
 import numpy as np
+import pandas as pd
 
-from strategies.base import Signal, StrategyContext
+from strategies.base import StrategyContext
 from strategies.ensemble.regime_ensemble import RegimeEnsembleStrategy
 
 
@@ -26,13 +23,16 @@ def make_history(n: int = 100, trend: str = "sideways") -> pd.DataFrame:
     high = close + np.abs(np.random.randn(n)) * 3
     low = close - np.abs(np.random.randn(n)) * 3
     low = np.maximum(low, close * 0.95)
-    return pd.DataFrame({
-        "open": close - np.random.randn(n) * 1,
-        "high": high,
-        "low": low,
-        "close": close,
-        "volume": np.random.randint(1000, 10000, n),
-    }, index=dates)
+    return pd.DataFrame(
+        {
+            "open": close - np.random.randn(n) * 1,
+            "high": high,
+            "low": low,
+            "close": close,
+            "volume": np.random.randint(1000, 10000, n),
+        },
+        index=dates,
+    )
 
 
 def make_context(history: pd.DataFrame, symbol: str = "BTC/USDT") -> StrategyContext:
@@ -49,11 +49,15 @@ def make_context(history: pd.DataFrame, symbol: str = "BTC/USDT") -> StrategyCon
 
 class FakeWikiValidator:
     """Fake wiki validator that accepts everything with high alignment."""
+
     min_alignment = 0.3
+
     def __init__(self, min_alignment=0.3):
         self.min_alignment = min_alignment
+
     def validate(self, signal, regime="neutral"):
         from knowledge_engine.signal_validator import WikiValidationResult
+
         return WikiValidationResult(
             original_strength=signal.strength,
             adjusted_strength=signal.strength,
@@ -69,9 +73,12 @@ class FakeWikiValidator:
 
 class BlockingWikiValidator:
     """Fake wiki validator that blocks everything."""
+
     min_alignment = 0.3
+
     def validate(self, signal, regime="neutral"):
         from knowledge_engine.signal_validator import WikiValidationResult
+
         return WikiValidationResult(
             original_strength=signal.strength,
             adjusted_strength=0.0,
@@ -165,8 +172,10 @@ class TestRegimeEnsemble:
         ctx = make_context(hist)
         sig = strat.on_bar(ctx)
         assert sig is None
-        assert "wiki" in str(strat.last_status["rejection_reasons"]).lower() or \
-               strat.last_status["wiki_action"] == "blocked"
+        assert (
+            "wiki" in str(strat.last_status["rejection_reasons"]).lower()
+            or strat.last_status["wiki_action"] == "blocked"
+        )
 
     def test_neutral_regime_requires_consensus(self):
         strat = RegimeEnsembleStrategy()
@@ -184,7 +193,11 @@ class TestRegimeEnsemble:
         # Neutral may or may not produce signal depending on consensus
         if sig is None:
             reasons = str(strat.last_status["rejection_reasons"]).lower()
-            assert "consensus" in reasons or "cooldown" in reasons or "no sub-strategy" in reasons
+            assert (
+                "consensus" in reasons
+                or "cooldown" in reasons
+                or "no sub-strategy" in reasons
+            )
 
     def test_last_status_populated(self):
         strat = RegimeEnsembleStrategy()

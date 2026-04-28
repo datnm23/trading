@@ -1,20 +1,17 @@
 #!/usr/bin/env python3
 """Crawl turtletrading.wiki into structured markdown knowledge graph."""
 
-import os
-import re
-import sys
 import json
+import re
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from collections import defaultdict
 
-import requests
-from bs4 import BeautifulSoup, Comment
 import markdownify
+import requests
 import yaml
+from bs4 import BeautifulSoup, Comment
 
 BASE_URL = "https://wiki.turtletrading.vn"
 OUTPUT_DIR = Path("/home/datnm/projects/trading/crawl-wiki")
@@ -28,6 +25,7 @@ session.headers.update(HEADERS)
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def fetch(url: str, retries: int = 3) -> str:
     for attempt in range(retries):
@@ -82,10 +80,12 @@ def parse_article(html: str, url: str) -> dict:
                 for li in nxt.find_all("li"):
                     a = li.find("a")
                     if a:
-                        backlinks.append({
-                            "text": a.get_text(strip=True),
-                            "href": a.get("href", ""),
-                        })
+                        backlinks.append(
+                            {
+                                "text": a.get_text(strip=True),
+                                "href": a.get("href", ""),
+                            }
+                        )
             nxt = nxt.find_next_sibling()
 
     # Extract all internal links inside article (concepts, hubs, tags)
@@ -102,11 +102,13 @@ def parse_article(html: str, url: str) -> dict:
             continue
         if abs_href not in seen_rel:
             seen_rel.add(abs_href)
-            related.append({
-                "text": a.get_text(strip=True),
-                "href": href,
-                "abs": abs_href,
-            })
+            related.append(
+                {
+                    "text": a.get_text(strip=True),
+                    "href": href,
+                    "abs": abs_href,
+                }
+            )
 
     # Convert article HTML -> Markdown
     md = markdownify.markdownify(str(article), heading_style="ATX")
@@ -158,6 +160,7 @@ def save_page(data: dict, rel_path: str):
 # Discovery
 # ---------------------------------------------------------------------------
 
+
 def discover_all_urls() -> set:
     """Parse index then do a limited BFS through hub/tag pages to discover every concept."""
     urls = set()
@@ -177,7 +180,17 @@ def discover_all_urls() -> set:
             soup = BeautifulSoup(html, "lxml")
             for a in soup.find_all("a", href=True):
                 href = a["href"]
-                if any(href.startswith(p) for p in ("/hubs/", "/concepts/", "/tags/", "./hubs/", "./concepts/", "./tags/")):
+                if any(
+                    href.startswith(p)
+                    for p in (
+                        "/hubs/",
+                        "/concepts/",
+                        "/tags/",
+                        "./hubs/",
+                        "./concepts/",
+                        "./tags/",
+                    )
+                ):
                     # Normalize
                     if href.startswith("."):
                         href = href[1:]  # remove leading dot
@@ -189,7 +202,9 @@ def discover_all_urls() -> set:
                         urls.add(full)
                 elif href.startswith("/") and not href.startswith("//"):
                     # Could be root-relative concept/hub/tag not caught above
-                    if any(href.startswith(p) for p in ("/hubs/", "/concepts/", "/tags/")):
+                    if any(
+                        href.startswith(p) for p in ("/hubs/", "/concepts/", "/tags/")
+                    ):
                         full = urljoin(BASE_URL, href).split("#")[0]
                         if full not in crawled and full not in to_crawl:
                             to_crawl.append(full)
@@ -203,6 +218,7 @@ def discover_all_urls() -> set:
 # ---------------------------------------------------------------------------
 # Main crawl
 # ---------------------------------------------------------------------------
+
 
 def crawl_all():
     urls = discover_all_urls()
@@ -227,21 +243,31 @@ def crawl_all():
                     save_page(data, rel)
 
                     node_id = rel.strip("/").replace("/", "_") or "index"
-                    graph["nodes"].append({
-                        "id": node_id,
-                        "title": data["title"],
-                        "url": url,
-                        "type": "hub" if "/hubs/" in rel else ("tag" if "/tags/" in rel else "concept"),
-                        "tags": data["tags"],
-                    })
+                    graph["nodes"].append(
+                        {
+                            "id": node_id,
+                            "title": data["title"],
+                            "url": url,
+                            "type": (
+                                "hub"
+                                if "/hubs/" in rel
+                                else ("tag" if "/tags/" in rel else "concept")
+                            ),
+                            "tags": data["tags"],
+                        }
+                    )
                     for r in data["related"]:
-                        target_rel = urlparse(r["abs"]).path.strip("/").replace("/", "_")
+                        target_rel = (
+                            urlparse(r["abs"]).path.strip("/").replace("/", "_")
+                        )
                         if target_rel:
-                            graph["edges"].append({
-                                "source": node_id,
-                                "target": target_rel,
-                                "label": r["text"],
-                            })
+                            graph["edges"].append(
+                                {
+                                    "source": node_id,
+                                    "target": target_rel,
+                                    "label": r["text"],
+                                }
+                            )
 
                     results.append({"url": url, "status": "ok", "title": data["title"]})
                 except Exception as e:
@@ -272,7 +298,9 @@ def crawl_all():
     ok = sum(1 for r in results if r["status"] == "ok")
     fail = len(results) - ok
     print(f"\n[DONE] OK: {ok} | FAIL: {fail} | TOTAL: {len(results)}")
-    print(f"[ARTIFACTS] manifest.json | graph.json | {len(graph['nodes'])} nodes | {len(graph['edges'])} edges")
+    print(
+        f"[ARTIFACTS] manifest.json | graph.json | {len(graph['nodes'])} nodes | {len(graph['edges'])} edges"
+    )
 
 
 if __name__ == "__main__":

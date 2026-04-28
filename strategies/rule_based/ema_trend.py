@@ -1,14 +1,14 @@
 """EMA Trend Following Strategy."""
 
-from typing import Optional
-
 import pandas as pd
 from loguru import logger
 
 from strategies.base import BaseStrategy, Signal, StrategyContext
 
 
-def _atr(high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14) -> pd.Series:
+def _atr(
+    high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14
+) -> pd.Series:
     """Compute Average True Range using pure pandas."""
     prev_close = close.shift(1)
     tr1 = high - low
@@ -21,7 +21,7 @@ def _atr(high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14) ->
 class EMATrendStrategy(BaseStrategy):
     """Simple EMA crossover with ATR stop."""
 
-    def __init__(self, params: Optional[dict] = None):
+    def __init__(self, params: dict | None = None):
         super().__init__(name="EMA-Trend", params=params)
         self.fast = self.params.get("fast_ema", 20)
         self.slow = self.params.get("slow_ema", 50)
@@ -38,7 +38,7 @@ class EMATrendStrategy(BaseStrategy):
         super().reset()
         self.in_position = False
 
-    def on_bar(self, context: StrategyContext) -> Optional[Signal]:
+    def on_bar(self, context: StrategyContext) -> Signal | None:
         if not self.is_warm:
             return None
 
@@ -66,7 +66,14 @@ class EMATrendStrategy(BaseStrategy):
                 side="buy",
                 strength=0.9,
                 price=current_price,
-                meta={"fast_ema": fast_ema, "slow_ema": slow_ema, "atr": atr_val, "reason": "crossover_up", "stop": stop_price, "stop_price": stop_price},
+                meta={
+                    "fast_ema": fast_ema,
+                    "slow_ema": slow_ema,
+                    "atr": atr_val,
+                    "reason": "crossover_up",
+                    "stop": stop_price,
+                    "stop_price": stop_price,
+                },
             )
 
         # Cross down → strong sell signal (exit)
@@ -78,7 +85,12 @@ class EMATrendStrategy(BaseStrategy):
                 side="sell",
                 strength=0.9,
                 price=current_price,
-                meta={"fast_ema": fast_ema, "slow_ema": slow_ema, "atr": atr_val, "reason": "crossover_down"},
+                meta={
+                    "fast_ema": fast_ema,
+                    "slow_ema": slow_ema,
+                    "atr": atr_val,
+                    "reason": "crossover_down",
+                },
             )
 
         # Trend continuation → weaker signal for aggregation
@@ -93,7 +105,14 @@ class EMATrendStrategy(BaseStrategy):
                 side="buy",
                 strength=strength,
                 price=current_price,
-                meta={"fast_ema": fast_ema, "slow_ema": slow_ema, "atr": atr_val, "reason": "trend_continuation", "stop": stop_price, "stop_price": stop_price},
+                meta={
+                    "fast_ema": fast_ema,
+                    "slow_ema": slow_ema,
+                    "atr": atr_val,
+                    "reason": "trend_continuation",
+                    "stop": stop_price,
+                    "stop_price": stop_price,
+                },
             )
 
         if fast_ema < slow_ema and self.in_position:
@@ -106,7 +125,12 @@ class EMATrendStrategy(BaseStrategy):
                 side="sell",
                 strength=strength,
                 price=current_price,
-                meta={"fast_ema": fast_ema, "slow_ema": slow_ema, "atr": atr_val, "reason": "trend_continuation"},
+                meta={
+                    "fast_ema": fast_ema,
+                    "slow_ema": slow_ema,
+                    "atr": atr_val,
+                    "reason": "trend_continuation",
+                },
             )
 
         return None

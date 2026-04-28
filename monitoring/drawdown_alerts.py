@@ -5,7 +5,6 @@ giving the trader time to intervene before automatic halt.
 """
 
 from datetime import datetime, timedelta
-from typing import Optional
 
 from loguru import logger
 
@@ -22,7 +21,7 @@ class DrawdownAlertManager:
 
     def __init__(
         self,
-        alerter: Optional[TelegramAlerter] = None,
+        alerter: TelegramAlerter | None = None,
         enabled: bool = True,
         warning_pct: float = 0.10,
         cooldown_hours: float = 4.0,
@@ -31,7 +30,7 @@ class DrawdownAlertManager:
         self.enabled = enabled and (alerter is not None and alerter.enabled)
         self.warning_pct = warning_pct
         self.cooldown = timedelta(hours=cooldown_hours)
-        self._last_alert: Optional[datetime] = None
+        self._last_alert: datetime | None = None
         self._peak_equity: float = 0.0
 
     def check(self, equity: float) -> bool:

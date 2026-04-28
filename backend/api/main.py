@@ -3,23 +3,21 @@
 import asyncio
 import os
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
-from typing import Dict, List, Optional
+from datetime import UTC, datetime
 
-from fastapi import FastAPI, Depends
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from loguru import logger
 from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel
-from loguru import logger
 
 from backend.api.aggregator import StateAggregator
-from backend.api.socket_manager import SocketManager
-from backend.api.market_data import MarketDataProvider
-from backend.api.trades_service import TradesService
+from backend.api.auth import verify_admin_key, verify_read_key
 from backend.api.graduation_service import GraduationService
-from backend.api.auth import verify_read_key, verify_admin_key
+from backend.api.market_data import MarketDataProvider
+from backend.api.socket_manager import SocketManager
+from backend.api.trades_service import TradesService
 from knowledge_engine.rag import WikiRAG
-
 
 market_provider = MarketDataProvider()
 trades_service = TradesService()
@@ -33,7 +31,7 @@ class AllocationItem(BaseModel):
 
 
 class RebalanceRequest(BaseModel):
-    allocations: List[AllocationItem]
+    allocations: list[AllocationItem]
 
 
 class WikiSearchRequest(BaseModel):
@@ -46,7 +44,7 @@ aggregator = StateAggregator(poll_interval=5.0)
 socket_manager = SocketManager(aggregator, broadcast_interval=5.0)
 
 # Rebalance targets stored in memory
-rebalance_targets: Dict[str, float] = {}
+rebalance_targets: dict[str, float] = {}
 
 
 @asynccontextmanager
@@ -120,10 +118,10 @@ async def get_full_state():
 
 @app.get("/api/v1/trades", dependencies=[Depends(verify_read_key)])
 async def get_trades(
-    sub_strategy: Optional[str] = None,
-    symbol: Optional[str] = None,
-    start_date: Optional[str] = None,
-    end_date: Optional[str] = None,
+    sub_strategy: str | None = None,
+    symbol: str | None = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
     limit: int = 50,
 ):
     """Fetch closed trade history with sub-strategy breakdown.
@@ -147,10 +145,10 @@ async def get_trades(
 @app.get("/api/v1/trades/export", dependencies=[Depends(verify_read_key)])
 async def export_trades(
     format: str = "csv",
-    sub_strategy: Optional[str] = None,
-    symbol: Optional[str] = None,
-    start_date: Optional[str] = None,
-    end_date: Optional[str] = None,
+    sub_strategy: str | None = None,
+    symbol: str | None = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
 ):
     """Export trades to CSV or JSON."""
     try:
@@ -167,6 +165,7 @@ async def export_trades(
             # CSV format
             import csv
             import io
+
             output = io.StringIO()
             if trades:
                 writer = csv.DictWriter(output, fieldnames=trades[0].keys())
@@ -203,14 +202,23 @@ async def get_rebalance_targets():
 
 
 @app.get("/api/v1/market/ohlcv", dependencies=[Depends(verify_read_key)])
-async def get_market_ohlcv(symbol: str = "BTC/USDT", timeframe: str = "1d", limit: int = 100):
+async def get_market_ohlcv(
+    symbol: str = "BTC/USDT", timeframe: str = "1d", limit: int = 100
+):
     """Fetch OHLCV candles for a symbol."""
     try:
-        data = await market_provider.get_ohlcv(symbol=symbol, timeframe=timeframe, limit=limit)
+        data = await market_provider.get_ohlcv(
+            symbol=symbol, timeframe=timeframe, limit=limit
+        )
         return {"symbol": symbol, "timeframe": timeframe, "candles": data}
     except Exception as e:
         logger.error(f"OHLCV fetch failed: {e}")
-        return {"symbol": symbol, "timeframe": timeframe, "candles": [], "error": str(e)}
+        return {
+            "symbol": symbol,
+            "timeframe": timeframe,
+            "candles": [],
+            "error": str(e),
+        }
 
 
 @app.get("/api/v1/market/tickers", dependencies=[Depends(verify_read_key)])
@@ -219,10 +227,14 @@ async def get_market_tickers():
     try:
         symbols = ["BTC/USDT", "ETH/USDT", "SOL/USDT"]
         data = await market_provider.get_tickers(symbols)
-        return {"tickers": data, "timestamp": datetime.now(timezone.utc).isoformat()}
+        return {"tickers": data, "timestamp": datetime.now(UTC).isoformat()}
     except Exception as e:
         logger.error(f"Ticker fetch failed: {e}")
-        return {"tickers": {}, "timestamp": datetime.now(timezone.utc).isoformat(), "error": str(e)}
+        return {
+            "tickers": {},
+            "timestamp": datetime.now(UTC).isoformat(),
+            "error": str(e),
+        }
 
 
 @app.get("/api/v1/graduation", dependencies=[Depends(verify_read_key)])
@@ -279,4 +291,5 @@ async def wiki_search(req: WikiSearchRequest):
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run("backend.api.main:app", host="0.0.0.0", port=8090, reload=True)

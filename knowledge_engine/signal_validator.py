@@ -11,24 +11,24 @@ Concepts applied:
     - tam_ly_bam_viu_hy_vong (don't hope, follow rules)
 """
 
-from typing import Optional
 from dataclasses import dataclass
 
 from loguru import logger
 
-from strategies.base import Signal
 from knowledge_engine.rag import WikiRAG
+from strategies.base import Signal
 
 
 @dataclass
 class WikiValidationResult:
     """Result of validating a signal against wiki knowledge."""
+
     original_strength: float
     adjusted_strength: float
-    alignment_score: float   # 0.0 - 1.0
-    block_reason: Optional[str] = None
+    alignment_score: float  # 0.0 - 1.0
+    block_reason: str | None = None
     context_summary: str = ""
-    top_concepts: str = ""   # Comma-separated concept titles
+    top_concepts: str = ""  # Comma-separated concept titles
     regime: str = "neutral"
     side: str = ""
     strategy: str = ""
@@ -46,17 +46,17 @@ class WikiSignalValidator:
             signal.strength = result.adjusted_strength
     """
 
-    def __init__(self, rag: Optional[WikiRAG] = None, min_alignment: float = 0.3):
+    def __init__(self, rag: WikiRAG | None = None, min_alignment: float = 0.3):
         self.rag = rag or WikiRAG()
         self.base_min_alignment = min_alignment
         self.min_alignment = min_alignment
         self._build_index_if_needed()
-        self._recent_feedback: List[dict] = []
+        self._recent_feedback: list[dict] = []
         self._feedback_window = 50
 
     def update_min_alignment_from_feedback(self, stats: dict):
         """Dynamically adjust min_alignment based on feedback accuracy.
-        
+
         If accuracy is low (< 0.55), lower threshold to allow more signals.
         If accuracy is high (> 0.75), raise threshold to be more selective.
         """
@@ -69,7 +69,9 @@ class WikiSignalValidator:
         elif acc > 0.75:
             self.min_alignment = min(0.50, self.min_alignment + 0.02)
         if old != self.min_alignment:
-            logger.info(f"Wiki min_alignment adjusted: {old:.2f} → {self.min_alignment:.2f} (accuracy={acc:.2%})")
+            logger.info(
+                f"Wiki min_alignment adjusted: {old:.2f} → {self.min_alignment:.2f} (accuracy={acc:.2%})"
+            )
 
     def _build_index_if_needed(self):
         if not self.rag._is_built:
@@ -84,14 +86,18 @@ class WikiSignalValidator:
             3. Adjust signal strength or block if misaligned
         """
         query = self._build_query(signal, regime)
-        
+
         # Get both context string and raw search results for concept tracking
         search_results = self.rag.search(query)
         context = self.rag.get_context(query, max_chars=2000)
-        
+
         # Extract top concept titles
-        top_concepts = ", ".join([r["document"]["title"] for r in search_results[:3]]) if search_results else ""
-        
+        top_concepts = (
+            ", ".join([r["document"]["title"] for r in search_results[:3]])
+            if search_results
+            else ""
+        )
+
         meta = signal.meta or {}
         strategy = meta.get("ensemble_source", meta.get("strategy", "unknown"))
 
@@ -111,9 +117,10 @@ class WikiSignalValidator:
         alignment = self._compute_alignment(signal, regime, context)
         block_reason = None
         adjusted = signal.strength * alignment
-        wiki_action = "accepted"
 
-        logger.debug(f"Wiki alignment result: {alignment:.2f} | min={self.min_alignment} | signal_strength={signal.strength}")
+        logger.debug(
+            f"Wiki alignment result: {alignment:.2f} | min={self.min_alignment} | signal_strength={signal.strength}"
+        )
 
         # Hard blocks
         if alignment < self.min_alignment:
@@ -122,12 +129,10 @@ class WikiSignalValidator:
                 f"Regime={regime}, side={signal.side}. Context suggests caution."
             )
             adjusted = 0.0
-            wiki_action = "blocked"
             logger.warning(f"BLOCKED by wiki: {block_reason}")
 
         # Downgrade weak alignments
         elif alignment < 0.5:
-            wiki_action = "downgraded"
             logger.info(
                 f"Signal downgraded: strength {signal.strength:.2f} → {adjusted:.2f} "
                 f"(alignment={alignment:.2f})"
@@ -175,9 +180,8 @@ class WikiSignalValidator:
         """
         context_lower = context.lower()
         score = 0.35  # lower baseline — signals must prove alignment
-        debug_parts = [f"base=0.35"]
+        debug_parts = ["base=0.35"]
 
-        side = signal.side
         meta = signal.meta or {}
         strategy = meta.get("ensemble_source", meta.get("strategy", ""))
 
@@ -197,7 +201,11 @@ class WikiSignalValidator:
                 debug_parts.append("-0.25(sideway)")
 
         elif regime == "ranging":
-            if "mean reversion" in context_lower or "grid" in context_lower or "sideway" in context_lower:
+            if (
+                "mean reversion" in context_lower
+                or "grid" in context_lower
+                or "sideway" in context_lower
+            ):
                 score += 0.20
             if strategy == "grid":
                 score += 0.15
@@ -210,10 +218,16 @@ class WikiSignalValidator:
             if "neutral" in context_lower or "uncertain" in context_lower:
                 score += 0.10
             if "strong trend" in context_lower or "clear direction" in context_lower:
-                score -= 0.20  # penalty: trading in uncertain regime when wiki says clear
+                score -= (
+                    0.20  # penalty: trading in uncertain regime when wiki says clear
+                )
 
         # --- Stop-loss alignment (critical) ---
-        if "stop loss" in context_lower or "cat lo" in context_lower or "cut loss" in context_lower:
+        if (
+            "stop loss" in context_lower
+            or "cat lo" in context_lower
+            or "cut loss" in context_lower
+        ):
             if meta.get("stop") or meta.get("stop_price"):
                 score += 0.15  # has stop loss → good
             else:
@@ -227,8 +241,18 @@ class WikiSignalValidator:
 
         # --- Context contains explicit warnings ---
         warning_phrases = [
-            "avoid", "don't trade", "not recommended", "khong nen", "tran", "risky",
-            "dangerous", "high risk", "overbought", "oversold", "bubbl", "crash",
+            "avoid",
+            "don't trade",
+            "not recommended",
+            "khong nen",
+            "tran",
+            "risky",
+            "dangerous",
+            "high risk",
+            "overbought",
+            "oversold",
+            "bubbl",
+            "crash",
         ]
         for phrase in warning_phrases:
             if phrase in context_lower:
@@ -236,11 +260,23 @@ class WikiSignalValidator:
                 break  # only apply once
 
         # --- Emotional / discipline keywords ---
-        if "discipline" in context_lower or "ky luat" in context_lower or "patience" in context_lower:
+        if (
+            "discipline" in context_lower
+            or "ky luat" in context_lower
+            or "patience" in context_lower
+        ):
             score += 0.05
-        if "hope" in context_lower or "hy vong" in context_lower or "bam viu" in context_lower:
+        if (
+            "hope" in context_lower
+            or "hy vong" in context_lower
+            or "bam viu" in context_lower
+        ):
             score -= 0.10
-        if "fomo" in context_lower or "greed" in context_lower or "fear" in context_lower:
+        if (
+            "fomo" in context_lower
+            or "greed" in context_lower
+            or "fear" in context_lower
+        ):
             score -= 0.10
 
         # --- Risk management ---
@@ -252,9 +288,12 @@ class WikiSignalValidator:
 
         # Clamp to [0, 1]
         score = max(0.0, min(1.0, score))
-        
-        logger.debug(f"Wiki alignment for {signal.symbol} {signal.side}: score={score:.2f} | regime={regime} | strategy={strategy} | strength={signal.strength}")
-        
+
+        logger.debug(
+            f"Wiki alignment for {signal.symbol} {signal.side}: "
+            f"score={score:.2f} | regime={regime} | strategy={strategy} | strength={signal.strength}"
+        )
+
         return score
 
 
@@ -274,7 +313,9 @@ class WikiAwareEnsembleMixin:
         super().__init__(*args, **kwargs)
         self.wiki_validator = WikiSignalValidator(min_alignment=wiki_min_alignment)
 
-    def validate_with_wiki(self, signal: Signal, regime: str = "neutral") -> Optional[Signal]:
+    def validate_with_wiki(
+        self, signal: Signal, regime: str = "neutral"
+    ) -> Signal | None:
         """Validate signal and return adjusted signal or None if blocked."""
         result = self.wiki_validator.validate(signal, regime=regime)
         if result.block_reason:

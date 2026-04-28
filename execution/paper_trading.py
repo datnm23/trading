@@ -2,16 +2,14 @@
 
 import threading
 import time
-from dataclasses import dataclass, field
-from typing import Optional, List
+from dataclasses import dataclass
 from datetime import datetime
 
-import pandas as pd
 from loguru import logger
 
 from data.feed import DataFeed
+from risk.manager import RegimeAwareRiskManager, RiskManager
 from strategies.base import BaseStrategy
-from risk.manager import RiskManager, RegimeAwareRiskManager
 
 
 @dataclass
@@ -54,10 +52,12 @@ class PaperTradingEngine:
         self._is_regime_aware = isinstance(risk_manager, RegimeAwareRiskManager)
         self._lock = threading.Lock()
 
-    def run_once(self) -> Optional[dict]:
+    def run_once(self) -> dict | None:
         """Execute one trading cycle. Returns trade info if any."""
         # Fetch latest data
-        df = self.feed.fetch(self.symbol, timeframe=self.timeframe, limit=200, use_cache=True)
+        df = self.feed.fetch(
+            self.symbol, timeframe=self.timeframe, limit=200, use_cache=True
+        )
         if df.empty or len(df) < 50:
             logger.warning("Insufficient data")
             return None
@@ -81,6 +81,7 @@ class PaperTradingEngine:
 
         # Build context
         from strategies.base import StrategyContext
+
         context = StrategyContext(
             symbol=self.symbol,
             bar=latest_bar,
@@ -121,20 +122,26 @@ class PaperTradingEngine:
                     exit_price = bar["open"] if bar["open"] <= stop else stop
                     pnl = (exit_price - pos["entry_price"]) * pos["size"]
                     self.capital += pos["size"] * exit_price * 0.999
-                    self.trades.append(PaperTrade(
-                        timestamp=bar.name,
-                        symbol=pos["symbol"],
-                        side="sell",
-                        price=exit_price,
-                        size=pos["size"],
-                        pnl=pnl,
-                        reason="stop_loss",
-                    ))
+                    self.trades.append(
+                        PaperTrade(
+                            timestamp=bar.name,
+                            symbol=pos["symbol"],
+                            side="sell",
+                            price=exit_price,
+                            size=pos["size"],
+                            pnl=pnl,
+                            reason="stop_loss",
+                        )
+                    )
                     self.positions.remove(pos)
 
     def _execute(self, signal, bar) -> dict:
         price = bar["close"]
-        regime = signal.meta.get("directional_regime", "neutral") if signal.meta else "neutral"
+        regime = (
+            signal.meta.get("directional_regime", "neutral")
+            if signal.meta
+            else "neutral"
+        )
 
         if self._is_regime_aware:
             self.risk.set_regime(regime)
@@ -144,8 +151,12 @@ class PaperTradingEngine:
             atr = signal.meta.get("atr") if signal.meta else None
 
             if self._is_regime_aware and atr and atr > 0:
-                stop_price = self.risk.regime_stop.atr_based_for_regime(price, "buy", atr, regime)[0]
-                size = self.risk.regime_sizer.size_for_regime(self.equity, price, stop_price, atr=atr, regime=regime)
+                stop_price = self.risk.regime_stop.atr_based_for_regime(
+                    price, "buy", atr, regime
+                )[0]
+                size = self.risk.regime_sizer.size_for_regime(
+                    self.equity, price, stop_price, atr=atr, regime=regime
+                )
             elif atr and atr > 0:
                 stop_price = self.risk.stop.atr_based(price, "buy", atr, 2.0)
                 size = self.risk.sizer.size(self.equity, price, stop_price, atr=atr)
@@ -156,14 +167,16 @@ class PaperTradingEngine:
             if size <= 0:
                 return {}
 
-            self.positions.append({
-                "symbol": self.symbol,
-                "side": "long",
-                "entry_price": price,
-                "size": size,
-                "stop": stop_price,
-                "entry_time": signal.timestamp,
-            })
+            self.positions.append(
+                {
+                    "symbol": self.symbol,
+                    "side": "long",
+                    "entry_price": price,
+                    "size": size,
+                    "stop": stop_price,
+                    "entry_time": signal.timestamp,
+                }
+            )
             self.capital -= size * price * 1.001  # include commission
             return {"side": "buy", "price": price, "size": size}
 
@@ -172,17 +185,24 @@ class PaperTradingEngine:
                 if pos["symbol"] == self.symbol and pos["side"] == "long":
                     pnl = (price - pos["entry_price"]) * pos["size"]
                     self.capital += pos["size"] * price * 0.999
-                    self.trades.append(PaperTrade(
-                        timestamp=signal.timestamp,
-                        symbol=self.symbol,
-                        side="sell",
-                        price=price,
-                        size=pos["size"],
-                        pnl=pnl,
-                        reason="signal",
-                    ))
+                    self.trades.append(
+                        PaperTrade(
+                            timestamp=signal.timestamp,
+                            symbol=self.symbol,
+                            side="sell",
+                            price=price,
+                            size=pos["size"],
+                            pnl=pnl,
+                            reason="signal",
+                        )
+                    )
                     self.positions.remove(pos)
-                    return {"side": "sell", "price": price, "size": pos["size"], "pnl": pnl}
+                    return {
+                        "side": "sell",
+                        "price": price,
+                        "size": pos["size"],
+                        "pnl": pnl,
+                    }
             return {}
 
         return {}
@@ -192,11 +212,13 @@ class PaperTradingEngine:
             position_value = sum(p["size"] * bar["close"] for p in self.positions)
             self.equity = self.capital + position_value
 
-    def run(self, max_iterations: Optional[int] = None):
+    def run(self, max_iterations: int | None = None):
         """Run paper trading loop."""
         self.is_running = True
         iteration = 0
-        logger.info(f"Starting paper trading | Symbol: {self.symbol} | Capital: ${self.initial_capital:,.2f}")
+        logger.info(
+            f"Starting paper trading | Symbol: {self.symbol} | Capital: ${self.initial_capital:,.2f}"
+        )
 
         while self.is_running:
             try:
@@ -228,6 +250,10 @@ class PaperTradingEngine:
                 "open_positions": len(self.positions),
                 "total_trades": len(self.trades),
                 "winrate": len(wins) / len(self.trades) if self.trades else 0,
-                "profit_factor": sum(wins) / abs(sum(losses)) if losses and sum(losses) != 0 else float("inf"),
+                "profit_factor": (
+                    sum(wins) / abs(sum(losses))
+                    if losses and sum(losses) != 0
+                    else float("inf")
+                ),
                 "total_pnl": total_pnl,
             }

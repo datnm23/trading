@@ -19,13 +19,13 @@ interface EquityCurveProps {
 export function EquityCurveChart({ data }: EquityCurveProps) {
   const chartData = useMemo(() => {
     // Group by timestamp
-    const grouped: Record<string, any> = {};
+    const grouped: Record<string, Record<string, number | string>> = {};
     data.forEach((d) => {
       if (!grouped[d.timestamp]) grouped[d.timestamp] = { timestamp: d.timestamp };
       grouped[d.timestamp][d.strategy] = d.equity;
     });
-    return Object.values(grouped).sort((a: any, b: any) => 
-      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    return Object.values(grouped).sort((a: Record<string, number | string>, b: Record<string, number | string>) =>
+      new Date(String(a.timestamp)).getTime() - new Date(String(b.timestamp)).getTime()
     );
   }, [data]);
 
@@ -58,7 +58,7 @@ export function EquityCurveChart({ data }: EquityCurveProps) {
               boxShadow: '4px 4px 0 #000',
               fontFamily: 'JetBrains Mono',
             }}
-            formatter={(value: any) => [`$${Number(value).toLocaleString()}`, '']}
+            formatter={(value) => [`$${Number(value).toLocaleString()}`, '']}
           />
           <Legend 
             wrapperStyle={{ fontFamily: 'Inter', fontWeight: 700 }}

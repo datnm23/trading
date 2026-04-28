@@ -1,14 +1,14 @@
 """Partial Exit Manager — Scale out of positions to lock in profits."""
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+
 from loguru import logger
 
 
 @dataclass
 class ScaleOutLevel:
-    profit_pct: float      # Profit % to trigger this level
-    exit_pct: float        # % of position to close at this level
+    profit_pct: float  # Profit % to trigger this level
+    exit_pct: float  # % of position to close at this level
     label: str = ""
 
 
@@ -36,11 +36,13 @@ class PartialExitManager:
         ScaleOutLevel(profit_pct=0.50, exit_pct=0.25, label="Final Exit"),
     ]
 
-    def __init__(self, levels: Optional[List[ScaleOutLevel]] = None):
+    def __init__(self, levels: list[ScaleOutLevel] | None = None):
         self.levels = levels or self.DEFAULT_LEVELS.copy()
-        self.positions: Dict[str, dict] = {}
+        self.positions: dict[str, dict] = {}
 
-    def add_position(self, symbol: str, entry_price: float, size: float, side: str = "long"):
+    def add_position(
+        self, symbol: str, entry_price: float, size: float, side: str = "long"
+    ):
         """Register a new position for partial exit tracking."""
         self.positions[symbol] = {
             "entry_price": entry_price,
@@ -49,14 +51,16 @@ class PartialExitManager:
             "side": side,
             "executed_levels": set(),
         }
-        logger.info(f"Partial exit tracking for {symbol} | Entry: {entry_price:.2f} | Size: {size:.6f}")
+        logger.info(
+            f"Partial exit tracking for {symbol} | Entry: {entry_price:.2f} | Size: {size:.6f}"
+        )
 
     def remove_position(self, symbol: str):
         """Remove position from tracking."""
         if symbol in self.positions:
             del self.positions[symbol]
 
-    def check(self, symbol: str, current_price: float) -> List[dict]:
+    def check(self, symbol: str, current_price: float) -> list[dict]:
         """Check if any scale-out levels should trigger. Returns list of exit orders."""
         pos = self.positions.get(symbol)
         if not pos or pos["remaining_size"] <= 0:
@@ -78,14 +82,16 @@ class PartialExitManager:
                 exit_size = pos["initial_size"] * level.exit_pct
                 exit_size = min(exit_size, pos["remaining_size"])
                 if exit_size > 0:
-                    exits.append({
-                        "symbol": symbol,
-                        "size": exit_size,
-                        "price": current_price,
-                        "profit_pct": profit_pct,
-                        "label": level.label,
-                        "level": level.profit_pct,
-                    })
+                    exits.append(
+                        {
+                            "symbol": symbol,
+                            "size": exit_size,
+                            "price": current_price,
+                            "profit_pct": profit_pct,
+                            "label": level.label,
+                            "level": level.profit_pct,
+                        }
+                    )
                     pos["remaining_size"] -= exit_size
                     pos["executed_levels"].add(level.profit_pct)
                     logger.info(
@@ -100,11 +106,14 @@ class PartialExitManager:
         pos = self.positions.get(symbol)
         return pos["remaining_size"] if pos else 0.0
 
-    def summary(self) -> Dict[str, dict]:
+    def summary(self) -> dict[str, dict]:
         """Return summary of all tracked positions."""
-        return {k: {
-            "entry": v["entry_price"],
-            "initial_size": v["initial_size"],
-            "remaining": v["remaining_size"],
-            "executed": list(v["executed_levels"]),
-        } for k, v in self.positions.items()}
+        return {
+            k: {
+                "entry": v["entry_price"],
+                "initial_size": v["initial_size"],
+                "remaining": v["remaining_size"],
+                "executed": list(v["executed_levels"]),
+            }
+            for k, v in self.positions.items()
+        }

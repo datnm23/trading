@@ -95,7 +95,7 @@ export function MLDriftMonitor() {
                   boxShadow: '4px 4px 0 #000',
                   fontFamily: 'JetBrains Mono',
                 }}
-                formatter={(value: any) => [`${(Number(value) * 100).toFixed(1)}%`, '']}
+                formatter={(value: unknown) => [`${(Number(value) * 100).toFixed(1)}%`, '']}
               />
               <ReferenceLine
                 y={0.6}

@@ -1,7 +1,6 @@
 """Tests for GraduationService."""
 
-import pytest
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 from backend.api.graduation_service import GraduationService
@@ -29,7 +28,7 @@ class TestGraduationService:
     def test_no_trades_returns_no_data(self):
         svc = GraduationService(initial_capital=100000)
         svc.db_url = "postgresql://test:test@localhost/test"
-        with patch.object(svc, '_connect') as mock_conn:
+        with patch.object(svc, "_connect") as mock_conn:
             mock_cur = MagicMock()
             mock_cur.fetchall.return_value = []
             mock_conn.return_value.cursor.return_value = mock_cur
@@ -40,7 +39,7 @@ class TestGraduationService:
     def test_approved_when_all_gates_pass(self):
         svc = GraduationService(initial_capital=100000)
         svc.db_url = "postgresql://test:test@localhost/test"
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         trades = []
         for i in range(30):
             ts = now - timedelta(days=i)
@@ -48,7 +47,7 @@ class TestGraduationService:
             pnl = 500 if i % 6 != 0 else -100
             trades.append(make_fake_trade(ts, pnl))
 
-        with patch.object(svc, '_connect') as mock_conn:
+        with patch.object(svc, "_connect") as mock_conn:
             mock_cur = MagicMock()
             mock_cur.fetchall.return_value = trades
             mock_conn.return_value.cursor.return_value = mock_cur
@@ -65,10 +64,10 @@ class TestGraduationService:
     def test_not_approved_with_negative_return(self):
         svc = GraduationService(initial_capital=100000)
         svc.db_url = "postgresql://test:test@localhost/test"
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         trades = [make_fake_trade(now - timedelta(days=i), -500) for i in range(30)]
 
-        with patch.object(svc, '_connect') as mock_conn:
+        with patch.object(svc, "_connect") as mock_conn:
             mock_cur = MagicMock()
             mock_cur.fetchall.return_value = trades
             mock_conn.return_value.cursor.return_value = mock_cur
@@ -79,13 +78,13 @@ class TestGraduationService:
     def test_not_approved_with_high_drawdown(self):
         svc = GraduationService(initial_capital=100000)
         svc.db_url = "postgresql://test:test@localhost/test"
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         trades = []
         for i in range(30):
             pnl = 100 if i != 15 else -15000  # one massive loss
             trades.append(make_fake_trade(now - timedelta(days=i), pnl))
 
-        with patch.object(svc, '_connect') as mock_conn:
+        with patch.object(svc, "_connect") as mock_conn:
             mock_cur = MagicMock()
             mock_cur.fetchall.return_value = trades
             mock_conn.return_value.cursor.return_value = mock_cur
@@ -98,7 +97,7 @@ class TestGraduationService:
         monkeypatch.setenv("GRADUATION_NOTIFY_FILE", str(notify_file))
         svc = GraduationService(initial_capital=100000)
         svc.db_url = "postgresql://test:test@localhost/test"
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         # Need variance in daily returns for sharpe > 0.5
         trades = []
         for i in range(30):
@@ -108,16 +107,16 @@ class TestGraduationService:
             trades.append(make_fake_trade(ts, daily_pnl))
             trades.append(make_fake_trade(ts, -50))  # one small loss for winrate
 
-        with patch.object(svc, '_connect') as mock_conn:
+        with patch.object(svc, "_connect") as mock_conn:
             mock_cur = MagicMock()
             mock_cur.fetchall.return_value = trades
             mock_conn.return_value.cursor.return_value = mock_cur
-            with patch.object(svc._alerter, 'send') as mock_send:
+            with patch.object(svc._alerter, "send") as mock_send:
                 result1 = svc.compute_metrics()
                 assert result1["approved"] is True, f"Expected approved, got: {result1}"
                 mock_send.assert_called_once()
                 # Second call should not send again
-                result2 = svc.compute_metrics()
+                svc.compute_metrics()
                 mock_send.assert_called_once()
                 # Persistence file should exist
                 assert notify_file.exists()

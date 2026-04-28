@@ -1,8 +1,7 @@
 """Tests for EMA-Trend strategy."""
 
-import pytest
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 from strategies.base import StrategyContext
 from strategies.rule_based.ema_trend import EMATrendStrategy, _atr
@@ -16,13 +15,16 @@ def make_history_from_close(close: list, offset: float = 5) -> pd.DataFrame:
     high = close + offset + np.abs(np.random.randn(n)) * 2
     low = close - offset - np.abs(np.random.randn(n)) * 2
     low = np.maximum(low, close * 0.9)
-    return pd.DataFrame({
-        "open": close - np.random.randn(n) * 1,
-        "high": high,
-        "low": low,
-        "close": close,
-        "volume": np.random.randint(1000, 10000, n),
-    }, index=dates)
+    return pd.DataFrame(
+        {
+            "open": close - np.random.randn(n) * 1,
+            "high": high,
+            "low": low,
+            "close": close,
+            "volume": np.random.randint(1000, 10000, n),
+        },
+        index=dates,
+    )
 
 
 def make_context(history: pd.DataFrame, symbol: str = "BTC/USDT") -> StrategyContext:

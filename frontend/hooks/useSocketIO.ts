@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 
-interface StrategyState {
+export interface StrategyState {
   name: string;
   equity: number;
   return_pct: number;
@@ -11,6 +11,9 @@ interface StrategyState {
   running: boolean;
   mode: string;
   daily_pnl?: number;
+  strategy_type?: string;
+  capital?: number;
+  meta?: Record<string, unknown>;
 }
 
 interface SubStrategyState {
@@ -27,15 +30,60 @@ interface SubStrategyState {
   wiki_min_alignment?: number;
 }
 
+export interface Position {
+  symbol: string;
+  side: string;
+  entry_price: number;
+  size: number;
+  current_price?: number;
+  unrealized_pnl?: number;
+  stop_price?: number;
+  strategy?: string;
+  entry_time?: string;
+  meta?: Record<string, unknown>;
+}
+
+export interface TrailingStop {
+  symbol: string;
+  entry_price: number;
+  peak_price: number;
+  current_stop: number;
+  activated: boolean;
+  profit_pct: number;
+}
+
+export interface SlippageItem {
+  symbol: string;
+  trades: number;
+  avg_slippage_pct: number;
+  max_slippage_pct: number;
+  total_cost: number;
+}
+
+export interface PartialExit {
+  symbol: string;
+  entry: number;
+  initial_size: number;
+  remaining: number;
+  executed_count: number;
+}
+
+interface Alert {
+  level: string;
+  message: string;
+  timestamp: string;
+  source?: string;
+}
+
 interface SystemState {
   timestamp: string;
   strategies: StrategyState[];
-  positions: any[];
-  alerts: any[];
+  positions: Position[];
+  alerts: Alert[];
   equity_history?: { timestamp: string; equity: number; strategy: string }[];
-  trailing_stops?: any[];
-  slippage?: any[];
-  partial_exits?: any[];
+  trailing_stops?: TrailingStop[];
+  slippage?: SlippageItem[];
+  partial_exits?: PartialExit[];
   sub_strategy?: SubStrategyState;
   current_regime?: string;
   directional_regime?: string;

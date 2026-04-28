@@ -20,13 +20,12 @@ import os
 import sys
 import threading
 import time
-import yaml
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from typing import Optional, List, Dict
 
-from dotenv import load_dotenv
 import pandas as pd
+import yaml
+from dotenv import load_dotenv
 from loguru import logger
 
 # Load .env for Telegram tokens, DB URLs, etc.
@@ -37,22 +36,22 @@ if _dotenv_path.exists():
 from data.feed import DataFeed
 from execution.connectors.ccxt_connector import CCXTConnector
 from execution.order_manager import OrderManager, OrderSide, OrderType
-from risk.manager import RiskManager, RegimeAwareRiskManager
-from risk.psychology import PsychologicalEnforcer
-from journal.trade_logger import TradeLogger, TradeRecord, EquitySnapshot
-from monitoring.telegram import TelegramAlerter
-from monitoring.price_alerts import PriceAlertManager
-from monitoring.drawdown_alerts import DrawdownAlertManager
-from monitoring.volume_alerts import VolumeAlertManager
-from monitoring.health_server import HealthServer
-from monitoring.daily_report import DailyReportGenerator
-from strategies.base import BaseStrategy, StrategyContext
-from ml.drift_detection import ModelDriftMonitor
-from execution.trailing_stop import TrailingStopManager, TrailingStopConfig
-from execution.partial_exit import PartialExitManager
 from execution.order_retry import OrderRetryManager, RetryConfig
+from execution.partial_exit import PartialExitManager
 from execution.slippage_tracker import SlippageTracker
+from execution.trailing_stop import TrailingStopConfig, TrailingStopManager
+from journal.trade_logger import EquitySnapshot, TradeLogger, TradeRecord
+from ml.drift_detection import ModelDriftMonitor
+from monitoring.daily_report import DailyReportGenerator
+from monitoring.drawdown_alerts import DrawdownAlertManager
+from monitoring.health_server import HealthServer
+from monitoring.price_alerts import PriceAlertManager
+from monitoring.telegram import TelegramAlerter
+from monitoring.volume_alerts import VolumeAlertManager
 from risk.correlation_guard import CorrelationGuard
+from risk.manager import RegimeAwareRiskManager, RiskManager
+from risk.psychology import PsychologicalEnforcer
+from strategies.base import BaseStrategy, StrategyContext
 
 
 class GraduationGate:
@@ -67,7 +66,7 @@ class GraduationGate:
     }
 
     @classmethod
-    def evaluate(cls, journal: TradeLogger) -> Dict:
+    def evaluate(cls, journal: TradeLogger) -> dict:
         """Evaluate paper trading history from journal."""
         summary = journal.trade_summary()
         if summary.get("count", 0) < 5:
@@ -92,17 +91,27 @@ class GraduationGate:
             equity_series = pd.Series([s.equity for s in reversed(snapshots)])
             returns = equity_series.pct_change().dropna()
             if len(returns) > 1:
-                sharpe = (returns.mean() / returns.std()) * (252 ** 0.5) if returns.std() > 0 else 0
+                sharpe = (
+                    (returns.mean() / returns.std()) * (252**0.5)
+                    if returns.std() > 0
+                    else 0
+                )
                 if sharpe < cls.THRESHOLDS["min_sharpe"]:
-                    reasons.append(f"Sharpe {sharpe:.2f} < {cls.THRESHOLDS['min_sharpe']}")
+                    reasons.append(
+                        f"Sharpe {sharpe:.2f} < {cls.THRESHOLDS['min_sharpe']}"
+                    )
 
         winrate = summary.get("winrate", 0)
         if winrate < cls.THRESHOLDS["min_winrate"]:
-            reasons.append(f"Winrate {winrate:.1%} < {cls.THRESHOLDS['min_winrate']:.1%}")
+            reasons.append(
+                f"Winrate {winrate:.1%} < {cls.THRESHOLDS['min_winrate']:.1%}"
+            )
 
         pf = summary.get("profit_factor", float("inf"))
         if pf < cls.THRESHOLDS["min_profit_factor"]:
-            reasons.append(f"Profit factor {pf:.2f} < {cls.THRESHOLDS['min_profit_factor']}")
+            reasons.append(
+                f"Profit factor {pf:.2f} < {cls.THRESHOLDS['min_profit_factor']}"
+            )
 
         # Check max drawdown from snapshots
         if snapshots:
@@ -115,7 +124,9 @@ class GraduationGate:
                 if dd > max_dd:
                     max_dd = dd
             if max_dd > cls.THRESHOLDS["max_drawdown"]:
-                reasons.append(f"Max drawdown {max_dd:.1%} > {cls.THRESHOLDS['max_drawdown']:.1%}")
+                reasons.append(
+                    f"Max drawdown {max_dd:.1%} > {cls.THRESHOLDS['max_drawdown']:.1%}"
+                )
 
         if reasons:
             return {"passed": False, "reason": "; ".join(reasons)}
@@ -137,7 +148,7 @@ class LiveTradingEngine:
         config: dict,
         strategy: BaseStrategy,
         mode: str = "paper",
-        symbols: Optional[List[str]] = None,
+        symbols: list[str] | None = None,
     ):
         self.config = config
         self.strategy = strategy
@@ -224,12 +235,16 @@ class LiveTradingEngine:
 
         # Drift monitor (for ML strategies)
         drift_cfg = config.get("drift", {})
-        self.drift_monitor = ModelDriftMonitor(
-            confidence_window=drift_cfg.get("confidence_window", 30),
-            psi_threshold=drift_cfg.get("psi_threshold", 0.2),
-            error_threshold=drift_cfg.get("error_threshold", 0.55),
-            drift_cooldown_days=drift_cfg.get("cooldown_days", 7),
-        ) if drift_cfg.get("enabled", False) else None
+        self.drift_monitor = (
+            ModelDriftMonitor(
+                confidence_window=drift_cfg.get("confidence_window", 30),
+                psi_threshold=drift_cfg.get("psi_threshold", 0.2),
+                error_threshold=drift_cfg.get("error_threshold", 0.55),
+                drift_cooldown_days=drift_cfg.get("cooldown_days", 7),
+            )
+            if drift_cfg.get("enabled", False)
+            else None
+        )
 
         # New: Trailing Stop Manager
         trail_cfg = config.get("risk", {})
@@ -279,9 +294,9 @@ class LiveTradingEngine:
         # State
         self.capital = config.get("backtest", {}).get("initial_capital", 100000.0)
         self.equity = self.capital
-        self.positions: Dict[str, dict] = {}
+        self.positions: dict[str, dict] = {}
         self.is_running = False
-        self.last_bar_times: Dict[str, datetime] = {}
+        self.last_bar_times: dict[str, datetime] = {}
         self.check_interval = 60  # seconds
         self._was_psych_paused = False  # Track pause→resume transitions
         self._last_daily_summary_date = None  # Track daily summary to avoid duplicates
@@ -309,7 +324,9 @@ class LiveTradingEngine:
             strategies=[self.strategy.__class__.__name__],
         )
 
-        logger.info(f"Trading loop started | Symbols: {self.symbols} | TF: {self.timeframe}")
+        logger.info(
+            f"Trading loop started | Symbols: {self.symbols} | TF: {self.timeframe}"
+        )
 
         iteration = 0
         while self.is_running:
@@ -327,7 +344,11 @@ class LiveTradingEngine:
 
                 # Daily summary at midnight UTC (once per day)
                 today = datetime.now().date()
-                if datetime.now().hour == 0 and datetime.now().minute < 2 and today != self._last_daily_summary_date:
+                if (
+                    datetime.now().hour == 0
+                    and datetime.now().minute < 2
+                    and today != self._last_daily_summary_date
+                ):
                     self._send_daily_summary()
                     self._last_daily_summary_date = today
 
@@ -342,7 +363,9 @@ class LiveTradingEngine:
 
     def _process_symbol(self, symbol: str):
         """Process one symbol: fetch data, generate signal, execute."""
-        df = self.feed.fetch(symbol, timeframe=self.timeframe, limit=200, use_cache=True)
+        df = self.feed.fetch(
+            symbol, timeframe=self.timeframe, limit=200, use_cache=True
+        )
         if df.empty or len(df) < 50:
             logger.warning(f"Insufficient data for {symbol}")
             return
@@ -370,8 +393,11 @@ class LiveTradingEngine:
             self.trailing_stop.update(symbol, current_price)
             if self.trailing_stop.should_exit(symbol, current_price):
                 stop_level = self.trailing_stop.get_stop(symbol)
-                logger.info(f"🛑 TRAILING STOP HIT for {symbol} at {current_price:.2f} (stop: {stop_level:.2f})")
+                logger.info(
+                    f"🛑 TRAILING STOP HIT for {symbol} at {current_price:.2f} (stop: {stop_level:.2f})"
+                )
                 from strategies.base import Signal
+
                 trailing_signal = Signal(
                     timestamp=latest_time,
                     symbol=symbol,
@@ -399,7 +425,9 @@ class LiveTradingEngine:
         self.drawdown_alerter.check(self.equity)
 
         # Risk check
-        status = self.risk.check(self.capital, self.equity, list(self.positions.values()))
+        status = self.risk.check(
+            self.capital, self.equity, list(self.positions.values())
+        )
         if status["halted"]:
             logger.error(f"DRAWDOWN HALT | Equity: ${self.equity:,.2f}")
             self.alerter.send_drawdown_alert(
@@ -428,15 +456,25 @@ class LiveTradingEngine:
                 reasons = self.strategy.last_status.get("rejection_reasons", [])
                 regime = self.strategy.last_status.get("regime", "?")
                 directional = self.strategy.last_status.get("directional_regime", "?")
-                logger.info(f"No signal for {symbol} | Regime: {regime}/{directional} | Reasons: {reasons}")
+                logger.info(
+                    f"No signal for {symbol} | Regime: {regime}/{directional} | Reasons: {reasons}"
+                )
             else:
-                logger.debug(f"No signal for {symbol} | Strategy: {self.strategy.__class__.__name__}")
+                logger.debug(
+                    f"No signal for {symbol} | Strategy: {self.strategy.__class__.__name__}"
+                )
             # Send Telegram alert with reasons why no trade
             if hasattr(self.strategy, "last_status") and self.strategy.last_status:
                 status = self.strategy.last_status
-                reasons = "\n".join([f"  • {r}" for r in status.get("rejection_reasons", [])])
+                reasons = "\n".join(
+                    [f"  • {r}" for r in status.get("rejection_reasons", [])]
+                )
                 sub_signals = status.get("sub_signals", {})
-                sub_text = ", ".join([f"{k}({v})" for k, v in sub_signals.items()]) if sub_signals else "None"
+                sub_text = (
+                    ", ".join([f"{k}({v})" for k, v in sub_signals.items()])
+                    if sub_signals
+                    else "None"
+                )
                 wiki_align = status.get("wiki_alignment", 0)
                 wiki_concepts = status.get("wiki_top_concepts", "")
                 wiki_action = status.get("wiki_action", "")
@@ -464,7 +502,8 @@ class LiveTradingEngine:
                 # Send bilingual Telegram alert on NEW pause
                 pause_until_str = (
                     psych_state.pause_until.strftime("%Y-%m-%d %H:%M UTC")
-                    if psych_state.pause_until else "unknown"
+                    if psych_state.pause_until
+                    else "unknown"
                 )
                 text = (
                     f"🇺🇸 <b>🧠 BOT PAUSED — Psychology</b>\n\n"
@@ -498,7 +537,10 @@ class LiveTradingEngine:
                 self._was_psych_paused = False
 
         # Daily trade limit alert (not a full pause, but blocks trades)
-        if psych_state.blocked_reason and "Daily trade limit" in psych_state.blocked_reason:
+        if (
+            psych_state.blocked_reason
+            and "Daily trade limit" in psych_state.blocked_reason
+        ):
             logger.warning(f"🧠 PSYCH BLOCK: {psych_state.blocked_reason}")
             text = (
                 f"🇺🇸 <b>⚠️ DAILY LIMIT REACHED</b>\n\n"
@@ -514,16 +556,23 @@ class LiveTradingEngine:
 
         # Validate exposure
         if not status["exposure_ok"]:
-            logger.warning(f"Max exposure reached. Ignoring {signal.side} signal on {symbol}")
+            logger.warning(
+                f"Max exposure reached. Ignoring {signal.side} signal on {symbol}"
+            )
             return
 
         # Check correlation risk before opening new position
         if signal.side == "buy" and symbol not in self.positions:
             held = [s for s in self.positions.keys()]
-            is_safe, corr_reason = self.correlation_guard.check_new_position(symbol, held)
+            is_safe, corr_reason = self.correlation_guard.check_new_position(
+                symbol, held
+            )
             if not is_safe:
                 logger.warning(f"CORRELATION BLOCK: {corr_reason}")
-                self.alerter.send_error(f"Correlation guard blocked {symbol}: {corr_reason}", context="CorrelationGuard")
+                self.alerter.send_error(
+                    f"Correlation guard blocked {symbol}: {corr_reason}",
+                    context="CorrelationGuard",
+                )
                 return
             logger.info(f"Correlation check passed: {corr_reason}")
 
@@ -540,7 +589,11 @@ class LiveTradingEngine:
         """Internal signal execution under lock."""
         price = bar["close"]
         psych_multiplier = psych_state.size_multiplier if psych_state else 1.0
-        regime = signal.meta.get("directional_regime", "neutral") if signal.meta else "neutral"
+        regime = (
+            signal.meta.get("directional_regime", "neutral")
+            if signal.meta
+            else "neutral"
+        )
 
         if isinstance(self.risk, RegimeAwareRiskManager):
             self.risk.set_regime(regime)
@@ -549,8 +602,12 @@ class LiveTradingEngine:
             # Calculate position size
             atr = signal.meta.get("atr") if signal.meta else None
             if isinstance(self.risk, RegimeAwareRiskManager) and atr and atr > 0:
-                stop = self.risk.regime_stop.atr_based_for_regime(price, "buy", atr, regime)[0]
-                size = self.risk.regime_sizer.size_for_regime(self.equity, price, stop, atr=atr, regime=regime)
+                stop = self.risk.regime_stop.atr_based_for_regime(
+                    price, "buy", atr, regime
+                )[0]
+                size = self.risk.regime_sizer.size_for_regime(
+                    self.equity, price, stop, atr=atr, regime=regime
+                )
             elif atr and atr > 0:
                 stop = self.risk.stop.atr_based(price, "buy", atr, 2.0)
                 size = self.risk.sizer.size(self.equity, price, stop, atr=atr)
@@ -591,9 +648,11 @@ class LiveTradingEngine:
                 amount=size,
                 order_type=OrderType.MARKET,
                 strategy_name=self.strategy.__class__.__name__,
-                reason=getattr(signal, 'reason', '') or "signal",
+                reason=getattr(signal, "reason", "") or "signal",
             )
-            result = self.order_retry.execute(self.order_manager.submit, order, last_price=price)
+            result = self.order_retry.execute(
+                self.order_manager.submit, order, last_price=price
+            )
 
             if result.success:
                 self.positions[symbol] = {
@@ -608,7 +667,9 @@ class LiveTradingEngine:
                 self.capital -= size * price * 1.001
                 # Wiki detail alert
                 wiki_align = signal.meta.get("wiki_alignment", 0) if signal.meta else 0
-                wiki_concepts = signal.meta.get("wiki_top_concepts", "") if signal.meta else ""
+                wiki_concepts = (
+                    signal.meta.get("wiki_top_concepts", "") if signal.meta else ""
+                )
                 wiki_action = signal.meta.get("wiki_action", "") if signal.meta else ""
                 wiki_text = (
                     f"<b>📚 Wiki Validation</b>\n"
@@ -624,7 +685,7 @@ class LiveTradingEngine:
                     price=price,
                     size=size,
                     strategy=self.strategy.__class__.__name__,
-                    reason=getattr(signal, 'reason', '') or "",
+                    reason=getattr(signal, "reason", "") or "",
                 )
                 logger.info(f"BUY {symbol} @ {price:.2f} | Size: {size:.6f}")
 
@@ -633,22 +694,32 @@ class LiveTradingEngine:
                 self.partial_exit.add_position(symbol, price, size)
 
                 # Track slippage (expected vs filled)
-                filled_price = getattr(result, 'filled_price', price) or price
+                filled_price = getattr(result, "filled_price", price) or price
                 self.slippage_tracker.record(symbol, "buy", price, filled_price, size)
 
                 # Log wiki feedback for learning loop
                 try:
-                    fb_id = self.journal.log_wiki_feedback({
-                        "symbol": symbol,
-                        "regime": regime,
-                        "side": signal.side,
-                        "strategy": self.strategy.__class__.__name__,
-                        "wiki_action": wiki_action,
-                        "alignment_score": wiki_align,
-                        "min_alignment": signal.meta.get("wiki_min_alignment", 0.3) if signal.meta else 0.3,
-                        "top_concepts": wiki_concepts,
-                        "context_summary": signal.meta.get("wiki_context", "") if signal.meta else "",
-                    })
+                    fb_id = self.journal.log_wiki_feedback(
+                        {
+                            "symbol": symbol,
+                            "regime": regime,
+                            "side": signal.side,
+                            "strategy": self.strategy.__class__.__name__,
+                            "wiki_action": wiki_action,
+                            "alignment_score": wiki_align,
+                            "min_alignment": (
+                                signal.meta.get("wiki_min_alignment", 0.3)
+                                if signal.meta
+                                else 0.3
+                            ),
+                            "top_concepts": wiki_concepts,
+                            "context_summary": (
+                                signal.meta.get("wiki_context", "")
+                                if signal.meta
+                                else ""
+                            ),
+                        }
+                    )
                     # Store feedback ID in position for outcome update on close
                     self.positions[symbol]["wiki_feedback_id"] = fb_id
                 except Exception as e:
@@ -665,14 +736,18 @@ class LiveTradingEngine:
                 amount=pos["size"],
                 order_type=OrderType.MARKET,
                 strategy_name=self.strategy.__class__.__name__,
-                reason=getattr(signal, 'reason', '') or "signal",
+                reason=getattr(signal, "reason", "") or "signal",
             )
-            result = self.order_retry.execute(self.order_manager.submit, order, last_price=price)
+            result = self.order_retry.execute(
+                self.order_manager.submit, order, last_price=price
+            )
 
             if result.success:
                 # Track slippage on exit
-                filled_price = getattr(result, 'filled_price', price) or price
-                self.slippage_tracker.record(symbol, "sell", price, filled_price, pos["size"])
+                filled_price = getattr(result, "filled_price", price) or price
+                self.slippage_tracker.record(
+                    symbol, "sell", price, filled_price, pos["size"]
+                )
 
                 pnl = (price - pos["entry_price"]) * pos["size"]
                 pnl_pct = (price - pos["entry_price"]) / pos["entry_price"]
@@ -687,21 +762,27 @@ class LiveTradingEngine:
                 trade_meta["exit_price"] = price
                 trade_meta["pnl"] = pnl
                 trade_meta["pnl_pct"] = pnl_pct
-                trade_meta["exit_reason"] = getattr(signal, 'meta', {}).get('reason', 'signal') if hasattr(signal, 'meta') and signal.meta else 'signal'
-                self.journal.log_trade(TradeRecord(
-                    symbol=symbol,
-                    strategy=self.strategy.__class__.__name__,
-                    side="long",
-                    entry_price=pos["entry_price"],
-                    exit_price=price,
-                    size=pos["size"],
-                    pnl=pnl,
-                    pnl_pct=pnl_pct,
-                    exit_reason=trade_meta.get("exit_reason", "signal"),
-                    reasoning=getattr(signal, 'reason', '') or "",
-                    stop_price=pos.get("stop"),
-                    raw_metadata=json.dumps(trade_meta),
-                ))
+                trade_meta["exit_reason"] = (
+                    getattr(signal, "meta", {}).get("reason", "signal")
+                    if hasattr(signal, "meta") and signal.meta
+                    else "signal"
+                )
+                self.journal.log_trade(
+                    TradeRecord(
+                        symbol=symbol,
+                        strategy=self.strategy.__class__.__name__,
+                        side="long",
+                        entry_price=pos["entry_price"],
+                        exit_price=price,
+                        size=pos["size"],
+                        pnl=pnl,
+                        pnl_pct=pnl_pct,
+                        exit_reason=trade_meta.get("exit_reason", "signal"),
+                        reasoning=getattr(signal, "reason", "") or "",
+                        stop_price=pos.get("stop"),
+                        raw_metadata=json.dumps(trade_meta),
+                    )
+                )
 
                 # Update psychological state with P&L
                 emotion = signal.meta.get("emotion") if signal.meta else None
@@ -728,15 +809,21 @@ class LiveTradingEngine:
                             pos["wiki_feedback_id"], outcome, pnl, pnl_pct
                         )
                         if updated:
-                            logger.debug(f"Wiki feedback {pos['wiki_feedback_id']} updated: {outcome}")
+                            logger.debug(
+                                f"Wiki feedback {pos['wiki_feedback_id']} updated: {outcome}"
+                            )
                     except Exception as e:
                         logger.warning(f"Failed to update wiki feedback: {e}")
 
                 # Periodically adjust wiki min_alignment based on feedback
                 try:
                     stats = self.journal.get_wiki_feedback_stats(min_samples=10)
-                    if stats["accuracy"] is not None and hasattr(self.strategy, "wiki_validator"):
-                        self.strategy.wiki_validator.update_min_alignment_from_feedback(stats)
+                    if stats["accuracy"] is not None and hasattr(
+                        self.strategy, "wiki_validator"
+                    ):
+                        self.strategy.wiki_validator.update_min_alignment_from_feedback(
+                            stats
+                        )
                 except Exception as e:
                     logger.debug(f"Wiki feedback stats check failed: {e}")
 
@@ -756,7 +843,9 @@ class LiveTradingEngine:
             strategy_name=self.strategy.__class__.__name__,
             reason=f"partial_exit_{exit_info['label']}",
         )
-        result = self.order_retry.execute(self.order_manager.submit, order, last_price=price)
+        result = self.order_retry.execute(
+            self.order_manager.submit, order, last_price=price
+        )
 
         if result.success:
             pnl = (price - pos["entry_price"]) * size
@@ -789,7 +878,9 @@ class LiveTradingEngine:
                 if p["symbol"] == symbol:
                     p["current_price"] = current_price
                     p["unrealized_pnl"] = (current_price - p["entry_price"]) * p["size"]
-                    p["unrealized_pnl_pct"] = (current_price - p["entry_price"]) / p["entry_price"]
+                    p["unrealized_pnl_pct"] = (current_price - p["entry_price"]) / p[
+                        "entry_price"
+                    ]
             position_value = sum(
                 p["size"] * current_price for p in self.positions.values()
             )
@@ -798,27 +889,28 @@ class LiveTradingEngine:
     def _snapshot(self):
         """Record equity snapshot to journal."""
         exposure = sum(
-            p.get("size", 0) * p.get("entry_price", 0)
-            for p in self.positions.values()
+            p.get("size", 0) * p.get("entry_price", 0) for p in self.positions.values()
         )
         peak = self.risk.guard.peak or self.equity
         dd = (peak - self.equity) / peak if peak > 0 else 0
 
-        self.journal.snapshot(EquitySnapshot(
-            equity=self.equity,
-            cash=self.capital,
-            open_positions=len(self.positions),
-            open_exposure=exposure,
-            drawdown_pct=dd,
-            daily_pnl=0,  # calculated separately
-        ))
+        self.journal.snapshot(
+            EquitySnapshot(
+                equity=self.equity,
+                cash=self.capital,
+                open_positions=len(self.positions),
+                open_exposure=exposure,
+                drawdown_pct=dd,
+                daily_pnl=0,  # calculated separately
+            )
+        )
 
     def _send_daily_summary(self):
         """Send daily P&L summary via Telegram using DailyReportGenerator."""
         try:
-            report = self.daily_report.generate_and_notify(alerter=self.alerter)
+            self.daily_report.generate_and_notify(alerter=self.alerter)
             logger.info("Daily report sent")
-        except Exception as e:
+        except Exception:
             # Fallback to simple summary
             today = datetime.now().strftime("%Y-%m-%d")
             trades = self.journal.get_trades(start=f"{today}T00:00:00")
@@ -857,6 +949,7 @@ class LiveTradingEngine:
 
     def get_status(self) -> dict:
         """Return current engine status (for health check / monitoring)."""
+        # ruff: noqa: E402
         with self._lock:
             positions_copy = [
                 {
@@ -868,7 +961,11 @@ class LiveTradingEngine:
                     "unrealized_pnl": p.get("unrealized_pnl"),
                     "stop_price": p.get("stop"),
                     "strategy": self.strategy.__class__.__name__,
-                    "entry_time": p.get("entry_time", "").isoformat() if p.get("entry_time") else None,
+                    "entry_time": (
+                        p.get("entry_time", "").isoformat()
+                        if p.get("entry_time")
+                        else None
+                    ),
                     "meta": p.get("meta", {}),
                 }
                 for p in self.positions.values()
@@ -914,7 +1011,7 @@ class LiveTradingEngine:
 
 
 def load_config(path: str) -> dict:
-    with open(path, "r") as f:
+    with open(path) as f:
         return yaml.safe_load(f)
 
 
@@ -923,9 +1020,20 @@ def main():
     parser.add_argument("--config", default="config/system.yaml")
     parser.add_argument("--mode", choices=["paper", "live"], default="paper")
     parser.add_argument("--symbol", default="BTC/USDT")
-    parser.add_argument("--symbols", nargs="+", default=None, help="List of trading pairs (overrides config)")
-    parser.add_argument("--strategy", default="RegimeEnsemble", choices=["RegimeEnsemble", "EMA-Trend", "Monthly-Breakout"])
-    parser.add_argument("--health-port", type=int, default=None, help="Override health server port")
+    parser.add_argument(
+        "--symbols",
+        nargs="+",
+        default=None,
+        help="List of trading pairs (overrides config)",
+    )
+    parser.add_argument(
+        "--strategy",
+        default="RegimeEnsemble",
+        choices=["RegimeEnsemble", "EMA-Trend", "Monthly-Breakout"],
+    )
+    parser.add_argument(
+        "--health-port", type=int, default=None, help="Override health server port"
+    )
     args = parser.parse_args()
 
     config = load_config(args.config)
@@ -964,9 +1072,13 @@ def main():
         # Fallback for backward compatibility
         if args.strategy == "RegimeEnsemble":
             from strategies.ensemble.regime_ensemble import RegimeEnsembleStrategy
-            strategy = RegimeEnsembleStrategy(params=config["strategies"]["registry"][2]["params"])
+
+            strategy = RegimeEnsembleStrategy(
+                params=config["strategies"]["registry"][2]["params"]
+            )
         else:
             from strategies.rule_based.ema_trend import EMATrendStrategy
+
             strategy = EMATrendStrategy()
 
     engine = LiveTradingEngine(

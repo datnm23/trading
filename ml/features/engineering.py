@@ -1,34 +1,51 @@
 """Feature engineering pipeline for ML models."""
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 # Phase 2 whitelist: long-term macro/trend features only (drops short-term noise)
 LONG_TERM_WHITELIST = [
     "log_returns",
-    "returns_20d", "returns_50d", "returns_100d",
-    "volatility_20d", "volatility_50d", "volatility_100d",
-    "ema_50", "ema_100", "ema_200",
-    "sma_50", "sma_100", "sma_200",
-    "close_to_ema_50", "close_to_ema_100", "close_to_ema_200",
-    "close_to_sma_50", "close_to_sma_100", "close_to_sma_200",
-    "ema_slope_20", "ema_slope_50",
+    "returns_20d",
+    "returns_50d",
+    "returns_100d",
+    "volatility_20d",
+    "volatility_50d",
+    "volatility_100d",
+    "ema_50",
+    "ema_100",
+    "ema_200",
+    "sma_50",
+    "sma_100",
+    "sma_200",
+    "close_to_ema_50",
+    "close_to_ema_100",
+    "close_to_ema_200",
+    "close_to_sma_50",
+    "close_to_sma_100",
+    "close_to_sma_200",
+    "ema_slope_20",
+    "ema_slope_50",
     "rsi_14",
-    "macd", "macd_signal", "macd_hist",
+    "macd",
+    "macd_signal",
+    "macd_hist",
     "atr_ratio",
     "bb_position",
     "obv_ema",
 ]
 
 
-def compute_features(df: pd.DataFrame, advanced: bool = False, symbol: str = "BTC/USDT") -> pd.DataFrame:
+def compute_features(
+    df: pd.DataFrame, advanced: bool = False, symbol: str = "BTC/USDT"
+) -> pd.DataFrame:
     """Compute technical and statistical features from OHLCV data.
-    
+
     Args:
         df: OHLCV DataFrame
         advanced: If True, add on-chain, sentiment, macro features
         symbol: For advanced feature context
-    
+
     Returns DataFrame with original columns + engineered features.
     """
     data = df.copy()
@@ -64,8 +81,12 @@ def compute_features(df: pd.DataFrame, advanced: bool = False, symbol: str = "BT
         data[f"close_to_sma_{period}"] = close / data[f"sma_{period}"] - 1
 
     # --- EMA slopes (trend strength / direction) ---
-    data["ema_slope_20"] = (data["ema_20"] - data["ema_20"].shift(20)) / data["ema_20"].shift(20)
-    data["ema_slope_50"] = (data["ema_50"] - data["ema_50"].shift(20)) / data["ema_50"].shift(20)
+    data["ema_slope_20"] = (data["ema_20"] - data["ema_20"].shift(20)) / data[
+        "ema_20"
+    ].shift(20)
+    data["ema_slope_50"] = (data["ema_50"] - data["ema_50"].shift(20)) / data[
+        "ema_50"
+    ].shift(20)
 
     # --- RSI ---
     delta = close.diff()
@@ -97,7 +118,9 @@ def compute_features(df: pd.DataFrame, advanced: bool = False, symbol: str = "BT
     std_20 = close.rolling(20).std()
     data["bb_upper"] = sma_20 + 2 * std_20
     data["bb_lower"] = sma_20 - 2 * std_20
-    data["bb_position"] = (close - data["bb_lower"]) / (data["bb_upper"] - data["bb_lower"] + 1e-10)
+    data["bb_position"] = (close - data["bb_lower"]) / (
+        data["bb_upper"] - data["bb_lower"] + 1e-10
+    )
 
     # --- Volume features ---
     data["volume_sma_10"] = volume.rolling(10).mean()
@@ -118,8 +141,12 @@ def compute_features(df: pd.DataFrame, advanced: bool = False, symbol: str = "BT
 
     # --- Price action features ---
     data["body_size"] = (close - data["open"]).abs() / (high - low + 1e-10)
-    data["upper_shadow"] = (high - close.where(close > data["open"], data["open"])) / (high - low + 1e-10)
-    data["lower_shadow"] = (close.where(close > data["open"], data["open"]) - low) / (high - low + 1e-10)
+    data["upper_shadow"] = (high - close.where(close > data["open"], data["open"])) / (
+        high - low + 1e-10
+    )
+    data["lower_shadow"] = (close.where(close > data["open"], data["open"]) - low) / (
+        high - low + 1e-10
+    )
 
     # --- Lag features ---
     for lag in [1, 2, 3, 5]:
@@ -135,6 +162,7 @@ def compute_features(df: pd.DataFrame, advanced: bool = False, symbol: str = "BT
     # --- Advanced features ---
     if advanced:
         from ml.features.advanced import compute_advanced_features
+
         data = compute_advanced_features(data, symbol=symbol)
 
     return data
@@ -147,19 +175,25 @@ def prepare_train_data(
     target_col: str = "target_direction",
     target_return_col: str = "target_return_5d",
 ) -> tuple:
-    """Prepare X, y for training from feature-engineered DataFrame.
+    """Prepare x, y for training from feature-engineered DataFrame.
 
     Args:
         whitelist: If provided, only keep these feature columns (ignores missing).
         target_col: Binary target column name (e.g. 'target_direction' or 'target_direction_20d').
         target_return_col: Continuous return column for sample weights (e.g. 'target_return_5d' or 'target_return_20d').
 
-    Returns (X, y, feature_names, sample_weight)
+    Returns (x, y, feature_names, sample_weight)
     """
     exclude = {
-        "open", "high", "low", "close", "volume",
-        "target_return_5d", "target_direction",
-        "target_return_20d", "target_direction_20d",
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume",
+        "target_return_5d",
+        "target_direction",
+        "target_return_20d",
+        "target_direction_20d",
     }
     feature_cols = [c for c in df.columns if c not in exclude]
     if whitelist is not None:
@@ -174,7 +208,8 @@ def prepare_train_data(
     if dropna:
         data = data.dropna()
 
-    X = data[feature_cols].values
+    x = data[feature_cols].values
+    # noqa: N806
     y = data[target_col].values
 
     if has_weight:
@@ -184,4 +219,4 @@ def prepare_train_data(
     else:
         sample_weight = np.ones(len(y))
 
-    return X, y, feature_cols, sample_weight
+    return x, y, feature_cols, sample_weight

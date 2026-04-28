@@ -1,10 +1,12 @@
 """Build a static import/call graph for the trading project (GitNexus-style analysis)."""
+
 import ast
 import json
-from pathlib import Path
 from collections import defaultdict
+from pathlib import Path
 
 ROOT = Path("/home/datnm/projects/trading")
+
 
 class ProjectAnalyzer(ast.NodeVisitor):
     def __init__(self):
@@ -51,9 +53,11 @@ class ProjectAnalyzer(ast.NodeVisitor):
                     # relative import: resolve relative to current module
                     base = mod.split(".")
                     if node.module:
-                        imp = ".".join(base[:len(base)-node.level]) + "." + node.module
+                        imp = (
+                            ".".join(base[: len(base) - node.level]) + "." + node.module
+                        )
                     else:
-                        imp = ".".join(base[:len(base)-node.level])
+                        imp = ".".join(base[: len(base) - node.level])
                     imp = imp.strip(".")
                 else:
                     imp = node.module.split(".")[0] if node.module else ""
@@ -68,12 +72,15 @@ class ProjectAnalyzer(ast.NodeVisitor):
             elif isinstance(node, ast.If):
                 # detect if __name__ == "__main__"
                 try:
-                    if (isinstance(node.test, ast.Compare) and
-                        isinstance(node.test.left, ast.Name) and
-                        node.test.left.id == "__name__" and
-                        len(node.test.ops) == 1 and isinstance(node.test.ops[0], ast.Eq) and
-                        isinstance(node.test.comparators[0], ast.Constant) and
-                        node.test.comparators[0].value == "__main__"):
+                    if (
+                        isinstance(node.test, ast.Compare)
+                        and isinstance(node.test.left, ast.Name)
+                        and node.test.left.id == "__name__"
+                        and len(node.test.ops) == 1
+                        and isinstance(node.test.ops[0], ast.Eq)
+                        and isinstance(node.test.comparators[0], ast.Constant)
+                        and node.test.comparators[0].value == "__main__"
+                    ):
                         info["has_main"] = True
                 except Exception:
                     pass
@@ -91,26 +98,44 @@ class ProjectAnalyzer(ast.NodeVisitor):
         entry_points = []
         for mod, info in self.modules.items():
             if info["has_main"]:
-                entry_points.append({"module": mod, "path": info["path"], "kind": "__main__"})
+                entry_points.append(
+                    {"module": mod, "path": info["path"], "kind": "__main__"}
+                )
         # Also check shell scripts
         for sh in ROOT.glob("scripts/*.sh"):
-            entry_points.append({"module": None, "path": str(sh.relative_to(ROOT)), "kind": "shell"})
+            entry_points.append(
+                {"module": None, "path": str(sh.relative_to(ROOT)), "kind": "shell"}
+            )
         for py in ROOT.glob("scripts/*.py"):
-            entry_points.append({"module": None, "path": str(py.relative_to(ROOT)), "kind": "script"})
+            entry_points.append(
+                {"module": None, "path": str(py.relative_to(ROOT)), "kind": "script"}
+            )
 
         return {
             "total_modules": len(self.modules),
             "total_classes": len(self.class_to_module),
             "total_functions": len(self.function_to_module),
             "entry_points": entry_points,
-            "top_dependencies": {k: list(v) for k, v in sorted(self.dependencies.items(), key=lambda x: -len(x[1]))[:15]},
-            "most_imported": {k: list(v) for k, v in sorted(self.reverse_deps.items(), key=lambda x: -len(x[1]))[:15]},
+            "top_dependencies": {
+                k: list(v)
+                for k, v in sorted(self.dependencies.items(), key=lambda x: -len(x[1]))[
+                    :15
+                ]
+            },
+            "most_imported": {
+                k: list(v)
+                for k, v in sorted(self.reverse_deps.items(), key=lambda x: -len(x[1]))[
+                    :15
+                ]
+            },
             "layers": self._layer_analysis(),
         }
 
     def _layer_analysis(self):
         """Group modules by top-level directory as architectural layers."""
-        layers = defaultdict(lambda: {"modules": [], "outgoing": set(), "incoming": set()})
+        layers = defaultdict(
+            lambda: {"modules": [], "outgoing": set(), "incoming": set()}
+        )
         for mod, info in self.modules.items():
             top = mod.split(".")[0] if mod else "root"
             layers[top]["modules"].append(mod)
@@ -122,7 +147,15 @@ class ProjectAnalyzer(ast.NodeVisitor):
             top = mod.split(".")[0] if mod else "root"
             for r in revs:
                 layers[top]["incoming"].add(r.split(".")[0])
-        return {k: {"modules": len(v["modules"]), "outgoing": list(v["outgoing"]), "incoming": list(v["incoming"])} for k, v in layers.items()}
+        return {
+            k: {
+                "modules": len(v["modules"]),
+                "outgoing": list(v["outgoing"]),
+                "incoming": list(v["incoming"]),
+            }
+            for k, v in layers.items()
+        }
+
 
 if __name__ == "__main__":
     a = ProjectAnalyzer()
