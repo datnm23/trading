@@ -92,6 +92,20 @@ export const translations = {
     search: 'Tìm kiếm',
     searchPlaceholder: 'Tìm kiếm khái niệm giao dịch...',
     
+    // Graduation
+    graduation: 'Tốt nghiệp Paper',
+    daysTraded: 'Ngày giao dịch',
+    daysRequired: 'Yêu cầu',
+    returnPct: 'Lợi nhuận',
+    sharpeRatio: 'Sharpe',
+    tradeCount: 'Số giao dịch',
+    gates: 'Điều kiện',
+    approved: 'Đã đạt',
+    notApproved: 'Chưa đạt',
+    readyForLive: 'Sẵn sàng Live Trading',
+    paperTradingInProgress: 'Paper Trading đang chạy',
+    noTradesYet: 'Chưa có giao dịch',
+
     // General
     loading: 'Đang tải...',
     error: 'Lỗi',
@@ -190,6 +204,20 @@ export const translations = {
     tradingWiki: 'Trading Wiki',
     search: 'Search',
     searchPlaceholder: 'Search trading concepts...',
+
+    // Graduation
+    graduation: 'Paper Graduation',
+    daysTraded: 'Days Traded',
+    daysRequired: 'Required',
+    returnPct: 'Return',
+    sharpeRatio: 'Sharpe',
+    tradeCount: 'Trades',
+    gates: 'Gates',
+    approved: 'Pass',
+    notApproved: 'Fail',
+    readyForLive: 'Ready for Live Trading',
+    paperTradingInProgress: 'Paper Trading in Progress',
+    noTradesYet: 'No trades yet',
     
     // General
     loading: 'Loading...',

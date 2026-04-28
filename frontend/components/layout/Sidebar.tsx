@@ -14,6 +14,7 @@ import {
   BookOpen,
   ArrowRightLeft,
   CandlestickChart,
+  Award,
 } from 'lucide-react';
 
 const navItems: { href: string; key: TranslationKey; icon: typeof LayoutDashboard }[] = [
@@ -24,6 +25,7 @@ const navItems: { href: string; key: TranslationKey; icon: typeof LayoutDashboar
   { href: '/risk', key: 'risk', icon: Shield },
   { href: '/reports', key: 'reports', icon: FileText },
   { href: '/arbitrage', key: 'arbitrage', icon: ArrowRightLeft },
+  { href: '/graduation', key: 'graduation', icon: Award },
   { href: '/wiki', key: 'wiki', icon: BookOpen },
 ];
 

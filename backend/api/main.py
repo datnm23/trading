@@ -15,12 +15,14 @@ from backend.api.aggregator import StateAggregator
 from backend.api.socket_manager import SocketManager
 from backend.api.market_data import MarketDataProvider
 from backend.api.trades_service import TradesService
+from backend.api.graduation_service import GraduationService
 from knowledge_engine.rag import WikiRAG
 
 
 market_provider = MarketDataProvider()
 trades_service = TradesService()
 wiki_rag = WikiRAG()
+graduation_service = GraduationService()
 
 
 class AllocationItem(BaseModel):
@@ -216,6 +218,29 @@ async def get_market_tickers():
     except Exception as e:
         logger.error(f"Ticker fetch failed: {e}")
         return {"tickers": {}, "timestamp": datetime.utcnow().isoformat(), "error": str(e)}
+
+
+@app.get("/api/v1/graduation")
+async def get_graduation_status():
+    """Return paper trading graduation progress."""
+    try:
+        metrics = graduation_service.compute_metrics()
+        return metrics
+    except Exception as e:
+        logger.error(f"Graduation status failed: {e}")
+        return {
+            "days_traded": 0,
+            "days_required": 30,
+            "return_pct": 0.0,
+            "max_drawdown_pct": 0.0,
+            "sharpe": 0.0,
+            "winrate": 0.0,
+            "trade_count": 0,
+            "total_pnl": 0.0,
+            "gates": {},
+            "approved": False,
+            "message": f"Error: {e}",
+        }
 
 
 @app.post("/api/v1/wiki/search")

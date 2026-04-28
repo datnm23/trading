@@ -9,6 +9,7 @@ from loguru import logger
 
 from backend.api.models import StrategyState, Position, TrailingStopState, SlippageSummary
 from backend.api.trades_service import TradesService
+from backend.api.graduation_service import GraduationService
 
 
 import os
@@ -33,7 +34,9 @@ class StateAggregator:
         self._latest_raw: Dict[str, dict] = {}
         self._running = False
         self._trades_service = TradesService()
+        self._graduation_service = GraduationService()
         self._sub_stats: Dict[str, Dict] = {}
+        self._graduation_metrics: Dict = {}
 
     async def poll_strategy(self, name: str, host: str, port: int) -> Optional[StrategyState]:
         """Poll a single strategy health endpoint."""
@@ -173,6 +176,15 @@ class StateAggregator:
         except Exception as e:
             logger.warning(f"Failed to fetch sub-strategy stats: {e}")
 
+        # Fetch graduation metrics
+        try:
+            loop = asyncio.get_running_loop()
+            self._graduation_metrics = await loop.run_in_executor(
+                None, self._graduation_service.compute_metrics
+            )
+        except Exception as e:
+            logger.warning(f"Failed to fetch graduation metrics: {e}")
+
         # Synthesize sub-strategies from ensemble
         ensemble_raw = self._latest_raw.get("RegimeEnsemble", {})
         if ensemble_raw:
@@ -260,6 +272,7 @@ class StateAggregator:
             "partial_exits": [p.model_dump() for p in self.partial_exits],
             "equity_history": self.equity_history,
             "alerts": [],
+            "graduation": self._graduation_metrics,
             "sub_strategy": self._latest_raw.get("RegimeEnsemble", {}).get("sub_strategy", {}),
             "current_regime": self._latest_raw.get("RegimeEnsemble", {}).get("current_regime", "unknown"),
             "directional_regime": self._latest_raw.get("RegimeEnsemble", {}).get("directional_regime", "unknown"),

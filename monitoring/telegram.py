@@ -55,6 +55,10 @@ class TelegramAlerter:
             logger.error(f"Telegram send failed: {e}")
             return False
 
+    def send(self, text: str, parse_mode: str = "HTML") -> bool:
+        """Send arbitrary text alert."""
+        return self._send(text, parse_mode)
+
     def send_signal(
         self,
         symbol: str,
