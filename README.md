@@ -1,11 +1,11 @@
-# Hybrid Trading System
+# VN Stock Advisory Platform
 
-Hệ thống giao dịch hybrid kết hợp **rule-based strategies**, **machine learning**, và **knowledge anchor** từ Turtle Trading Wiki.
+Platform tư vấn chứng khoán Việt Nam cung cấp **screening**, **định giá**, và **khuyến nghị BUY/SELL/HOLD** dựa trên phân tích cơ bản và kỹ thuật. Advisory-only, không tự đặt lệnh.
 
 ## Quick Start
 
 ```bash
-# 1. Install dependencies
+# 1. Setup environment
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
@@ -13,62 +13,58 @@ pip install -e ".[dev]"
 # 2. Run tests
 pytest tests/ -v
 
-# 3. Run backtest với rule-based strategy
-python -m backtest.run --strategy EMA-Trend --config config/local.yaml
-
-# 4. Start backend API
+# 3. Start backend API (FastAPI)
 uvicorn backend.api.main:app --host 0.0.0.0 --port 8090 --reload
 
-# 5. Start knowledge chat UI
-streamlit run knowledge_engine/ui.py
+# 4. Start frontend (Next.js, new terminal)
+cd frontend
+npm install
+npm run dev
+
+# 5. Access frontend at http://localhost:3000
 ```
 
 ## Documentation
 
 | Document | Description |
 |----------|-------------|
-| [`docs/project-overview-pdr.md`](docs/project-overview-pdr.md) | Product requirements, success criteria, risks |
-| [`docs/architecture.md`](docs/architecture.md) | System architecture, component details, tech stack |
-| [`docs/quickstart.md`](docs/quickstart.md) | Setup, tests, backtest, paper trading, API usage |
-| [`docs/roadmap.md`](docs/roadmap.md) | Development phases, completion status |
+| [`docs/system-architecture.md`](docs/system-architecture.md) | Architecture overview, module details, data flow |
+| [`docs/codebase-summary.md`](docs/codebase-summary.md) | Directory structure, module responsibilities, statistics |
+| [`docs/project-changelog.md`](docs/project-changelog.md) | MVP-1 pivot summary: what's new, removed, changed |
+| [`docs/vn-stock-advisory-design.md`](docs/vn-stock-advisory-design.md) | Design decisions, roadmap, risks, next steps |
+| [`docs/code-standards.md`](docs/code-standards.md) | Coding conventions, naming, testing standards |
 | [`docs/deployment-guide.md`](docs/deployment-guide.md) | Docker, systemd, database migration |
-| [`docs/code-standards.md`](docs/code-standards.md) | Coding conventions, testing, thread safety |
-| [`docs/ml_xgboost_modification_plan.md`](docs/ml_xgboost_modification_plan.md) | ML experiment results (historical) |
 
-## Thư mục
+## Cấu trúc Thư mục
 
 ```
 .
-├── backend/api/         # FastAPI gateway + Socket.IO
-├── backtest/            # Event-driven backtest engine
-├── config/              # YAML configs (system.yaml + local.yaml)
-├── crawl-wiki/          # Wiki crawler (683 concepts)
-├── data/                # Market data pipeline
-├── docs/                # Documentation
-├── execution/           # Trading engines + connectors
+├── backend/api/         # FastAPI gateway + REST endpoints
+├── screener/            # Market screening engine (FA + TA filters)
+├── valuation/           # Stock valuation & recommendation engine
+├── data/vn/             # Vietnamese stock data layer (vnstock adapter)
+├── journal/             # Recommendation tracking (SQLite/PostgreSQL)
+├── backtest/            # Screener backtesting framework
+├── config/              # YAML configs (screener, valuation, system)
 ├── frontend/            # Next.js 16 dashboard
-├── journal/             # Trade journal (SQLite/PostgreSQL)
-├── knowledge_engine/    # RAG + LLM + Signal validator
-├── ml/                  # ML pipelines + feature engineering
-├── monitoring/          # Alerts + health server
-├── risk/                # Risk management
-├── scripts/             # Utility scripts
-├── strategies/          # Rule-based + ML strategies
-└── tests/               # Unit + integration tests (71 tests)
+├── tests/               # Unit + integration tests (273 tests)
+├── docs/                # Documentation
+└── scripts/             # Utility scripts
 ```
 
-## Key Features
+## Tính năng Chính
 
-- **RegimeEnsemble Strategy**: Kết hợp EMA-Trend + Monthly Breakout + Grid Mean Reversion, chọn theo market regime, validate qua 683 wiki concepts
-- **Psychology Enforcement**: Tự động pause sau 3 consecutive losses, daily trade limit (10), revenge emotion detection, win-streak cooldown
-- **Regime-Aware Risk**: Position sizing và stop-loss điều chỉnh theo bull/bear/sideways
-- **Graduation Gate**: Chỉ cho phép live trading sau khi paper đạt criteria (30 days, DD < 10%, Sharpe > 0.5)
-- **Full Safety Stack**: Trailing stops, partial exits, correlation guard, order retry, slippage tracking
-- **Real-time Monitoring**: Prometheus + Grafana, Telegram alerts (bilingual EN/VN), health HTTP server, daily reports
-- **Backend API**: FastAPI + Socket.IO cho Next.js frontend
-- **PostgreSQL Journal**: Trade journal + wiki feedback trên PostgreSQL
-- **Containerized**: Docker Compose stack (PostgreSQL, Bot, API, Prometheus, Grafana, Node Exporter)
-- **CI/CD**: GitHub Actions build Docker image → GitHub Container Registry
+- **Screener FA+TA**: Lọc tự động theo 15+ tiêu chí cơ bản + kỹ thuật + chất lượng
+- **Định giá đa phương pháp**: DCF (non-bank), P/E relative, P/B, dividend yield, quality metrics
+- **Khuyến nghị có giải thích**: BUY/SELL/HOLD + target price + reasoning + disclaimer
+- **Config-driven**: Thay đổi filter thresholds via YAML, không cần sửa code
+- **Persistent journal**: Track khuyến nghị + paper portfolio để validate edge
+- **Backtest-able**: Chạy screener trên lịch sử, so sánh vs VN-Index
+- **Dual persistence**: PostgreSQL (production) + SQLite (offline fallback)
+- **Bank vs non-bank**: Separate valuation models cho ngân hàng vs công ty phi tài chính
+- **Disclaimer everywhere**: "Chỉ mang tính tham khảo, không phải lời khuyên đầu tư"
+- **Docker ready**: Compose stack cho backend, frontend, PostgreSQL
+- **CI/CD**: GitHub Actions build Docker image
 
 ## Testing
 
@@ -77,105 +73,89 @@ streamlit run knowledge_engine/ui.py
 pytest tests/ -v
 
 # Run specific modules
-pytest tests/test_risk.py -v
-pytest tests/test_execution.py -v
+pytest tests/test_screener.py -v
+pytest tests/test_valuation.py -v
 pytest tests/test_backend_api.py -v
-pytest tests/test_ml_integration.py -v
+
+# With coverage
+pytest tests/ --cov=screener --cov=valuation --cov=data/vn
 ```
 
-**Current coverage**: 71 tests passing (risk, execution, journal, psychology, drift, knowledge, backend API, ML integration).
+**Status**: 273 tests passing, 7 skipped, ~35%–40% coverage (target: 80%+)
 
 ## Triết lý
 
-> "Hệ thống giao dịch không chỉ là tìm một ý tưởng đúng, mà là vận hành đúng ý tưởng đó trong nhiều điều kiện thị trường khác nhau."
+> "Phân tích cơ bản là hiểu công ty. Định giá là kết nối số liệu với hiểu biết đó."
 
-— *Turtle Trading Wiki*
+— *Value Investing Wiki*
 
-## Production Deployment & Data Migration
+## Deployment
 
-### Chạy Paper Trading 24/7
+### Docker Compose (Recommended)
 
 ```bash
-# 1. Khởi động bot (systemd auto-restart)
-systemctl --user start paper-trade.service
+# Start all services (backend, frontend, PostgreSQL)
+docker-compose up -d
 
-# 2. Xem log
-journalctl --user -u paper-trade.service -f
+# View logs
+docker-compose logs -f backend
 
-# 3. Health check
-curl http://localhost:8080/health
-
-# 4. Dashboard
-streamlit run scripts/dashboard.py --server.port 8501
+# Stop services
+docker-compose down
 ```
 
-### Chuyển máy / Migration Database
+**Services:**
+- Backend API: `http://localhost:8090`
+- Frontend: `http://localhost:3000`
+- PostgreSQL: `localhost:5432`
 
-Bot dùng PostgreSQL (Docker). Data không tự động đi theo khi chuyển máy.
+### Environment Variables
 
-#### Export (máy cũ)
-```bash
-docker exec trading-postgres pg_dump -U trader trading_journal > trading_backup.sql
+Create `.env`:
+```
+# Backend
+CORS_ORIGINS=http://localhost:3000,https://yourdomain.com
+DATABASE_URL=postgresql://user:password@localhost:5432/advisory_db
+
+# Frontend
+NEXT_PUBLIC_API_URL=http://localhost:8090
 ```
 
-#### Import (máy mới)
+### Database Setup
+
+PostgreSQL (Docker):
 ```bash
-# 1. Khởi động PostgreSQL container
 docker run -d \
-  --name trading-postgres \
-  -e POSTGRES_USER=trader \
-  -e POSTGRES_PASSWORD=trading123 \
-  -e POSTGRES_DB=trading_journal \
+  --name advisory-postgres \
+  -e POSTGRES_USER=advisor \
+  -e POSTGRES_PASSWORD=advisory123 \
+  -e POSTGRES_DB=advisory_db \
   -p 5432:5432 \
   -v ./data/postgres:/var/lib/postgresql/data \
-  --restart unless-stopped \
   postgres:16-alpine
-
-# 2. Import data
-cat trading_backup.sql | docker exec -i trading-postgres psql -U trader -d trading_journal
-
-# 3. Kiểm tra
-docker exec trading-postgres psql -U trader -d trading_journal -c "SELECT COUNT(*) FROM trades;"
 ```
 
-#### Hoặc dùng Cloud PostgreSQL (Khuyến nghị)
+Or use cloud PostgreSQL (Supabase, Neon, AWS RDS).
 
-Sửa `config/system.yaml`:
-```yaml
-journal:
-  db_url: "postgresql://user:password@your-db-host:5432/trading_journal"
+### Manual Backend Start
+
+```bash
+# Development
+uvicorn backend.api.main:app --host 0.0.0.0 --port 8090 --reload
+
+# Production
+gunicorn -w 4 -k uvicorn.workers.UvicornWorker backend.api.main:app
 ```
 
-Các dịch vụ free tier phù hợp:
-- **Supabase**: 500MB free
-- **Neon**: 500MB free
-- **AWS RDS**: $5-10/tháng
+### Manual Frontend Start
 
-### Các service chạy nền
-
-| Service | Port | Mô tả |
-|---------|------|-------|
-| Trading Bot | — | systemd `paper-trade.service` |
-| Health API | 8080 | `curl localhost:8080/health` |
-| Backend API | 8090 | FastAPI + Socket.IO gateway |
-| Dashboard | 8501 | Streamlit real-time monitoring |
-| PostgreSQL | 5432 | Journal + wiki feedback |
-
-### Telegram Alerts
-
-Set env vars trong `.env`:
+```bash
+cd frontend
+npm install
+npm run dev      # Development
+npm run build    # Build
+npm run start    # Production
 ```
-TELEGRAM_BOT_TOKEN=xxx
-TELEGRAM_CHAT_ID=-xxx
-```
-
-Bot gửi alert cho:
-- 🟢/🔴 Trade signals
-- 🔔 Price alerts (real-time)
-- 🚨 Volume spikes
-- ⚠️ Drawdown warnings
-- 🧠 Psychology pauses
-- ⚪ No-trade reasons (wiki detail)
 
 ## License
 

@@ -3,208 +3,210 @@
 ## Product Development Requirements
 
 ### Tên sản phẩm
-**Hybrid Trading System** — Hệ thống giao dịch tự động kết hợp rule-based, machine learning, và knowledge anchor.
+**VN Stock Advisory Platform (MVP-1)** — Nền tảng tư vấn chứng khoán Việt Nam cung cấp screening, định giá, và khuyến nghị có giải thích.
 
-### Mục tiêu
-Xây dựng hệ thống giao dịch tự động **robust, testable, và có lợi thế bền vững** dựa trên:
-1. **Rule-based strategies** — Trend following, breakout, mean reversion
-2. **Machine Learning** — XGBoost classifier cho dự đoán xu hướng
-3. **Knowledge Anchor** — 683 concepts từ Turtle Trading Wiki làm "la bàn" định hướng
+### Mục tiêu (MVP-1)
+Xây dựng **nền tảng advisory deterministic, config-driven, backtest-able** cho thị trường chứng khoán Việt Nam:
+1. **Screener** — Lọc tự động (FA+TA+quality) để tìm mã tiềm năng
+2. **Valuation** — Định giá đa phương pháp (DCF, P/E relative, quality) + target price
+3. **Recommendation** — BUY/SELL/HOLD + khuyến nghị có giải thích + disclaimer
+4. **Journal** — Track khuyến nghị + paper portfolio để validate edge
 
 ### Target Users
-- Cá nhân tự động hóa chiến lược giao dịch crypto
-- Prop traders cần backtest và risk management chặt chẽ
-- Quant researchers muốn kết hợp ML với domain knowledge
+- Nhà đầu tư cá nhân muốn rà soát thị trường VN tự động
+- Value investors cần định giá khoa học + benchmark vs ngành
+- Retail traders muốn validate screener edge trước khi live trade
+- Quant traders building advisory layer cho nền tảng của họ
 
 ### Key Differentiators
-- **Wiki-anchored decisions**: Mọi tín hiệu được validate chống lại 683 concepts từ Turtle Trading Wiki
-- **Psychology enforcement**: Tự động pause sau consecutive losses, giảm size khi revenge/FOMO
-- **Regime-aware risk**: Position sizing và stop-loss điều chỉnh theo bull/bear/sideways
-- **Graduation Gate**: Chỉ cho phép live trading sau khi paper trading đạt criteria
-- **Bilingual alerts**: Telegram alerts song ngữ EN/VN
+- **Multi-method valuation**: DCF (non-bank) + relative (P/E sector) + quality (F-score) → diversified edge
+- **Bank-aware models**: Separate valuation logic cho ngân hàng vs non-bank (khác schema BCTC)
+- **Config-driven screening**: Thay đổi filter thresholds via YAML, zero code change
+- **Outcome tracking**: Journal tracks every recommendation + paper portfolio → measure recommendation accuracy over time
+- **Advisory disclaimer everywhere**: "Chỉ mang tính tham khảo, không phải lời khuyên đầu tư" — transparency first
+- **Backtest-able**: Validate screener edge on historical data; compare vs VN-Index
 
-## System Requirements
+## System Requirements (MVP-1)
 
 ### Functional Requirements
 
 | ID | Requirement | Priority | Status |
 |----|-------------|----------|--------|
-| F1 | Fetch OHLCV data từ Binance/CCXT | P0 | ✅ Done |
-| F2 | Event-driven backtest với slippage + commission | P0 | ✅ Done |
-| F3 | 3 rule-based strategies (EMA, Breakout, Grid) | P0 | ✅ Done |
-| F4 | Regime detection (trending/ranging/neutral) | P0 | ✅ Done |
-| F5 | RegimeEnsemble strategy (vote + wiki validation) | P0 | ✅ Done |
-| F6 | ML XGBoost pipeline | P1 | ✅ Done (halted as primary) |
-| F7 | Position sizing (Kelly, Fixed Fractional, ATR, Turtle N) | P0 | ✅ Done |
-| F8 | Stop-loss (fixed, ATR, trailing) | P0 | ✅ Done |
-| F9 | Drawdown circuit breaker | P0 | ✅ Done |
-| F10 | Psychology enforcer | P1 | ✅ Done |
-| F11 | Correlation guard | P1 | ✅ Done |
-| F12 | Paper trading engine | P0 | ✅ Done |
-| F13 | Live trading engine với Graduation Gate | P0 | ✅ Done |
-| F14 | Order manager + retry logic | P0 | ✅ Done |
-| F15 | Trade journal (PostgreSQL) | P0 | ✅ Done |
-| F16 | Telegram alerts (bilingual) | P1 | ✅ Done |
-| F17 | Health HTTP server | P1 | ✅ Done |
-| F18 | Daily report generator | P1 | ✅ Done |
-| F19 | Model drift detection | P2 | ✅ Done |
-| F20 | Wiki feedback loop | P1 | ✅ Done |
-| F21 | FastAPI backend + Socket.IO | P2 | ✅ Done |
-| F22 | Next.js frontend dashboard | P2 | ✅ Done |
-| F23 | Price/drawdown/volume alerts | P2 | ✅ Done |
+| F1 | Fetch OHLCV + financials từ vnstock API | P0 | ✅ Done |
+| F2 | CachedDataSource (parquet + SQLite/PostgreSQL KV) | P0 | ✅ Done |
+| F3 | Screener with FA filters (ROE, P/E, growth, debt, margin) | P0 | ✅ Done |
+| F4 | Screener with TA filters (MA trend, RS vs Index, liquidity) | P0 | ✅ Done |
+| F5 | Screener with quality filters (Piotroski F, Altman Z′) | P0 | ✅ Done |
+| F6 | DCF valuation (non-bank only) | P0 | ✅ Done |
+| F7 | Relative valuation (P/E sector, P/B, div yield) | P0 | ✅ Done |
+| F8 | Quality scoring (Piotroski F, Altman Z′, safety margin) | P0 | ✅ Done |
+| F9 | Recommendation synthesizer (score 0–100 + target + reasoning) | P0 | ✅ Done |
+| F10 | Bank vs non-bank detection + separate models | P0 | ✅ Done |
+| F11 | FastAPI backend endpoints (/screener, /stock, /valuation) | P0 | ✅ Done |
+| F12 | CORS env-driven + advisory disclaimer in responses | P0 | ✅ Done |
+| F13 | Next.js frontend (Screener page, Stock detail page) | P0 | ✅ Done |
+| F14 | Frontend API client (env NEXT_PUBLIC_API_URL) | P0 | ✅ Done |
+| F15 | Recommendation journal (SQLite/PostgreSQL) | P0 | ✅ Done |
+| F16 | Paper positions tracker (entry/exit, realized PnL) | P0 | ✅ Done |
+| F17 | Screener historical backtest (point-in-time rebalance) | P0 | ✅ Done |
+| F18 | Screener metrics (Sharpe, max DD, total return, win rate) | P0 | ✅ Done |
+| F19 | Config-driven screener (YAML thresholds + weights) | P0 | ✅ Done |
+| F20 | Config-driven valuation (YAML DCF params, quality benchmarks) | P0 | ✅ Done |
 
-### Non-Functional Requirements
+### Non-Functional Requirements (MVP-1)
 
 | ID | Requirement | Target |
 |----|-------------|--------|
-| NF1 | Uptime | 99.9% (auto-restart) |
-| NF2 | Latency | < 5s từ signal đến order submission |
-| NF3 | Throughput | 10+ symbols simultaneously |
-| NF4 | Backtest accuracy | Slippage + commission modeled |
-| NF5 | Test coverage | 80%+ (current: ~35%) |
-| NF6 | Config-driven | Behavior change via YAML, no code change |
-| NF7 | Fail-safe | Auto-halt on error, no self-healing without review |
-| NF8 | Observability | Log every decision, real-time health checks |
+| NF1 | API latency | < 2s for /screener, /stock, /valuation endpoints |
+| NF2 | Cache hit rate | 90%+ on OHLCV/financials fetches |
+| NF3 | Rate limit handling | Graceful backoff when vnstock limit hit (20 req/min) |
+| NF4 | Test coverage | 80%+ (current: ~35%–40%; P2+ goal) |
+| NF5 | Config-driven | All filter thresholds + valuation params in YAML |
+| NF6 | Data consistency | Screener and valuation use same data snapshot |
+| NF7 | Persistence | Recommendations + paper positions survive restart |
+| NF8 | Disclaimer compliance | "Chỉ mang tính tham khảo..." in every API response |
+| NF9 | Scalability | Support HOSE (400 stocks) in P4 without refactor |
+| NF10 | Observability | Log screener runs, valuation computations, errors |
 
-## Architecture Summary
+## Architecture Summary (MVP-1)
 
 ### High-Level Diagram
 
 ```
-Frontend (Next.js) ←→ Backend API (FastAPI + Socket.IO)
-                              │
-                              ▼
-                    Knowledge Engine (RAG + Wiki)
-                              │
-                              ▼
-                    Strategy Layer (Rule + ML + Ensemble)
-                              │
-                              ▼
-                    Risk Layer (Sizing + Stops + Psychology)
-                              │
-                              ▼
-                    Execution (Paper → Live via CCXT)
-                              │
-                              ▼
-                    Journal + Alerts + Health Monitor
+Frontend (Next.js)
+├─ Screener page
+└─ Stock detail page
+         │
+         ▼
+Backend API (FastAPI)
+├─ GET /api/v1/screener
+├─ GET /api/v1/stock/{ticker}
+└─ GET /api/v1/valuation/{ticker}
+         │
+    ┌────┴────┬──────────┐
+    ▼         ▼          ▼
+Screener  Valuation  Journal
+(FA+TA)   (DCF+PE)  (SQLite/PG)
+    │         │
+    └────┬────┘
+         │
+    Data Layer (vnstock adapter)
+         │
+    CachedDataSource (parquet + KV cache)
 ```
 
 ### Data Flow
 
-1. **Data Feed** fetches OHLCV từ Binance/CoinGecko
-2. **Strategy Layer** generates signals (rule-based hoặc ML)
-3. **Knowledge Engine** validates signals against wiki concepts
-4. **Risk Layer** checks exposure, drawdown, correlation, psychology
-5. **Execution Layer** submits orders qua CCXT (paper hoặc live)
-6. **Journal** logs trades, emotions, wiki feedback
-7. **Monitoring** sends alerts và exposes health metrics
-8. **Backend API** aggregates state cho frontend
+1. **User visits Screener page** → Frontend calls GET /api/v1/screener
+2. **Backend** loads config/screener.yaml, calls screener.run()
+3. **Screener** fetches OHLCV + financials (cached), applies filters, scores tickers
+4. **Backend** ranks, returns top-20 watchlist with composite scores
+5. **User clicks stock** → Frontend calls GET /api/v1/stock/{ticker} + GET /api/v1/valuation/{ticker}
+6. **Backend** aggregates data, runs valuation, synthesizes recommendation
+7. **Journal** logs recommendation (ticker, score, target, date)
+8. **Backend** returns response with disclaimer
+9. **Frontend** displays chart, metrics, recommendation with warning banner
 
-## Performance Metrics
+## Success Criteria (MVP-1)
 
-### Walk-Forward Results (BTC/USDT 4h)
+### Functional Validation
+- ✅ Screener runs on VN30, identifies 5–15 candidates per run
+- ✅ Valuation provides meaningful target prices (±20% accuracy acceptable MVP)
+- ✅ Recommendations track-able: can measure % correct over time
+- ✅ All API endpoints respond < 2s with correct schemas
+- ✅ Frontend connects successfully to backend
+- ✅ Journal persists to SQLite and PostgreSQL correctly
 
-| Strategy | Net Return | Gross Return | Trades | Win Periods |
-|----------|-----------|-------------|--------|-------------|
-| RegimeEnsemble | **+53.7%** | +58.0% | 33 | 5/9 |
-| BuyHold | +18.4% | +19.0% | 9 | 5/9 |
-| ML-XGBoost | -4.0% | -0.8% | 55 | — |
+### Test Results
+- ✅ 273 tests passing, 7 skipped
+- ✅ Zero critical failures
+- ✅ Coverage ~35%–40% (P2+ goal: 80%+)
 
-### Key Insights
-- RegimeEnsemble outperforms both BuyHold và ML-XGBoost
-- ML không có alpha đủ mạnh để vượt transaction costs
-- Wiki validation + psychology enforcement là yếu tố quyết định
+### Launch Readiness
+- ✅ Screener + valuation logic frozen (ready for P2 news/AI)
+- ✅ Backend API stable, CORS env-driven
+- ✅ Frontend accessible, mobile-responsive (P2 enhancement)
+- ✅ Disclaimer visible everywhere
+- ✅ Docker compose stack working
 
-## Tech Stack
+## Tech Stack (MVP-1)
 
 | Category | Technology |
 |----------|-----------|
-| Language | Python 3.11+ |
-| Data | pandas, polars, CCXT |
-| ML | scikit-learn, XGBoost, PyTorch |
-| Vector DB | ChromaDB |
-| LLM | OpenAI API / Local |
-| API | FastAPI, Socket.IO, uvicorn |
-| Frontend | Next.js 16, TypeScript |
-| DB | PostgreSQL |
-| Monitoring | loguru, Telegram, Health HTTP |
-| Testing | pytest, pytest-asyncio |
-| Linting | ruff |
+| **Language** | Python 3.11+ |
+| **Data source** | vnstock 4.0.4 (VCI) |
+| **Data processing** | pandas, polars, pandas-ta |
+| **Storage** | parquet (OHLCV), SQLite/PostgreSQL (KV cache + journal) |
+| **API** | FastAPI, uvicorn |
+| **Frontend** | Next.js 16, TypeScript, Chart.js |
+| **Testing** | pytest, pytest-asyncio |
+| **Linting** | ruff |
+| **Docker** | Docker, Docker Compose |
+| **CI/CD** | GitHub Actions |
 
-## Project Structure
+**Optional (for P2+):**
+- ChromaDB (vector DB for news RAG)
+- OpenAI API (LLM analyst)
+- beautifulsoup4 (news crawler)
+- TCBS/DNSE adapters (data enrichment)
+
+## Project Structure (MVP-1)
 
 ```
-hybrid-trading-system/
-├── backend/api/           # FastAPI gateway
-├── backtest/              # Event-driven backtest engine
-├── config/                # YAML configs
-├── crawl-wiki/            # Wiki crawler (683 concepts)
-├── data/                  # Data pipeline
+vn-stock-advisory/
+├── backend/api/           # FastAPI gateway + REST endpoints
+├── screener/              # Screening engine (FA + TA filters)
+├── valuation/             # Valuation + recommendation
+├── data/vn/               # Vietnamese stock data (vnstock adapter)
+├── journal/               # Recommendation tracking
+├── backtest/              # Screener backtesting framework
+├── config/                # YAML configs (system, screener, valuation, backtest)
+├── frontend/              # Next.js 16 dashboard
+├── tests/                 # Unit + integration tests
 ├── docs/                  # Documentation
-├── execution/             # Trading engines + connectors
-├── frontend/              # Next.js dashboard
-├── journal/               # Trade journal (PostgreSQL)
-├── knowledge_engine/      # RAG + LLM + Signal validator
-├── ml/                    # ML pipelines + feature engineering
-├── monitoring/            # Alerts + health server
-├── risk/                  # Risk management
 ├── scripts/               # Utility scripts
-├── strategies/            # Rule-based + ML strategies
-└── tests/                 # Unit + integration tests
+└── requirements.txt       # Python dependencies
 ```
 
-## Risks & Mitigations
+## Risks & Mitigations (MVP-1)
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|-----------|--------|------------|
-| Overfitting backtest | High | High | Walk-forward, Monte Carlo, OOS validation |
-| Exchange API failure | Medium | High | Retry logic, circuit breaker, paper mode fallback |
-| Drawdown vượt ngưỡng | Medium | Critical | Auto-halt, psychology pause, regime-aware sizing |
-| ML model degradation | Medium | Medium | Drift detection, auto-retrain schedule |
-| Data quality issues | Medium | High | Multiple data sources, validation, cache |
-| Security breach (API keys) | Low | Critical | Env vars, IP whitelist, limited permissions |
-| Overtrading | Medium | Medium | Daily trade limit, cooldown, psychology enforcer |
+| vnstock API data incomplete/stale | Medium | High | Spike testing (P0 done); adapter abstraction for TCBS/DNSE swap |
+| DCF assumptions unrealistic → sai định giá | Medium | High | Sensitivity analysis; prioritize relative valuation; wiki anchor to avoid value trap |
+| LLM hallucination future (P3) | Medium | Medium | RAG strict context; force source citation; data from layer, LLM explains only |
+| Filter overfitting on VN30 history | Medium | Medium | Walk-forward backtest; validate on unseen future data; monitor recommendation accuracy |
+| Recommendation wrong → user loss | Medium–High | High | Disclaimer everywhere; track outcomes; show historical accuracy |
+| User misinterprets "advisory" as guaranteed | Low–Medium | High | Disclaimer in 3 places: UI banner, API response, every email |
+| Database data loss | Low | High | PostgreSQL backup; SQLite local cache fallback |
+| Scaling to HOSE too complex | Low | Medium | Modular design; tested on VN30 subset first |
 
-## Success Criteria
+## Phase Status (MVP-1 = P0–P1 Complete)
 
-### Phase 1 (Completed)
-- [x] Event-driven backtest engine
-- [x] 3 rule-based strategies
-- [x] Risk management layer
-- [x] Paper trading engine
-
-### Phase 2 (Completed)
-- [x] Knowledge engine (RAG + wiki validation)
-- [x] ML pipeline (XGBoost)
-- [x] Live trading engine
-- [x] Telegram alerts
-
-### Phase 3 (Completed)
-- [x] Backend API (FastAPI + Socket.IO)
-- [x] Frontend dashboard (Next.js)
-- [x] Monitoring stack (health, alerts, daily reports)
-
-### Phase 4 (In Progress)
-- [ ] 80%+ test coverage
-- [ ] E2E testing for live trading path
-- [ ] Docker deployment
-- [ ] CI/CD pipeline
-
-### Phase 5 (Planned)
-- [ ] Positive net return trên paper trading 1 tháng
-- [ ] Live trading với capital nhỏ
-- [ ] Performance monitoring (Prometheus + Grafana)
+| Phase | Scope | Status | Target |
+|-------|-------|--------|--------|
+| **P0** | Spike vnstock; remove execution layer | ✅ Done | 2026-06-01 |
+| **P1 (MVP-1)** | Data+Screener+Valuation+API+FE+Journal | ✅ Done | 2026-06-15 |
+| **P2** | News crawler + LLM sentiment | 🔲 Not started | 2026-07-15 |
+| **P3** | AI Analyst (LLM report) | 🔲 Not started | 2026-08-15 |
+| **P4** | Expand HOSE (400 stocks) | 🔲 Not started | 2026-09-15 |
+| **P5** | Telegram alerts + paper tracking | 🔲 Not started | 2026-10-15 |
+| **P6** | 3 sàn (HOSE+HNX+UPCOM) + optional ML | 🔲 Not started | 2026-11-15 |
 
 ## Glossary
 
 | Term | Definition |
 |------|------------|
-| Regime | Trạng thái thị trường: trending, ranging, neutral |
-| Ensemble | Kết hợp nhiều chiến lược, chọn theo regime |
-| Walk-forward | Validation method: train trên quá khứ, test trên tương lai |
-| OOS | Out-of-sample: data không nhìn thấy trong training |
-| RAG | Retrieval-Augmented Generation: LLM + vector search |
-| Graduation Gate | Criteria để chuyển từ paper → live |
-| PSI | Population Stability Index: đo lường drift |
-| ATR | Average True Range: đo volatility |
-| SL/TP | Stop-loss / Take-profit |
+| Screener | Automated filter to identify candidate stocks |
+| Valuation | Multi-method assessment (DCF, P/E, quality) → target price |
+| Recommendation | BUY/SELL/HOLD + reasoning + target price |
+| Advisory-only | No execution, no orders; user trades on their broker |
+| Disclaimer | "Chỉ mang tính tham khảo, không phải lời khuyên đầu tư" |
+| FA | Fundamental Analysis: financial metrics, growth, profitability |
+| TA | Technical Analysis: price momentum, trends, support/resistance |
+| DCF | Discounted Cash Flow: intrinsic value via cash flow projections |
+| P/E | Price-to-Earnings ratio: relative valuation vs sector/history |
+| F-score | Piotroski F-score: 9-point quality metric (8 for banks) |
+| Z-score | Altman Z-score: bankruptcy risk indicator |
+| Journal | Recommendation tracking + outcome history |
+| Paper portfolio | Virtual portfolio tracking recommendation accuracy |
