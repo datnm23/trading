@@ -1,0 +1,39 @@
+# Screener backtest configuration
+# Point-in-time rebalance backtest: top-N screener picks vs VN-Index benchmark.
+
+# --- Universe & selection ---
+universe: VN30          # which universe to pass to ScreenerEngine.screen()
+top_n: 5                # number of top-ranked stocks to hold per period
+
+# --- Simulation period ---
+start_date: "2022-01-01"
+end_date:   "2024-12-31"
+
+# --- Rebalance frequency ---
+# Supported: "monthly" | "quarterly"
+# Monthly rebalance ~= 12 rebalance dates/year; quarterly ~= 4.
+rebalance_freq: quarterly
+
+# --- Transaction costs (VN stock market) ---
+# VN brokerage fee: ~0.15% buy + 0.15% sell = 0.30% round-trip (conservative).
+# SSI/ACBS/online broker range: 0.15–0.35% per side.
+fee_bps: 30             # basis points per SIDE (30 bps = 0.30%)
+
+# --- Point-in-time BCTC publication lag ---
+# Vietnamese BCTC (quarterly/annual financials) are published 1–3 months after
+# period end.  We apply a conservative 90-day lag so we never use data that
+# would not have been publicly available at ranking time.
+# Example: Q4-2023 results (period end 2023-12-31) assumed available 2024-03-31.
+# WARNING: In offline/fake tests the lag is honoured by the test harness;
+# in a live backtest the screener must receive OHLCV & ratios clipped to as_of date.
+bctc_publication_lag_days: 90
+
+# --- Benchmark ---
+# Primary: VNINDEX via vnstock Quote (source=VCI).
+# Fallback (if VNINDEX fetch fails): equal-weight VN30 buy-and-hold.
+benchmark_symbol: VNINDEX
+
+# --- Capital & Sharpe ---
+initial_capital: 1_000_000_000   # 1 tỷ VND
+risk_free_rate_annual: 0.045     # 4.5% p.a. (VN deposit rate proxy)
+trading_days_per_year: 252
