@@ -136,6 +136,50 @@ volume_alerts:
   multiplier: 2.5               # Alert when volume > 2.5x average
   cooldown_hours: 4.0           # Max 1 alert every 4 hours
 
+# VN Stock Advisory data layer
+data_vn:
+  source: VCI
+  cache_dir: ./data/vn_cache
+  db_url_env: TRADING_DB_URL
+  throttle_seconds: 3.5
+  ttl:
+    ohlcv: 900           # 15 min — intraday refresh
+    financials: 7776000  # ~90 days — quarterly cadence
+    ratios: 7776000      # ~90 days
+    company: 86400       # 1 day
+  universe:
+    VN30:
+      - ACB
+      - BID
+      - BSR
+      - CTG
+      - FPT
+      - GAS
+      - GVR
+      - HDB
+      - HPG
+      - LPB
+      - MBB
+      - MSN
+      - MWG
+      - PLX
+      - SAB
+      - SHB
+      - SSB
+      - SSI
+      - STB
+      - TCB
+      - TPB
+      - VCB
+      - VHM
+      - VIB
+      - VIC
+      - VJC
+      - VNM
+      - VPB
+      - VPL
+      - VRE
+
 # Model Drift Detection
 drift:
   enabled: false
