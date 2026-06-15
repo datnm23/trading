@@ -1,0 +1,28 @@
+# Valuation Engine Configuration
+# WACC, terminal growth, blend weights, recommendation thresholds
+
+dcf:
+  wacc: 0.13               # Weighted Average Cost of Capital (13% for VN market)
+  terminal_growth: 0.03    # Gordon growth model terminal rate (3%)
+  projection_years: 5      # Number of years to project FCF
+
+relative:
+  peer_min_count: 3        # Minimum peers for sector median; fallback = VN30
+  history_pe_years: 5      # Years of historical P/E to compute own median
+
+blend:
+  # Weights for target price: must sum to 1.0 (DCF weight applied only when dcf_applicable)
+  dcf_weight: 0.5
+  relative_weight: 0.5
+
+score:
+  # Contribution weights for 0-100 score (normalized internally)
+  upside_weight: 0.50      # Upside to target price
+  f_score_weight: 0.30     # Piotroski F-score (9 max)
+  z_score_weight: 0.20     # Altman Z-score (non-bank only)
+
+recommendation:
+  buy_upside_threshold: 0.20    # upside > 20% → BUY
+  sell_downside_threshold: -0.10 # upside < -10% → SELL
+
+disclaimer: "Chỉ mang tính tham khảo, không phải lời khuyên đầu tư."
