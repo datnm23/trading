@@ -67,3 +67,7 @@ models/
 credentials.json
 .gitnexus
 data/postgres/
+
+# ClaudeKit engineer (kit copied locally, not committed)
+.claude/
+plans/
