@@ -92,6 +92,10 @@ export const translations = {
     search: 'Tìm kiếm',
     searchPlaceholder: 'Tìm kiếm khái niệm giao dịch...',
     
+    // Screener + Stock
+    screener: 'Bộ lọc cổ phiếu',
+    stockDetail: 'Chi tiết mã',
+
     // General
     loading: 'Đang tải...',
     error: 'Lỗi',
@@ -191,6 +195,10 @@ export const translations = {
     search: 'Search',
     searchPlaceholder: 'Search trading concepts...',
     
+    // Screener + Stock
+    screener: 'Screener',
+    stockDetail: 'Stock Detail',
+
     // General
     loading: 'Loading...',
     error: 'Error',

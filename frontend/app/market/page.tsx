@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLang } from '@/components/layout/LangProvider';
 import { NeoCard } from '@/components/ui/NeoCard';
+import { getBaseUrl } from '@/lib/api';
 import { NeoMetric } from '@/components/ui/NeoMetric';
 import { MarketPriceChart } from '@/components/charts/MarketPriceChart';
 import { t } from '@/lib/i18n';
@@ -36,9 +37,10 @@ export default function MarketPage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
+      const base = getBaseUrl();
       const [ohlcvRes, tickerRes] = await Promise.all([
-        fetch(`http://localhost:8090/api/v1/market/ohlcv?symbol=${activeSymbol}&timeframe=${activeTf}&limit=100`),
-        fetch('http://localhost:8090/api/v1/market/tickers'),
+        fetch(`${base}/api/v1/market/ohlcv?symbol=${activeSymbol}&timeframe=${activeTf}&limit=100`),
+        fetch(`${base}/api/v1/market/tickers`),
       ]);
 
       if (ohlcvRes.ok) {

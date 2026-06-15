@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { getBaseUrl } from '@/lib/api';
 
 interface StrategyState {
   name: string;
@@ -39,7 +40,7 @@ interface SystemState {
   regime_distribution?: Record<string, number>;
 }
 
-export function useSocketIO(url: string = 'http://localhost:8090') {
+export function useSocketIO(url: string = getBaseUrl()) {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [connected, setConnected] = useState(false);
   const [state, setState] = useState<SystemState | null>(null);
