@@ -1,78 +1,104 @@
-"""Pydantic models for FastAPI gateway."""
+"""Pydantic models for VN Stock Advisory API."""
 
-from datetime import datetime
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional
 from pydantic import BaseModel
 
+DISCLAIMER = "Chỉ mang tính tham khảo, không phải lời khuyên đầu tư."
 
-class StrategyState(BaseModel):
+
+class CriterionDetail(BaseModel):
+    key: str
+    label: str
+    passed: bool
+    value: Optional[float] = None
+    weight: float
+
+
+class ScreenerItem(BaseModel):
+    ticker: str
+    score: float
+    rank: int
+    passed_count: int
+    criteria: List[CriterionDetail] = []
+
+
+class ScreenerResponse(BaseModel):
+    items: List[ScreenerItem]
+    count: int
+    disclaimer: str = DISCLAIMER
+
+
+class PriceSummary(BaseModel):
+    current_price: float           # VND absolute
+    market_cap: float
+    issue_share: float
+    free_float_pct: Optional[float] = None
+    foreigner_pct: Optional[float] = None
+
+
+class FinancialSummary(BaseModel):
+    """Key ratios snapshot — latest available period."""
+    pe_ratio: Optional[float] = None
+    pb_ratio: Optional[float] = None
+    roe: Optional[float] = None
+    net_margin: Optional[float] = None
+    debt_to_equity: Optional[float] = None
+    eps: Optional[float] = None
+
+
+class CompanySummary(BaseModel):
     name: str
-    port: int
-    equity: float
-    capital: float
-    open_positions: int
-    running: bool
-    mode: str = "paper"
-    return_pct: float = 0.0
-    daily_pnl: float = 0.0
-    strategy_type: str = ""
-    timestamp: datetime = datetime.utcnow()
-    meta: Optional[Dict[str, Any]] = None
+    short_name: str
+    sector: str
+    is_bank: bool
+    listing_date: str
 
 
-class Position(BaseModel):
-    symbol: str
-    side: str
-    entry_price: float
-    size: float
-    current_price: Optional[float] = None
-    unrealized_pnl: Optional[float] = None
-    stop_price: Optional[float] = None
-    strategy: str = ""
-    entry_time: Optional[str] = None
-    meta: Optional[Dict[str, Any]] = None
+class StockDetail(BaseModel):
+    ticker: str
+    company: CompanySummary
+    price: PriceSummary
+    financials: FinancialSummary
+    disclaimer: str = DISCLAIMER
 
 
-class TrailingStopState(BaseModel):
-    symbol: str
-    entry_price: float
-    peak_price: float
-    current_stop: float
-    activated: bool
-    profit_pct: float
+class ValuationResponse(BaseModel):
+    ticker: str
+    current_price: float
+    target_price: Optional[float] = None
+    intrinsic_value: Optional[float] = None
+    upside_pct: Optional[float] = None
+    score: int
+    recommendation: str            # BUY | HOLD | SELL
+    f_score: Optional[int] = None
+    f_score_applicable: int = 9
+    z_score: Optional[float] = None
+    dcf_applicable: bool = True
+    reasons: List[str] = []
+    disclaimer: str = DISCLAIMER
 
 
-class SlippageSummary(BaseModel):
-    symbol: str
-    trades: int
-    avg_slippage_pct: float
-    max_slippage_pct: float
-    total_cost: float
-
-
-class Alert(BaseModel):
-    level: str  # info, warning, error
-    message: str
-    timestamp: datetime = datetime.utcnow()
-    source: str = ""
-
-
-class DailyReport(BaseModel):
+class RecommendationRead(BaseModel):
+    id: int
+    ticker: str
     date: str
-    total_trades: int
-    wins: int
-    losses: int
-    total_pnl: float
-    winrate: float
-    return_pct: float
-    equity_start: float
-    equity_end: float
+    recommendation: str
+    target_price: Optional[float] = None
+    current_price: Optional[float] = None
+    score: Optional[int] = None
+    upside_pct: Optional[float] = None
+    reasons: List[str] = []
+    created_at: str
 
 
-class SystemState(BaseModel):
-    timestamp: datetime
-    strategies: List[StrategyState]
-    positions: List[Position]
-    trailing_stops: List[TrailingStopState]
-    slippage: List[SlippageSummary]
-    alerts: List[Alert]
+class PaperPositionRead(BaseModel):
+    id: int
+    ticker: str
+    entry_date: str
+    entry_price: float
+    shares: float
+    recommendation_id: Optional[int] = None
+    status: str                    # open | closed
+    exit_date: Optional[str] = None
+    exit_price: Optional[float] = None
+    pnl: Optional[float] = None

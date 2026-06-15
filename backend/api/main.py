@@ -1,176 +1,164 @@
-"""FastAPI gateway — unified API + Socket.IO for Next.js frontend."""
+"""FastAPI gateway — VN Stock Advisory API.
 
-import asyncio
-from contextlib import asynccontextmanager
-from datetime import datetime
-from typing import Dict, List, Optional
+Endpoints:
+  GET /health
+  GET /api/v1/screener
+  GET /api/v1/stock/{ticker}
+  GET /api/v1/valuation/{ticker}
 
-from fastapi import FastAPI
+CORS origins read from env CORS_ORIGINS (comma-separated).
+Data source injected via app.state.stock_service for testability.
+"""
+
+import os
+from typing import Optional
+
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from prometheus_fastapi_instrumentator import Instrumentator
-from pydantic import BaseModel
+from fastapi.responses import JSONResponse
 from loguru import logger
 
-from backend.api.aggregator import StateAggregator
-from backend.api.socket_manager import SocketManager
-from backend.api.market_data import MarketDataProvider
-from backend.api.trades_service import TradesService
+try:
+    from prometheus_fastapi_instrumentator import Instrumentator
+    # Probe compatibility: expose() calls add_route which varies by starlette version.
+    # A quick attribute check is enough — actual wiring happens inside create_app().
+    _PROMETHEUS_OK = hasattr(Instrumentator, "expose")
+except (ImportError, Exception):
+    _PROMETHEUS_OK = False
 
-
-market_provider = MarketDataProvider()
-trades_service = TradesService()
-
-
-class AllocationItem(BaseModel):
-    strategy: str
-    weight: float
-
-
-class RebalanceRequest(BaseModel):
-    allocations: List[AllocationItem]
-
-
-# Global instances
-aggregator = StateAggregator(poll_interval=5.0)
-socket_manager = SocketManager(aggregator, broadcast_interval=5.0)
-
-# Rebalance targets stored in memory
-rebalance_targets: Dict[str, float] = {}
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Start background tasks on startup."""
-    logger.info("Starting API Gateway...")
-
-    # Start background loops
-    poll_task = asyncio.create_task(aggregator.run_loop())
-    broadcast_task = asyncio.create_task(socket_manager.broadcast_loop())
-
-    yield
-
-    # Shutdown
-    logger.info("Shutting down API Gateway...")
-    socket_manager.stop()
-    aggregator.stop()
-    poll_task.cancel()
-    broadcast_task.cancel()
-    try:
-        await poll_task
-        await broadcast_task
-    except asyncio.CancelledError:
-        pass
-
-
-app = FastAPI(
-    title="Hybrid Trading Gateway",
-    description="Unified API + Socket.IO for trading dashboard",
-    version="1.0.0",
-    lifespan=lifespan,
+from backend.api.models import (
+    DISCLAIMER,
+    ScreenerResponse,
+    StockDetail,
+    ValuationResponse,
 )
+from backend.api.stock_service import StockService
 
-# Prometheus metrics instrumentation
-Instrumentator().instrument(app).expose(app)
+# ---------------------------------------------------------------------------
+# CORS — env-driven (audit C2)
+# ---------------------------------------------------------------------------
 
-# CORS for Next.js dev server
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000", "http://127.0.0.1:3001"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+_DEFAULT_ORIGINS = "http://localhost:3000,http://localhost:3001"
+_CORS_ORIGINS = [
+    o.strip()
+    for o in os.environ.get("CORS_ORIGINS", _DEFAULT_ORIGINS).split(",")
+    if o.strip()
+]
 
-# Mount Socket.IO
-app.mount("/socket.io", socket_manager.get_app())
-
-
-@app.get("/health")
-async def health_check():
-    return {"status": "healthy", "gateway": True}
+# ---------------------------------------------------------------------------
+# App factory — accepts injected service for DI / tests
+# ---------------------------------------------------------------------------
 
 
-@app.get("/api/v1/strategies")
-async def get_strategies():
-    return {
-        "strategies": [s.model_dump() for s in aggregator.strategies.values()],
-        "timestamp": aggregator.get_state()["timestamp"],
-    }
+def create_app(stock_service: Optional[StockService] = None) -> FastAPI:
+    """Build and configure the FastAPI application.
 
-
-@app.get("/api/v1/state")
-async def get_full_state():
-    return aggregator.get_state()
-
-
-@app.get("/api/v1/trades")
-async def get_trades(
-    sub_strategy: Optional[str] = None,
-    symbol: Optional[str] = None,
-    limit: int = 50,
-):
-    """Fetch closed trade history with sub-strategy breakdown.
-
-    Only returns trades that have sub-strategy metadata (new trades).
+    Args:
+        stock_service: Pre-built StockService; if None, the default
+                       CachedDataSource(VnstockSource()) is constructed lazily
+                       on first request.
     """
+    app = FastAPI(
+        title="VN Stock Advisory API",
+        description="P2 screener + P3 valuation endpoints for VN equities",
+        version="2.0.0",
+    )
+
+    # CORS
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_CORS_ORIGINS,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    # Prometheus (optional — skip if incompatible with installed starlette)
+    if _PROMETHEUS_OK:
+        try:
+            Instrumentator().instrument(app).expose(app)
+        except Exception as _prom_err:
+            logger.warning(f"Prometheus instrumentation skipped: {_prom_err}")
+
+    # Store service on app state; build default lazily if not injected
+    app.state.stock_service = stock_service  # may be None until first request
+
+    # ------------------------------------------------------------------
+    # Dependency helper
+    # ------------------------------------------------------------------
+
+    def _get_service(request: Request) -> StockService:
+        svc = request.app.state.stock_service
+        if svc is None:
+            svc = _build_default_service()
+            request.app.state.stock_service = svc
+        return svc
+
+    # ------------------------------------------------------------------
+    # Routes
+    # ------------------------------------------------------------------
+
+    @app.get("/health")
+    async def health_check():
+        return {"status": "healthy", "service": "vn-stock-advisory"}
+
+    @app.get("/api/v1/screener", response_model=ScreenerResponse)
+    async def get_screener(request: Request):
+        """Ranked watchlist from P2 screener engine."""
+        svc = _get_service(request)
+        items = svc.get_screener()
+        return ScreenerResponse(items=items, count=len(items), disclaimer=DISCLAIMER)
+
+    @app.get("/api/v1/stock/{ticker}", response_model=StockDetail)
+    async def get_stock(ticker: str, request: Request):
+        """Price summary + company info + key ratios for a ticker."""
+        svc = _get_service(request)
+        detail = svc.get_stock_detail(ticker.upper())
+        if detail is None:
+            raise HTTPException(status_code=404, detail=f"Ticker {ticker} not found")
+        return detail
+
+    @app.get("/api/v1/valuation/{ticker}", response_model=ValuationResponse)
+    async def get_valuation(ticker: str, request: Request):
+        """Full valuation pipeline (DCF + relative + quality) for a ticker."""
+        svc = _get_service(request)
+        result = svc.get_valuation(ticker.upper())
+        if result is None:
+            raise HTTPException(status_code=404, detail=f"Valuation failed for {ticker}")
+        return result
+
+    # ------------------------------------------------------------------
+    # Generic error handler
+    # ------------------------------------------------------------------
+
+    @app.exception_handler(Exception)
+    async def _unhandled(request: Request, exc: Exception):
+        logger.error(f"Unhandled error on {request.url}: {exc}")
+        return JSONResponse(status_code=500, content={"error": "Internal server error"})
+
+    return app
+
+
+def _build_default_service() -> StockService:
+    """Construct default production service — called lazily on first request."""
+    from data.vn import VnstockSource, CachedDataSource
+    from config import system  # noqa: F401 — reads cache_dir from config
+
     try:
-        trades = trades_service.get_trades(
-            sub_strategy=sub_strategy,
-            symbol=symbol,
-            limit=limit,
-        )
-        return {"trades": trades, "count": len(trades)}
-    except Exception as e:
-        logger.error(f"Trades fetch failed: {e}")
-        return {"trades": [], "count": 0, "error": str(e)}
+        import yaml
+        with open("config/system.yaml") as f:
+            sys_cfg = yaml.safe_load(f) or {}
+        cache_dir = sys_cfg.get("cache_dir", "./data/cache")
+    except Exception:
+        cache_dir = "./data/cache"
+
+    source = CachedDataSource(VnstockSource(), cache_dir=cache_dir)
+    logger.info(f"Default StockService built with cache_dir={cache_dir}")
+    return StockService(source)
 
 
-@app.post("/api/v1/rebalance")
-async def rebalance_portfolio(req: RebalanceRequest):
-    """Store rebalance targets for strategies.
-
-    In a production system, this would trigger actual capital reallocation
-    across strategy accounts. For paper trading, we store targets and
-    expose them via the health endpoint for bots to read.
-    """
-    global rebalance_targets
-    for alloc in req.allocations:
-        if alloc.strategy:
-            rebalance_targets[alloc.strategy] = alloc.weight
-    logger.info(f"Rebalance targets updated: {rebalance_targets}")
-    return {
-        "status": "ok",
-        "targets": rebalance_targets,
-        "message": "Rebalance targets stored. Bots will adjust on next cycle.",
-    }
-
-
-@app.get("/api/v1/rebalance")
-async def get_rebalance_targets():
-    return {"targets": rebalance_targets}
-
-
-@app.get("/api/v1/market/ohlcv")
-async def get_market_ohlcv(symbol: str = "BTC/USDT", timeframe: str = "1d", limit: int = 100):
-    """Fetch OHLCV candles for a symbol."""
-    try:
-        data = await market_provider.get_ohlcv(symbol=symbol, timeframe=timeframe, limit=limit)
-        return {"symbol": symbol, "timeframe": timeframe, "candles": data}
-    except Exception as e:
-        logger.error(f"OHLCV fetch failed: {e}")
-        return {"symbol": symbol, "timeframe": timeframe, "candles": [], "error": str(e)}
-
-
-@app.get("/api/v1/market/tickers")
-async def get_market_tickers():
-    """Fetch current prices and 24h change for tracked symbols."""
-    try:
-        symbols = ["BTC/USDT", "ETH/USDT", "SOL/USDT"]
-        data = await market_provider.get_tickers(symbols)
-        return {"tickers": data, "timestamp": datetime.utcnow().isoformat()}
-    except Exception as e:
-        logger.error(f"Ticker fetch failed: {e}")
-        return {"tickers": {}, "timestamp": datetime.utcnow().isoformat(), "error": str(e)}
+# Module-level app instance (used by uvicorn / gunicorn)
+app = create_app()
 
 
 if __name__ == "__main__":
