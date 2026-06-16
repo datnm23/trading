@@ -5,6 +5,10 @@
 universe: VN30          # which universe to pass to ScreenerEngine.screen()
 top_n: 5                # number of top-ranked stocks to hold per period
 
+# Screener ruleset: technical-only by default (point-in-time safe, no look-ahead).
+# Switch to config/screener.yaml only once historical point-in-time BCTC exists.
+screener_config: config/screener-technical.yaml
+
 # --- Simulation period ---
 start_date: "2022-01-01"
 end_date:   "2024-12-31"

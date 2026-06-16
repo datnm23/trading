@@ -38,9 +38,15 @@ def main() -> int:
     # OHLCV (which caused the −91% bug) is not reused.
     source = build_default_source(cache_dir="./data/vn_cache_dnse")
 
+    # Screener config: default to technical-only (point-in-time safe). Fundamentals
+    # are excluded from the backtest because vnstock free tier serves only recent
+    # BCTC periods → look-ahead bias if used at historical as_of dates.
+    screener_cfg = config.get("screener_config", "config/screener-technical.yaml")
+    logger.info(f"Screener config: {screener_cfg}")
+
     t0 = time.time()
     try:
-        result = run_screener_backtest(source, config)
+        result = run_screener_backtest(source, config, screener_config_path=screener_cfg)
     except Exception as exc:  # noqa: BLE001 — surface clearly, don't crash silently
         logger.error(f"Backtest FAILED: {exc!r}")
         return 1

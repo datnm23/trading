@@ -1,0 +1,40 @@
+# Screener Configuration — TECHNICAL-ONLY variant (point-in-time safe).
+# Fundamentals DISABLED: vnstock free tier serves only ~4 recent BCTC periods
+# (not point-in-time) → using them in a historical backtest = look-ahead bias.
+# This variant ranks on price/momentum/liquidity ONLY, which OHLCV makes truly
+# point-in-time. Use for trustworthy backtests until historical BCTC is available.
+
+fundamentals:
+  roe: { enabled: false, threshold: 0.15, weight: 2.0, label: "ROE > 15%" }
+  pe_ratio: { enabled: false, threshold: 25.0, weight: 1.5, label: "P/E < 25 & sector median" }
+  eps_growth: { enabled: false, threshold: 0.0, weight: 1.5, label: "EPS growth YoY > 0%" }
+  revenue_growth: { enabled: false, threshold: 0.0, weight: 1.5, label: "Revenue growth YoY > 0%" }
+  debt_to_equity: { enabled: false, threshold: 1.0, weight: 1.0, label: "D/E < 1.0 (non-bank)" }
+  net_margin: { enabled: false, threshold: 0.05, weight: 1.0, label: "Net margin > 5%" }
+
+technicals:
+  price_above_ma:
+    enabled: true
+    ma50_period: 50
+    ma200_period: 200
+    weight: 1.5
+    label: "Price > MA50 & MA200"
+
+  relative_strength:
+    enabled: true
+    lookback_days: 60
+    weight: 2.0
+    label: "RS vs VN-Index > 0"
+
+  liquidity:
+    enabled: true
+    threshold: 10_000_000_000
+    lookback_days: 20
+    weight: 1.0
+    label: "Avg GTGD 20 phiên > 10 tỷ"
+
+ohlcv:
+  start_date: "2023-01-01"
+  end_date: null
+
+data_period: "year"
