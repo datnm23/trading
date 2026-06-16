@@ -41,6 +41,8 @@ data/*.hdf5
 # VN data caches (parquet OHLCV + sqlite metadata) — regenerable, never commit
 data/vn_cache/
 data/vn_cache_dnse/
+# collected financials sqlite (regenerable via scripts/collect_vn30_financials.py)
+data/*.db
 
 # Logs
 *.log
