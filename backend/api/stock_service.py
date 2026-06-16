@@ -13,9 +13,13 @@ from data.vn.models import CompanyInfo, Ratios
 from screener import ScreenerEngine, WatchlistItem
 from screener.filters.fundamental import _latest_ratio
 from valuation import recommend, ValuationResult
+from data.vn.financials_store import FinancialsStore
 from backend.api.models import (
     CriterionDetail,
     CompanySummary,
+    FinancialLineItem,
+    FinancialsResponse,
+    FinancialStatementView,
     FinancialSummary,
     PriceSummary,
     ScreenerItem,
@@ -32,6 +36,30 @@ class StockService:
     def __init__(self, source: StockDataSource) -> None:
         self.source = source
         self._screener: Optional[ScreenerEngine] = None
+        self._fin_store: Optional[FinancialsStore] = None
+
+    def _get_fin_store(self) -> FinancialsStore:
+        if self._fin_store is None:
+            self._fin_store = FinancialsStore()  # PG if reachable, else SQLite
+        return self._fin_store
+
+    def get_financials(self, ticker: str, period_type: str = "year") -> FinancialsResponse:
+        """Read stored BS/IS/CF for a ticker from FinancialsStore (collected via
+        scripts/collect_vn30_financials.py). Returns empty statements if none."""
+        data = self._get_fin_store().get_ticker_financials(ticker.upper(), period_type)
+        statements: List[FinancialStatementView] = []
+        # stable display order
+        for stmt in ("balance_sheet", "income_statement", "cash_flow"):
+            s = data.get(stmt)
+            if not s:
+                continue
+            rows = [
+                FinancialLineItem(item_id=iid, label=s["labels"].get(iid, iid), values=vals)
+                for iid, vals in s["values"].items()
+            ]
+            statements.append(FinancialStatementView(
+                statement_type=stmt, periods=s["periods"], rows=rows))
+        return FinancialsResponse(ticker=ticker.upper(), period_type=period_type, statements=statements)
 
     def _get_screener(self) -> ScreenerEngine:
         if self._screener is None:

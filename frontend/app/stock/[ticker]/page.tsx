@@ -7,6 +7,7 @@ import { useLang } from '@/components/layout/LangProvider';
 import { NeoCard } from '@/components/ui/NeoCard';
 import { NeoMetric } from '@/components/ui/NeoMetric';
 import { NeoBadge } from '@/components/ui/NeoBadge';
+import { FinancialStatements } from '@/components/stock/FinancialStatements';
 import { t } from '@/lib/i18n';
 import {
   getStock,
@@ -356,6 +357,9 @@ export default function StockDetailPage() {
           </div>
         </NeoCard>
       )}
+
+      {/* Full financial statements (BS/IS/CF) from collected DB */}
+      <FinancialStatements ticker={ticker} />
     </div>
   );
 }

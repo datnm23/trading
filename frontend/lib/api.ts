@@ -119,3 +119,28 @@ export async function getStock(ticker: string): Promise<StockDetail> {
 export async function getValuation(ticker: string): Promise<ValuationResponse> {
   return apiFetch<ValuationResponse>(`/api/v1/valuation/${encodeURIComponent(ticker)}`);
 }
+
+// ── Financial statements (BCTC) ─────────────────────────────────────────────
+
+export interface FinancialLineItem {
+  item_id: string;
+  label: string;
+  values: Record<string, number | null>;
+}
+
+export interface FinancialStatementView {
+  statement_type: string;
+  periods: string[];
+  rows: FinancialLineItem[];
+}
+
+export interface FinancialsResponse {
+  ticker: string;
+  period_type: string;
+  statements: FinancialStatementView[];
+  disclaimer: string;
+}
+
+export async function getFinancials(ticker: string): Promise<FinancialsResponse> {
+  return apiFetch<FinancialsResponse>(`/api/v1/stock/${encodeURIComponent(ticker)}/financials`);
+}

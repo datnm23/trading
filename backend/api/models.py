@@ -62,6 +62,25 @@ class StockDetail(BaseModel):
     disclaimer: str = DISCLAIMER
 
 
+class FinancialLineItem(BaseModel):
+    item_id: str
+    label: str                                  # Vietnamese label
+    values: Dict[str, Optional[float]]          # period_label -> value
+
+
+class FinancialStatementView(BaseModel):
+    statement_type: str                         # balance_sheet | income_statement | cash_flow
+    periods: List[str]                          # period labels, newest first
+    rows: List[FinancialLineItem]
+
+
+class FinancialsResponse(BaseModel):
+    ticker: str
+    period_type: str                            # year | quarter
+    statements: List[FinancialStatementView]
+    disclaimer: str = DISCLAIMER
+
+
 class ValuationResponse(BaseModel):
     ticker: str
     current_price: float

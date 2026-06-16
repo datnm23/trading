@@ -28,6 +28,7 @@ except (ImportError, Exception):
 
 from backend.api.models import (
     DISCLAIMER,
+    FinancialsResponse,
     ScreenerResponse,
     StockDetail,
     ValuationResponse,
@@ -117,6 +118,12 @@ def create_app(stock_service: Optional[StockService] = None) -> FastAPI:
         if detail is None:
             raise HTTPException(status_code=404, detail=f"Ticker {ticker} not found")
         return detail
+
+    @app.get("/api/v1/stock/{ticker}/financials", response_model=FinancialsResponse)
+    async def get_stock_financials(ticker: str, request: Request, period_type: str = "year"):
+        """Stored BS/IS/CF statements for a ticker (collected from vnstock → DB)."""
+        svc = _get_service(request)
+        return svc.get_financials(ticker.upper(), period_type)
 
     @app.get("/api/v1/valuation/{ticker}", response_model=ValuationResponse)
     async def get_valuation(ticker: str, request: Request):

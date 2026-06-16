@@ -153,3 +153,29 @@ class FinancialsStore:
             cur = conn.cursor()
             cur.execute("SELECT COUNT(*) FROM vn_financials")
             return cur.fetchone()[0]
+
+    def get_ticker_financials(self, ticker: str, period_type: str = "year") -> dict:
+        """Return stored statements for a ticker, shaped for display.
+
+        {statement_type: {"periods": [labels desc],
+                           "labels": {item_id: vn_label},
+                           "values": {item_id: {period_label: value}}}}
+        """
+        ph = self._ph()
+        sql = (f"SELECT statement_type, period_label, items_json, labels_json "
+               f"FROM vn_financials WHERE ticker={ph} AND period_type={ph} "
+               f"ORDER BY statement_type, period_label DESC")
+        out: dict = {}
+        with self._connect() as conn:
+            cur = conn.cursor()
+            cur.execute(sql, (ticker.upper(), period_type))
+            rows = cur.fetchall()
+        for stmt, label, items_json, labels_json in rows:
+            s = out.setdefault(stmt, {"periods": [], "labels": {}, "values": {}})
+            if label not in s["periods"]:
+                s["periods"].append(label)
+            if not s["labels"]:
+                s["labels"] = json.loads(labels_json)
+            for item_id, val in json.loads(items_json).items():
+                s["values"].setdefault(item_id, {})[label] = val
+        return out
