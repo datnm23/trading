@@ -101,9 +101,14 @@ export default function ScreenerPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h2 className="text-2xl font-black uppercase tracking-wider">
-          {t('screener', lang)}
-        </h2>
+        <div className="flex items-center gap-3 flex-wrap">
+          <h2 className="text-2xl font-black uppercase tracking-wider">
+            {t('screener', lang)}
+          </h2>
+          <NeoBadge status="warning">
+            {lang === 'vi' ? 'THỬ NGHIỆM · CHƯA VALIDATE' : 'EXPERIMENTAL · UNVALIDATED'}
+          </NeoBadge>
+        </div>
         <button
           onClick={fetchData}
           disabled={loading}
@@ -118,7 +123,9 @@ export default function ScreenerPage() {
       <div className="flex items-start gap-3 border-[3px] border-neo-warning bg-neo-warning/10 px-4 py-3">
         <AlertTriangle size={18} className="text-neo-warning mt-0.5 shrink-0" />
         <p className="text-sm font-bold text-neo-text">
-          {disclaimer || 'Chỉ mang tính tham khảo, không phải lời khuyên đầu tư.'}
+          {disclaimer || (lang === 'vi'
+            ? 'Bộ lọc kỹ thuật THỬ NGHIỆM, chưa được validate đầy đủ (chưa loại bỏ survivorship bias, mẫu hạn chế). Chỉ mang tính tham khảo, KHÔNG phải lời khuyên đầu tư.'
+            : 'EXPERIMENTAL technical screener, not yet fully validated (survivorship bias not removed, limited sample). For reference only, NOT investment advice.')}
         </p>
       </div>
 
