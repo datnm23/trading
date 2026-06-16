@@ -8,7 +8,7 @@ Provides:
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 from typing import Dict, List, Optional
 
 import pandas as pd
@@ -49,14 +49,23 @@ class AsOfDataSource(StockDataSource):
     offline. The lag approximation is the documented mitigation.
     """
 
-    def __init__(self, source: StockDataSource, as_of: date) -> None:
+    def __init__(self, source: StockDataSource, as_of: date, lookback_days: int = 500) -> None:
         self._source = source
         self._as_of = as_of
+        self._lookback_days = lookback_days
 
     def get_ohlcv(self, ticker: str, start: str, end: str, interval: str = "1D") -> pd.DataFrame:
+        # Point-in-time window: the screener config uses a FIXED live-oriented
+        # start_date (e.g. 2023-01-01); at a historical as_of that start can be
+        # AFTER as_of → empty slice (the rows=0 bug). Anchor the window to as_of:
+        # fetch [as_of - lookback, as_of] so technical indicators always have
+        # history regardless of the caller's start. Take the earlier start so an
+        # explicitly-earlier caller window is still honoured.
         as_of_str = self._as_of.isoformat()
+        lookback_start = (self._as_of - timedelta(days=self._lookback_days)).isoformat()
+        effective_start = min(start, lookback_start)
         effective_end = min(end, as_of_str)
-        df = self._source.get_ohlcv(ticker, start, effective_end, interval)
+        df = self._source.get_ohlcv(ticker, effective_start, effective_end, interval)
         return clip_ohlcv(df, self._as_of)
 
     def get_financials(self, ticker: str, statement_type: str, period: str = "year"):

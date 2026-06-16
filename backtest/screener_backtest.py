@@ -112,7 +112,13 @@ def run_screener_backtest(
 
     portfolio = _Portfolio(initial_capital=initial_capital, fee_bps=fee_bps)
     current_picks: List[str] = []
-    rb_set = set(rb_dates)
+    # Snap each rebalance date to the first trading day on/after it. Quarter-start
+    # dates often fall on weekends (e.g. 2023-01-01 Sun) and would otherwise never
+    # match the business-day loop → whole quarters silently skipped.
+    _trading_days = sorted({d.date() for d in all_dates})
+    def _snap(d: date):
+        return next((td for td in _trading_days if td >= d), None)
+    rb_set = {s for d in rb_dates if (s := _snap(d)) is not None}
     rb_records: List[RebalanceRecord] = []
     port_values: Dict[pd.Timestamp, float] = {}
 
@@ -128,7 +134,10 @@ def run_screener_backtest(
             if not valid:
                 logger.warning(f"[{cur_date}] No valid prices; keeping prior picks.")
                 valid = current_picks
-            portfolio.rebalance(valid, _get_prices_on_date(all_ohlcv, valid, cur_date))
+            # Price dict must cover BOTH held tickers (to liquidate) and new picks
+            # (to buy) — else rotated-out holdings liquidate at price 0 (phantom loss).
+            rebal_prices = _get_prices_on_date(all_ohlcv, list(set(current_picks) | set(valid)), cur_date)
+            portfolio.rebalance(valid, rebal_prices)
             current_picks = valid
             rb_records.append(RebalanceRecord(as_of=cur_date, picks=valid, scores=scores))
             logger.info(f"[{cur_date}] Rebalanced → {valid}")
