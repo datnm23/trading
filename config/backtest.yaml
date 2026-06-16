@@ -12,10 +12,12 @@ end_date:   "2024-12-31"
 # --- Rebalance frequency ---
 # Supported: "monthly" | "quarterly" | "semiannual" | "annual"
 # Lower frequency = fewer round-trips = less fee drag + less whipsaw.
-# On 2022-2024 VN30: annual gave +20.6pp alpha vs VNINDEX vs -10.2pp for quarterly
-# (quarterly over-trading destroyed the edge). NOTE: only 3 annual rebalances on a
-# single window — promising but NOT yet robust; validate on more windows.
-rebalance_freq: annual
+# NOTE: an earlier "annual = +20.6pp alpha" finding was OVERFIT to the single
+# 2022-2024 window — multi-window sweep showed annual alpha −35%..−54% elsewhere,
+# and the screener backtest has look-ahead bias (see
+# plans/reports/review-screener-edge-validation-260616.md). No robust edge proven.
+# Default kept at quarterly (neutral) until point-in-time fundamentals are fixed.
+rebalance_freq: quarterly
 
 # --- Transaction costs (VN stock market) ---
 # VN brokerage fee: ~0.15% buy + 0.15% sell = 0.30% round-trip (conservative).
