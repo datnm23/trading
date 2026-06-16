@@ -219,24 +219,23 @@ def build_equal_weight_curve(
     return combined / combined.iloc[0]
 
 
+_FREQ_MONTHS = {"monthly": 1, "quarterly": 3, "semiannual": 6, "annual": 12}
+
+
 def rebalance_dates(start: date, end: date, freq: str) -> List[date]:
     """Generate rebalance date list within [start, end].
 
-    freq: 'monthly'   → 1st of each month
-          'quarterly' → 1st of Jan/Apr/Jul/Oct
+    freq: monthly (1m) | quarterly (3m) | semiannual (6m) | annual (12m).
+    Lower frequency = fewer round-trips = less fee drag.
     """
+    step = _FREQ_MONTHS.get(freq)
+    if step is None:
+        raise ValueError(f"Unknown rebalance_freq: {freq!r}. Use {list(_FREQ_MONTHS)}.")
     result: List[date] = []
     current = start
     while current <= end:
         result.append(current)
-        if freq == "monthly":
-            m = current.month + 1
-            y = current.year + (m - 1) // 12
-            current = date(y, ((m - 1) % 12) + 1, 1)
-        elif freq == "quarterly":
-            m = current.month + 3
-            y = current.year + (m - 1) // 12
-            current = date(y, ((m - 1) % 12) + 1, 1)
-        else:
-            raise ValueError(f"Unknown rebalance_freq: {freq!r}. Use 'monthly' or 'quarterly'.")
+        m = current.month + step
+        y = current.year + (m - 1) // 12
+        current = date(y, ((m - 1) % 12) + 1, 1)
     return result
