@@ -141,7 +141,7 @@ def create_app(stock_service: Optional[StockService] = None) -> FastAPI:
 
 def _build_default_service() -> StockService:
     """Construct default production service — called lazily on first request."""
-    from data.vn import VnstockSource, CachedDataSource
+    from data.vn import build_default_source
     from config import system  # noqa: F401 — reads cache_dir from config
 
     try:
@@ -152,8 +152,8 @@ def _build_default_service() -> StockService:
     except Exception:
         cache_dir = "./data/cache"
 
-    source = CachedDataSource(VnstockSource(), cache_dir=cache_dir)
-    logger.info(f"Default StockService built with cache_dir={cache_dir}")
+    source = build_default_source(cache_dir=cache_dir)
+    logger.info(f"Default StockService built (DNSE OHLCV + vnstock fundamentals), cache_dir={cache_dir}")
     return StockService(source)
 
 

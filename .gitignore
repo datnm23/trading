@@ -38,6 +38,9 @@ data/*.pkl
 data/*.h5
 data/*.hdf5
 !data/.gitkeep
+# VN data caches (parquet OHLCV + sqlite metadata) — regenerable, never commit
+data/vn_cache/
+data/vn_cache_dnse/
 
 # Logs
 *.log
