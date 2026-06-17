@@ -149,7 +149,6 @@ def create_app(stock_service: Optional[StockService] = None) -> FastAPI:
 def _build_default_service() -> StockService:
     """Construct default production service — called lazily on first request."""
     from data.vn import build_default_source
-    from config import system  # noqa: F401 — reads cache_dir from config
 
     try:
         import yaml

@@ -100,9 +100,13 @@ export default function StockDetailPage() {
   // ── render states ─────────────────────────────────────────────────────────
 
   if (loading && !stock) {
+    // BCTC reads from the fast DB — show it without waiting on slow live price/valuation.
     return (
-      <div className="flex items-center justify-center py-24 text-neo-muted font-bold animate-pulse text-xl uppercase">
-        {t('loading', lang)}
+      <div className="space-y-6">
+        <div className="flex items-center justify-center py-12 text-neo-muted font-bold animate-pulse text-xl uppercase">
+          {t('loading', lang)} — {ticker}
+        </div>
+        <FinancialStatements ticker={ticker} />
       </div>
     );
   }
@@ -118,6 +122,7 @@ export default function StockDetailPage() {
             {t('error', lang)}: {error}
           </div>
         </NeoCard>
+        <FinancialStatements ticker={ticker} />
       </div>
     );
   }
