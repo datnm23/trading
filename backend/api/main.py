@@ -147,19 +147,23 @@ def create_app(stock_service: Optional[StockService] = None) -> FastAPI:
 
 
 def _build_default_service() -> StockService:
-    """Construct default production service — called lazily on first request."""
-    from data.vn import build_default_source
+    """Construct default production service — called lazily on first request.
+
+    Uses the advisory source: DNSE prices + DB fundamentals (no live vnstock at
+    request time), eliminating the slow stock-detail load and the valuation 500.
+    """
+    from data.vn import build_advisory_source
 
     try:
         import yaml
         with open("config/system.yaml") as f:
             sys_cfg = yaml.safe_load(f) or {}
-        cache_dir = sys_cfg.get("cache_dir", "./data/cache")
+        cache_dir = sys_cfg.get("cache_dir", "./data/vn_cache")
     except Exception:
-        cache_dir = "./data/cache"
+        cache_dir = "./data/vn_cache"
 
-    source = build_default_source(cache_dir=cache_dir)
-    logger.info(f"Default StockService built (DNSE OHLCV + vnstock fundamentals), cache_dir={cache_dir}")
+    source = build_advisory_source(cache_dir=cache_dir)
+    logger.info(f"Advisory StockService built (DNSE prices + DB fundamentals), cache_dir={cache_dir}")
     return StockService(source)
 
 

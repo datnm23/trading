@@ -10,22 +10,26 @@ Public API:
 
 from data.vn.base import StockDataSource
 from data.vn.cache import CachedDataSource
+from data.vn.db_fundamentals_source import DbFundamentalsSource
 from data.vn.dnse_source import DnseSource
 from data.vn.models import CompanyInfo, FinancialStatement, Ratios
-from data.vn.source_factory import build_default_source
-from data.vn.universe import get_universe, get_vn30, is_bank
+from data.vn.source_factory import build_advisory_source, build_default_source
+from data.vn.universe import get_company_meta, get_universe, get_vn30, is_bank
 from data.vn.vnstock_source import VnstockSource
 
 __all__ = [
     "StockDataSource",
     "VnstockSource",
     "DnseSource",
+    "DbFundamentalsSource",
     "CachedDataSource",
     "build_default_source",
+    "build_advisory_source",
     "FinancialStatement",
     "Ratios",
     "CompanyInfo",
     "get_universe",
     "get_vn30",
+    "get_company_meta",
     "is_bank",
 ]

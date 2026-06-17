@@ -32,6 +32,42 @@ _REGISTRY: Dict[str, List[str]] = {
     "VN30": _VN30,
 }
 
+# Static VN30 company metadata: ticker -> (short_name, sector).
+# Used for display + relative-valuation peer grouping WITHOUT live vnstock calls
+# (which rate-limit/hard-terminate). Names/sectors are stable for VN30.
+_VN30_META: Dict[str, tuple] = {
+    "ACB": ("Ngân hàng Á Châu", "Ngân hàng"),
+    "BID": ("BIDV", "Ngân hàng"),
+    "BSR": ("Lọc hóa dầu Bình Sơn", "Dầu khí"),
+    "CTG": ("VietinBank", "Ngân hàng"),
+    "FPT": ("Tập đoàn FPT", "Công nghệ"),
+    "GAS": ("PV GAS", "Dầu khí"),
+    "GVR": ("Cao su Việt Nam", "Cao su"),
+    "HDB": ("HDBank", "Ngân hàng"),
+    "HPG": ("Hòa Phát", "Thép"),
+    "LPB": ("LPBank", "Ngân hàng"),
+    "MBB": ("MB Bank", "Ngân hàng"),
+    "MSN": ("Masan Group", "Tiêu dùng - Bán lẻ"),
+    "MWG": ("Thế Giới Di Động", "Bán lẻ"),
+    "PLX": ("Petrolimex", "Dầu khí"),
+    "SAB": ("Sabeco", "Đồ uống"),
+    "SHB": ("Ngân hàng SHB", "Ngân hàng"),
+    "SSB": ("SeABank", "Ngân hàng"),
+    "SSI": ("Chứng khoán SSI", "Chứng khoán"),
+    "STB": ("Sacombank", "Ngân hàng"),
+    "TCB": ("Techcombank", "Ngân hàng"),
+    "TPB": ("TPBank", "Ngân hàng"),
+    "VCB": ("Vietcombank", "Ngân hàng"),
+    "VHM": ("Vinhomes", "Bất động sản"),
+    "VIB": ("Ngân hàng VIB", "Ngân hàng"),
+    "VIC": ("Vingroup", "Bất động sản - Đa ngành"),
+    "VJC": ("Vietjet Air", "Hàng không"),
+    "VNM": ("Vinamilk", "Thực phẩm"),
+    "VPB": ("VPBank", "Ngân hàng"),
+    "VPL": ("Vinpearl", "Du lịch - Nghỉ dưỡng"),
+    "VRE": ("Vincom Retail", "Bất động sản bán lẻ"),
+}
+
 
 def get_universe(name: str, config_override: Optional[Dict] = None) -> List[str]:
     """Return list of tickers for the named universe.
@@ -71,3 +107,12 @@ def is_bank(ticker: str) -> bool:
 def get_vn30() -> List[str]:
     """Convenience shortcut for get_universe('VN30')."""
     return get_universe("VN30")
+
+
+def get_company_meta(ticker: str) -> tuple:
+    """Return (short_name, sector) for a VN30 ticker from static metadata.
+
+    Falls back to (ticker, "") for unknown tickers. Static lookup — no live
+    vnstock call (those rate-limit / hard-terminate the process).
+    """
+    return _VN30_META.get(ticker.upper(), (ticker.upper(), ""))
