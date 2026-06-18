@@ -8,10 +8,11 @@ import { NeoMetric } from '@/components/ui/NeoMetric';
 import { t } from '@/lib/i18n';
 import {
   getMarketOverview,
-  getScreener,
+  getSignals,
   type MarketOverviewResponse,
-  type ScreenerResponse,
+  type SignalsResponse,
 } from '@/lib/api';
+import { SignalBadge } from '@/components/stock/SignalBadge';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -34,7 +35,7 @@ function fmtPoints(val: number): string {
 export default function OverviewPage() {
   const { lang } = useLang();
   const [overview, setOverview] = useState<MarketOverviewResponse | null>(null);
-  const [screener, setScreener] = useState<ScreenerResponse | null>(null);
+  const [signals, setSignals] = useState<SignalsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,10 +45,10 @@ export default function OverviewPage() {
       setLoading(true);
       setError(null);
       try {
-        const [ov, sc] = await Promise.all([getMarketOverview(), getScreener()]);
+        const [ov, sg] = await Promise.all([getMarketOverview(), getSignals()]);
         if (!cancelled) {
           setOverview(ov);
-          setScreener(sc);
+          setSignals(sg);
         }
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : t('error', lang));
@@ -71,8 +72,8 @@ export default function OverviewPage() {
     .sort((a, b) => (a.change_pct ?? 0) - (b.change_pct ?? 0))
     .slice(0, 5);
 
-  // Top 5 screener picks
-  const topPicks = (screener?.items ?? []).slice(0, 5);
+  // Top 5 signals sorted by score desc (backend already sorts, but guard)
+  const topSignals = (signals?.items ?? []).slice(0, 5);
 
   if (loading) {
     return (
@@ -188,9 +189,9 @@ export default function OverviewPage() {
         </NeoCard>
       </div>
 
-      {/* Top screener picks */}
-      <NeoCard title={t('topScreener', lang)}>
-        {topPicks.length === 0 ? (
+      {/* Top unified signals */}
+      <NeoCard title={t('topSignals', lang)}>
+        {topSignals.length === 0 ? (
           <p className="text-neo-muted text-center py-4">{t('noData', lang)}</p>
         ) : (
           <table className="neo-table w-full">
@@ -198,25 +199,29 @@ export default function OverviewPage() {
               <tr>
                 <th>#</th>
                 <th>{t('ticker', lang)}</th>
-                <th>{t('score', lang)}</th>
+                <th>{t('signalAction', lang)}</th>
+                <th>{t('signalScore', lang)}</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
-              {topPicks.map((item) => (
+              {topSignals.map((item, idx) => (
                 <tr key={item.ticker}>
-                  <td className="font-mono text-neo-muted">{item.rank}</td>
+                  <td className="font-mono text-neo-muted">{idx + 1}</td>
                   <td className="font-black">{item.ticker}</td>
+                  <td>
+                    <SignalBadge action={item.action} />
+                  </td>
                   <td
                     className={`font-mono font-bold ${
-                      item.score >= 0.7
+                      item.score >= 60
                         ? 'text-neo-bullish'
-                        : item.score <= 0.3
+                        : item.score <= 30
                           ? 'text-neo-bearish'
                           : 'text-neo-warning'
                     }`}
                   >
-                    {(item.score * 100).toFixed(1)}%
+                    {item.score.toFixed(1)}
                   </td>
                   <td>
                     <Link

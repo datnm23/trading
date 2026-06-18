@@ -20,6 +20,14 @@ from data.vn.models import CompanyInfo
 # Criteria that are structurally inapplicable for banks
 _BANK_NA_CRITERIA = frozenset({"F5_leverage_decreasing", "F8_gross_margin_improving"})
 
+# Altman Z′ was calibrated on manufacturers; it mislabels asset-light / holding /
+# financial / real-estate firms as "distress" (e.g. VIC Z'=0.47, VHM 0.95). Only
+# apply it to sectors where it is meaningful. Sector strings come from
+# data.vn.universe.get_company_meta. Banks are excluded separately (is_bank).
+_Z_APPLICABLE_SECTORS = frozenset({
+    "Thép", "Dầu khí", "Cao su", "Thực phẩm", "Đồ uống", "Bán lẻ", "Tiêu dùng - Bán lẻ",
+})
+
 
 @dataclass
 class QualityResult:
@@ -163,6 +171,7 @@ def run_quality(
         company = src.get_company(ticker)
 
     is_bank = company.is_bank if company else False
+    sector = company.sector if company else ""
 
     bs = src.get_financials(ticker, "balance_sheet", period="year")
     inc = src.get_financials(ticker, "income_statement", period="year")
@@ -182,7 +191,7 @@ def run_quality(
     passed_applicable = sum(f_details[k] for k in applicable_keys)
     f_score_pct = passed_applicable / f_score_applicable if f_score_applicable > 0 else None
 
-    z_applicable = not is_bank
+    z_applicable = (not is_bank) and (sector in _Z_APPLICABLE_SECTORS)
     z_score: Optional[float] = None
 
     if is_bank:
@@ -198,8 +207,10 @@ def run_quality(
         liab = _lv(bs.items, "liabilities")
         z_score = _altman_z(bs.items, inc.items, liab)
         notes.append(f"Altman Z': {z_score:.2f}" if z_score is not None else "Thiếu dữ liệu BS để tính Altman Z")
+    elif is_bank:
+        notes.append("Ngân hàng: Altman Z không áp dụng")
     else:
-        notes.append("Bank: Altman Z-score không áp dụng")
+        notes.append(f"Altman Z không áp dụng cho ngành {sector or 'này'} (chỉ phù hợp DN sản xuất)")
 
     logger.debug(f"{ticker}: F-score={f_total}/{f_score_applicable} ({f_score_pct:.0%}), Z={z_score} ({_z_interp(z_score, z_applicable)})")
     return QualityResult(

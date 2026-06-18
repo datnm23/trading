@@ -5,15 +5,17 @@ import Link from 'next/link';
 import { useLang } from '@/components/layout/LangProvider';
 import { NeoCard } from '@/components/ui/NeoCard';
 import { NeoMetric } from '@/components/ui/NeoMetric';
-import { NeoBadge } from '@/components/ui/NeoBadge';
 import { t } from '@/lib/i18n';
 import {
   getStock,
   getValuation,
+  getSignal,
   type StockDetail,
   type ValuationResponse,
+  type SignalItem,
 } from '@/lib/api';
-import { TrendingUp, TrendingDown, Minus, AlertTriangle, X } from 'lucide-react';
+import { SignalBadge } from '@/components/stock/SignalBadge';
+import { AlertTriangle, X } from 'lucide-react';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -32,35 +34,28 @@ function fmtNum(val: number | null, dec = 2): string {
   return val.toFixed(dec);
 }
 
-function recoStatus(reco: string): 'running' | 'halted' | 'paper' {
-  if (reco === 'BUY') return 'running';
-  if (reco === 'SELL') return 'halted';
-  return 'paper';
-}
-
-function RecoIcon({ reco }: { reco: string }) {
-  if (reco === 'BUY') return <TrendingUp size={13} className="inline mr-1 text-neo-bullish" />;
-  if (reco === 'SELL') return <TrendingDown size={13} className="inline mr-1 text-neo-bearish" />;
-  return <Minus size={13} className="inline mr-1 text-neo-muted" />;
-}
-
 // ── types ─────────────────────────────────────────────────────────────────────
 
 interface StockData {
   ticker: string;
   stock: StockDetail | null;
   valuation: ValuationResponse | null;
+  signal: SignalItem | null;
   loading: boolean;
   error: string | null;
 }
 
 const DEFAULT_TICKERS = ['FPT', 'VCB'];
 
+/** Blank StockData for initial/loading state */
+function emptyStockData(ticker: string, loading = true): StockData {
+  return { ticker, stock: null, valuation: null, signal: null, loading, error: null };
+}
+
 // ── sub-components ────────────────────────────────────────────────────────────
 
 function StockColumn({ data, lang }: { data: StockData; lang: 'vi' | 'en' }) {
-  const { ticker, stock, valuation, loading, error } = data;
-  const reco = valuation?.recommendation ?? '—';
+  const { ticker, stock, valuation, signal, loading, error } = data;
 
   return (
     <div className="min-w-[180px] flex-1">
@@ -87,6 +82,21 @@ function StockColumn({ data, lang }: { data: StockData; lang: 'vi' | 'en' }) {
 
       {!loading && !error && stock && (
         <div className="space-y-3">
+          {/* Unified signal — source-of-truth, shown first */}
+          <NeoMetric
+            label={t('signalAction', lang)}
+            value={signal ? <SignalBadge action={signal.action} /> : <span className="text-neo-muted">—</span>}
+            variant="neutral"
+          />
+          <NeoMetric
+            label={t('signalScore', lang)}
+            value={signal != null ? `${signal.score.toFixed(1)}/100` : '—'}
+            variant={
+              signal != null
+                ? signal.score >= 60 ? 'bullish' : signal.score <= 30 ? 'bearish' : 'neutral'
+                : 'neutral'
+            }
+          />
           <NeoMetric
             label={t('price', lang)}
             value={fmtVND(stock.price.current_price)}
@@ -142,27 +152,6 @@ function StockColumn({ data, lang }: { data: StockData; lang: 'vi' | 'en' }) {
           {valuation && (
             <>
               <NeoMetric
-                label={t('recommendation', lang)}
-                value={
-                  <NeoBadge status={recoStatus(reco)}>
-                    <RecoIcon reco={reco} />
-                    {reco}
-                  </NeoBadge>
-                }
-                variant="neutral"
-              />
-              <NeoMetric
-                label={t('score', lang)}
-                value={`${valuation.score}/100`}
-                variant={
-                  valuation.score >= 60
-                    ? 'bullish'
-                    : valuation.score >= 40
-                      ? 'neutral'
-                      : 'bearish'
-                }
-              />
-              <NeoMetric
                 label={t('upside', lang)}
                 value={
                   valuation.upside_pct !== null
@@ -198,21 +187,25 @@ export default function ComparePage() {
   const [tickers, setTickers] = useState<string[]>(DEFAULT_TICKERS);
   const [dataMap, setDataMap] = useState<Record<string, StockData>>({});
 
-  // Fetch a single ticker and update dataMap
+  // Fetch a single ticker (stock + valuation + signal) and update dataMap
   async function fetchTicker(ticker: string) {
     const upper = ticker.toUpperCase().trim();
     if (!upper) return;
 
     setDataMap((prev) => ({
       ...prev,
-      [upper]: { ticker: upper, stock: null, valuation: null, loading: true, error: null },
+      [upper]: emptyStockData(upper),
     }));
 
     try {
-      const [stock, valuation] = await Promise.all([getStock(upper), getValuation(upper)]);
+      const [stock, valuation, signal] = await Promise.all([
+        getStock(upper),
+        getValuation(upper),
+        getSignal(upper),
+      ]);
       setDataMap((prev) => ({
         ...prev,
-        [upper]: { ticker: upper, stock, valuation, loading: false, error: null },
+        [upper]: { ticker: upper, stock, valuation, signal, loading: false, error: null },
       }));
     } catch (e) {
       setDataMap((prev) => ({
@@ -221,6 +214,7 @@ export default function ComparePage() {
           ticker: upper,
           stock: null,
           valuation: null,
+          signal: null,
           loading: false,
           error: e instanceof Error ? e.message : t('error', lang),
         },
@@ -250,10 +244,7 @@ export default function ComparePage() {
     });
   }
 
-  const columns = tickers.map(
-    (tk) =>
-      dataMap[tk] ?? { ticker: tk, stock: null, valuation: null, loading: true, error: null },
-  );
+  const columns = tickers.map((tk) => dataMap[tk] ?? emptyStockData(tk));
 
   return (
     <div className="space-y-6">

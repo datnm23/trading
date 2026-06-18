@@ -43,6 +43,7 @@ class ValuationResult:
     f_score_pct: Optional[float]           # passed / applicable — 0..1, normalized fraction
     z_score: Optional[float]
     dcf_applicable: bool
+    reliable: bool = True          # False when no DCF/relative value → no trustworthy target
     reasons: list[str] = field(default_factory=list)
     disclaimer: str = "Chỉ mang tính tham khảo, không phải lời khuyên đầu tư."
     sensitivity: dict = field(default_factory=dict)
@@ -170,8 +171,17 @@ def recommend(
     # Use normalized fraction (passed / applicable) so banks are not penalised for
     # structurally missing criteria (F5, F8) that are inapplicable to the sector.
     score = _blend_score(up_comp, _f_component(quality.f_score_pct), z_comp, cfg.get("score", {}))
-    reco = _recommendation(upside, buy_t, sell_t)
+
+    # Reliability: with no DCF intrinsic AND no relative implied value, there is no
+    # trustworthy fair value — don't fabricate a SELL/BUY. Surface INSUFFICIENT.
+    reliable = target is not None
+    if reliable:
+        reco = _recommendation(upside, buy_t, sell_t)
+    else:
+        reco = "INSUFFICIENT"
     reasons = _build_reasons(dcf, rel, quality, target, upside, current_price)
+    if not reliable:
+        reasons.insert(0, "Thiếu định giá tin cậy (không đủ peer cùng ngành & DCF không áp dụng) — chưa khuyến nghị")
 
     logger.info(
         f"{ticker}: {reco} score={score} target={target and target/1000:.1f}k "
@@ -185,6 +195,6 @@ def recommend(
         f_score_applicable=quality.f_score_applicable,
         f_score_pct=quality.f_score_pct,
         z_score=quality.z_score,
-        dcf_applicable=dcf.dcf_applicable, reasons=reasons,
+        dcf_applicable=dcf.dcf_applicable, reliable=reliable, reasons=reasons,
         disclaimer=disclaimer, sensitivity=dcf.sensitivity,
     )

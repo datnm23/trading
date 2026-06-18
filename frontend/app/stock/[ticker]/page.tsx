@@ -12,13 +12,14 @@ import { t } from '@/lib/i18n';
 import {
   getStock,
   getValuation,
+  getSignal,
   type StockDetail,
   type ValuationResponse,
+  type SignalItem,
   type PeriodType,
 } from '@/lib/api';
+import { SignalBadge } from '@/components/stock/SignalBadge';
 import {
-  TrendingUp,
-  TrendingDown,
   Minus,
   AlertTriangle,
   CheckCircle,
@@ -43,16 +44,10 @@ function fmtNum(value: number | null, decimals = 2): string {
   return value.toFixed(decimals);
 }
 
-function recoVariant(reco: string): 'bullish' | 'bearish' | 'neutral' {
-  if (reco === 'BUY') return 'bullish';
-  if (reco === 'SELL') return 'bearish';
+function actionToVariant(action: string): 'bullish' | 'bearish' | 'neutral' {
+  if (action === 'BUY') return 'bullish';
+  if (action === 'SELL') return 'bearish';
   return 'neutral';
-}
-
-function RecoIcon({ reco }: { reco: string }) {
-  if (reco === 'BUY') return <TrendingUp size={16} className="inline mr-1 text-neo-bullish" />;
-  if (reco === 'SELL') return <TrendingDown size={16} className="inline mr-1 text-neo-bearish" />;
-  return <Minus size={16} className="inline mr-1 text-neo-muted" />;
 }
 
 // Simple bar: score rendered as a progress bar (valuation score is 0-100)
@@ -75,6 +70,7 @@ export default function StockDetailPage() {
 
   const [stock, setStock] = useState<StockDetail | null>(null);
   const [valuation, setValuation] = useState<ValuationResponse | null>(null);
+  const [signal, setSignal] = useState<SignalItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // BCTC period lives here so the year/quarter choice survives the loading→loaded
@@ -86,12 +82,14 @@ export default function StockDetailPage() {
     setLoading(true);
     setError(null);
     try {
-      const [stockData, valData] = await Promise.all([
+      const [stockData, valData, sigData] = await Promise.all([
         getStock(ticker),
         getValuation(ticker),
+        getSignal(ticker),
       ]);
       setStock(stockData);
       setValuation(valData);
+      setSignal(sigData);
     } catch (e) {
       setError(e instanceof Error ? e.message : t('error', lang));
     } finally {
@@ -136,8 +134,9 @@ export default function StockDetailPage() {
     valuation?.disclaimer ??
     'Chỉ mang tính tham khảo, không phải lời khuyên đầu tư.';
 
-  const reco = valuation?.recommendation ?? 'HOLD';
-  const variant = recoVariant(reco);
+  // Unified signal is source-of-truth for action; valuation is supplementary
+  const signalAction = signal?.action ?? 'HOLD';
+  const variant = actionToVariant(signalAction);
   const upside = valuation?.upside_pct ?? null;
 
   return (
@@ -203,9 +202,61 @@ export default function StockDetailPage() {
         </div>
       )}
 
-      {/* Valuation + Recommendation */}
+      {/* Unified signal card — source-of-truth */}
+      {signal && (
+        <NeoCard title={t('signalAction', lang)}>
+          <div className="flex items-center gap-6 flex-wrap mb-4">
+            <div>
+              <div className="text-xs font-bold uppercase tracking-wider text-neo-muted mb-1">
+                {t('signalAction', lang)}
+              </div>
+              <SignalBadge action={signal.action} className="text-base px-4 py-1" />
+            </div>
+            <NeoMetric
+              label={t('signalScore', lang)}
+              value={`${signal.score.toFixed(1)}/100`}
+              variant={variant}
+            />
+            {signal.current_price != null && (
+              <NeoMetric
+                label={t('price', lang)}
+                value={fmtVND(signal.current_price)}
+                variant="neutral"
+              />
+            )}
+            {signal.target_price != null && (
+              <NeoMetric
+                label={t('targetPrice', lang)}
+                value={fmtVND(signal.target_price)}
+                variant={variant}
+              />
+            )}
+          </div>
+          {/* Score bar */}
+          <div className="mb-4 space-y-1">
+            <div className="flex justify-between text-xs font-mono text-neo-muted">
+              <span>{t('signalScore', lang)}</span>
+              <span>{signal.score.toFixed(1)}/100</span>
+            </div>
+            <ScoreBar score={signal.score} max={100} />
+          </div>
+          {/* Signal reasons */}
+          {signal.reasons.length > 0 && (
+            <p className="text-sm font-mono text-neo-text">{signal.reasons[0]}</p>
+          )}
+          {signal.action === 'INSUFFICIENT' && (
+            <p className="text-xs font-bold text-neo-warning mt-2">
+              {lang === 'vi'
+                ? 'Thiếu định giá tin cậy — chưa đủ cơ sở khuyến nghị.'
+                : 'Insufficient reliable valuation — recommendation pending.'}
+            </p>
+          )}
+        </NeoCard>
+      )}
+
+      {/* Valuation + Supplementary details */}
       {valuation && (
-        <NeoCard title="Định giá & Khuyến nghị">
+        <NeoCard title="Định giá & Khuyến nghị (bổ trợ)">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
             <NeoMetric
               label="Giá hiện tại"
@@ -223,31 +274,10 @@ export default function StockDetailPage() {
               variant={upside != null && upside >= 0 ? 'bullish' : 'bearish'}
             />
             <NeoMetric
-              label="Score"
+              label="Valuation Score"
               value={`${valuation.score}/100`}
               variant={variant}
             />
-          </div>
-
-          {/* Score bar */}
-          <div className="mb-4 space-y-1">
-            <div className="flex justify-between text-xs font-mono text-neo-muted">
-              <span>Composite Score</span>
-              <span>{valuation.score}/100</span>
-            </div>
-            <ScoreBar score={valuation.score} max={100} />
-          </div>
-
-          {/* Recommendation badge */}
-          <div className="flex items-center gap-4 mb-6">
-            <span className="text-sm font-bold uppercase tracking-wider text-neo-muted">Recommendation</span>
-            <NeoBadge
-              status={reco === 'BUY' ? 'running' : reco === 'SELL' ? 'halted' : 'paper'}
-              className="text-base px-4 py-1"
-            >
-              <RecoIcon reco={reco} />
-              {reco}
-            </NeoBadge>
           </div>
 
           {/* Extra valuation fields */}

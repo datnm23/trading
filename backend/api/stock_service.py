@@ -31,13 +31,31 @@ from backend.api.models import (
     PriceSummary,
     RecommendationRead,
     ScreenerItem,
+    SignalItem,
+    SignalsResponse,
     StockDetail,
     ValuationResponse,
     WikiResult,
     WikiSearchResponse,
 )
 
-_SCREENER_CONFIG = str(Path(__file__).parent.parent.parent / "config" / "screener.yaml")
+import time as _time
+import threading
+
+# Unified-signal thresholds (tunable). Technical = screener score (0-100, min-max
+# normalized across VN30); Value = valuation upside fraction.
+_SIGNAL_CFG = {
+    "tech_good": 60.0,      # tech score ≥ → TỐT
+    "tech_bad": 35.0,       # tech score ≤ → XẤU
+    "buy_upside": 0.10,     # upside ≥ +10% → RẺ
+    "sell_upside": -0.10,   # upside ≤ −10% → ĐẮT
+    "tech_weight": 0.5,     # display-score blend when valuation reliable
+    "signals_ttl": 3600,    # cache full VN30 signals 1h (batch build is heavy)
+}
+
+# Technical-only screener (point-in-time, validated in backtest). The FA variant
+# (config/screener.yaml) uses ~4 recent BCTC periods → look-ahead bias, invalid.
+_SCREENER_CONFIG = str(Path(__file__).parent.parent.parent / "config" / "screener-technical.yaml")
 
 
 class StockService:
@@ -49,6 +67,8 @@ class StockService:
         self._fin_store: Optional[FinancialsStore] = None
         self._journal: Optional[RecommendationLogger] = None
         self._wiki = None  # WikiRAG, lazy (index load is heavy)
+        self._signals_cache: Optional[tuple] = None  # (built_at, List[SignalItem])
+        self._signals_lock = threading.Lock()  # serialize batch build (no stampede)
 
     def _get_fin_store(self) -> FinancialsStore:
         if self._fin_store is None:
@@ -133,7 +153,6 @@ class StockService:
         """Run full valuation pipeline → ValuationResponse."""
         try:
             result: ValuationResult = recommend(ticker=ticker, src=self.source)
-            self._log_recommendation(result)
             return ValuationResponse(
                 ticker=result.ticker,
                 current_price=result.current_price,
@@ -146,6 +165,7 @@ class StockService:
                 f_score_applicable=result.f_score_applicable,
                 z_score=result.z_score,
                 dcf_applicable=result.dcf_applicable,
+                reliable=result.reliable,
                 reasons=result.reasons,
                 disclaimer=result.disclaimer,
             )
@@ -153,27 +173,28 @@ class StockService:
             logger.error(f"[{ticker}] get_valuation failed: {exc}")
             return None
 
-    def _log_recommendation(self, result: ValuationResult) -> None:
-        """Persist a valuation to the recommendation journal, once per ticker/day.
+    def _log_signal(self, item: SignalItem) -> None:
+        """Persist the UNIFIED signal to the journal, once per ticker/day.
 
-        Best-effort: a journal failure must never break the valuation response.
+        Logs the matrix action (BUY/SELL/HOLD/INSUFFICIENT) — the single source of
+        truth — not the raw valuation reco. Best-effort: never breaks the response.
         """
         try:
             jnl = self._get_journal()
             today = date.today().isoformat()
-            recent = jnl.get_recommendations(ticker=result.ticker, limit=1)
+            recent = jnl.get_recommendations(ticker=item.ticker, limit=1)
             if recent and str(recent[0].get("date")) == today:
                 return  # already logged today
             jnl.log_recommendation(
-                result.ticker, today, result.recommendation,
-                target_price=result.target_price,
-                current_price=result.current_price,
-                score=result.score,
-                upside_pct=result.upside_pct,
-                reasons=result.reasons,
+                item.ticker, today, item.action,
+                target_price=item.target_price,
+                current_price=item.current_price,
+                score=int(round(item.score)),
+                upside_pct=item.val_upside,
+                reasons=item.reasons,
             )
         except Exception as exc:  # noqa: BLE001 — journaling is non-critical
-            logger.warning(f"[{result.ticker}] journal log skipped: {exc}")
+            logger.warning(f"[{item.ticker}] journal log skipped: {exc}")
 
     def get_recommendations(self, ticker: Optional[str] = None, limit: int = 100) -> List[RecommendationRead]:
         """Read the recommendation journal, newest first."""
@@ -222,6 +243,98 @@ class StockService:
         except Exception as exc:
             logger.error(f"wiki search failed for {query!r}: {exc}")
             return WikiSearchResponse(query=query, results=[], count=0)
+
+    # ------------------------------------------------------------------
+    # Unified signal — technical (screener) × value (valuation) decision matrix
+    # ------------------------------------------------------------------
+    def _decide(self, tech_score: Optional[float], upside: Optional[float], reliable: bool) -> str:
+        """2-axis decision matrix → BUY | SELL | HOLD | INSUFFICIENT."""
+        cfg = _SIGNAL_CFG
+        tech_good = tech_score is not None and tech_score >= cfg["tech_good"]
+        tech_bad = tech_score is not None and tech_score <= cfg["tech_bad"]
+        if not reliable or upside is None:
+            # No trustworthy value: never fabricate BUY/SELL.
+            return "HOLD" if tech_good else "INSUFFICIENT"
+        val_cheap = upside >= cfg["buy_upside"]
+        val_rich = upside <= cfg["sell_upside"]
+        if tech_good and val_cheap:
+            return "BUY"
+        if tech_bad and val_rich:
+            return "SELL"
+        return "HOLD"
+
+    def _display_score(self, tech_score: Optional[float], upside: Optional[float], reliable: bool) -> float:
+        """0-100 ranking score: blend tech + value when reliable, else tech only."""
+        tech = tech_score if tech_score is not None else 0.0
+        if not reliable or upside is None:
+            return round(tech, 1)
+        # Map upside [-0.30, +0.30] → [0, 100], clamped.
+        val_norm = max(0.0, min(100.0, (upside + 0.30) / 0.60 * 100.0))
+        w = _SIGNAL_CFG["tech_weight"]
+        return round(w * tech + (1 - w) * val_norm, 1)
+
+    def _build_signals(self) -> List[SignalItem]:
+        """Build unified signals for the whole VN30 (one screener run + per-ticker valuation)."""
+        tech_scores: dict = {}
+        try:
+            for w in self._get_screener().screen(get_vn30()):
+                tech_scores[w.ticker] = w.score
+        except Exception as exc:
+            logger.error(f"signal: screener run failed: {exc}")
+
+        items: List[SignalItem] = []
+        for t in get_vn30():
+            name, sector = get_company_meta(t)
+            tech = tech_scores.get(t)
+            val = self.get_valuation(t)  # cached OHLCV/financials; logs journal once/day
+            upside = val.upside_pct if val else None
+            reliable = bool(val.reliable) if val else False
+            action = self._decide(tech, upside, reliable)
+            items.append(SignalItem(
+                ticker=t, name=name, sector=sector,
+                action=action,
+                score=self._display_score(tech, upside, reliable),
+                tech_score=round(tech, 1) if tech is not None else None,
+                val_upside=upside, reliable=reliable,
+                current_price=val.current_price if val else None,
+                target_price=val.target_price if val else None,
+                reasons=(val.reasons[:3] if val else []),
+            ))
+            self._log_signal(items[-1])
+        items.sort(key=lambda x: x.score, reverse=True)
+        return items
+
+    def get_signals(self) -> List[SignalItem]:
+        """Cached unified signals for VN30 (TTL). Single source of truth for all pages.
+
+        Build is serialized by a lock (no cache stampede); routes calling this run in
+        the threadpool (plain `def` handlers) so the event loop never blocks on the
+        ~30-ticker build. Returns a copy so callers can't mutate the shared cache.
+        """
+        ttl = _SIGNAL_CFG["signals_ttl"]
+        cache = self._signals_cache
+        if cache and (_time.time() - cache[0]) < ttl:
+            return list(cache[1])
+        with self._signals_lock:
+            cache = self._signals_cache  # re-check: another thread may have built it
+            if cache and (_time.time() - cache[0]) < ttl:
+                return list(cache[1])
+            items = self._build_signals()
+            # Don't cache a degraded build (screener produced no tech scores) — a
+            # transient data hiccup shouldn't poison the cache for the full TTL.
+            if any(it.tech_score is not None for it in items):
+                self._signals_cache = (_time.time(), items)
+            else:
+                self._signals_cache = None
+            return list(items)
+
+    def get_signal(self, ticker: str) -> Optional[SignalItem]:
+        """Single ticker signal — read from the cached VN30 batch (keeps pages consistent)."""
+        ticker = ticker.upper()
+        for it in self.get_signals():
+            if it.ticker == ticker:
+                return it
+        return None
 
     def get_market_overview(self) -> MarketOverviewResponse:
         """VN-Index summary + VN30 price/%change table (DNSE closes, cached)."""

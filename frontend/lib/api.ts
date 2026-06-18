@@ -153,7 +153,7 @@ export interface RecommendationItem {
   id: number;
   ticker: string;
   date: string;
-  recommendation: 'BUY' | 'SELL' | 'HOLD';
+  recommendation: 'BUY' | 'SELL' | 'HOLD' | 'INSUFFICIENT';
   target_price: number | null;
   current_price: number | null;
   score: number | null;
@@ -170,6 +170,41 @@ export interface RecommendationsResponse {
 
 export async function getRecommendations(limit = 100): Promise<RecommendationsResponse> {
   return apiFetch<RecommendationsResponse>(`/api/v1/recommendations?limit=${limit}`);
+}
+
+// ── Unified signals (source-of-truth: tech × valuation matrix) ───────────────
+
+export type SignalAction = 'BUY' | 'HOLD' | 'SELL' | 'INSUFFICIENT';
+
+export interface SignalItem {
+  ticker: string;
+  name: string;
+  sector: string;
+  action: SignalAction;
+  score: number;          // 0-100, higher = better
+  tech_score: number | null;
+  val_upside: number | null; // fraction e.g. -0.208; null if not reliable
+  reliable: boolean;
+  current_price: number | null;
+  target_price: number | null;
+  reasons: string[];
+}
+
+export interface SignalsResponse {
+  items: SignalItem[];
+  count: number;
+  disclaimer: string;
+}
+
+/** Fetch all VN30 signals sorted by score desc */
+export async function getSignals(): Promise<SignalsResponse> {
+  return apiFetch<SignalsResponse>('/api/v1/signals');
+}
+
+/** Fetch signal for a single ticker; returns null if not found */
+export async function getSignal(ticker: string): Promise<SignalItem | null> {
+  const resp = await apiFetch<SignalsResponse>(`/api/v1/signal/${encodeURIComponent(ticker)}`);
+  return resp.items[0] ?? null;
 }
 
 // ── Knowledge base (RAG) ────────────────────────────────────────────────────────

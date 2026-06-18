@@ -93,6 +93,7 @@ class ValuationResponse(BaseModel):
     f_score_applicable: int = 9
     z_score: Optional[float] = None
     dcf_applicable: bool = True
+    reliable: bool = True          # False → INSUFFICIENT (no trustworthy fair value)
     reasons: List[str] = []
     disclaimer: str = DISCLAIMER
 
@@ -116,6 +117,27 @@ class MarketStock(BaseModel):
 class MarketOverviewResponse(BaseModel):
     index: Optional[MarketIndexView] = None
     stocks: List[MarketStock] = []
+    disclaimer: str = DISCLAIMER
+
+
+class SignalItem(BaseModel):
+    """Unified signal: technical (screener) × value (valuation) → one action+score."""
+    ticker: str
+    name: str = ""
+    sector: str = ""
+    action: str                          # BUY | HOLD | SELL | INSUFFICIENT
+    score: float                         # 0-100, for ranking
+    tech_score: Optional[float] = None   # screener technical score 0-100
+    val_upside: Optional[float] = None   # valuation upside fraction (None if unreliable)
+    reliable: bool = True
+    current_price: Optional[float] = None
+    target_price: Optional[float] = None
+    reasons: List[str] = []
+
+
+class SignalsResponse(BaseModel):
+    items: List[SignalItem] = []
+    count: int = 0
     disclaimer: str = DISCLAIMER
 
 

@@ -6,25 +6,14 @@ import { useLang } from '@/components/layout/LangProvider';
 import { NeoCard } from '@/components/ui/NeoCard';
 import { NeoBadge } from '@/components/ui/NeoBadge';
 import { t } from '@/lib/i18n';
-import { getScreener, type ScreenerItem, type CriterionDetail } from '@/lib/api';
-import { TrendingUp, TrendingDown, Minus, RefreshCw, AlertTriangle } from 'lucide-react';
+import { getScreener, getSignals, type ScreenerItem, type CriterionDetail, type SignalItem } from '@/lib/api';
+import { SignalBadge } from '@/components/stock/SignalBadge';
+import { RefreshCw, AlertTriangle } from 'lucide-react';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
-type SortKey = 'rank' | 'ticker' | 'score' | 'passed_count';
+type SortKey = 'rank' | 'ticker' | 'score' | 'passed_count' | 'signalScore';
 type SortDir = 'asc' | 'desc';
-
-function recoVariant(reco: string): 'bullish' | 'bearish' | 'neutral' {
-  if (reco === 'BUY') return 'bullish';
-  if (reco === 'SELL') return 'bearish';
-  return 'neutral';
-}
-
-function RecoIcon({ reco }: { reco: string }) {
-  if (reco === 'BUY') return <TrendingUp size={14} className="inline mr-1 text-neo-bullish" />;
-  if (reco === 'SELL') return <TrendingDown size={14} className="inline mr-1 text-neo-bearish" />;
-  return <Minus size={14} className="inline mr-1 text-neo-muted" />;
-}
 
 // ── component ─────────────────────────────────────────────────────────────────
 
@@ -32,6 +21,8 @@ export default function ScreenerPage() {
   const { lang } = useLang();
 
   const [items, setItems] = useState<ScreenerItem[]>([]);
+  // signalMap: ticker → SignalItem for O(1) lookup
+  const [signalMap, setSignalMap] = useState<Record<string, SignalItem>>({});
   const [disclaimer, setDisclaimer] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,9 +35,16 @@ export default function ScreenerPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await getScreener();
-      setItems(data.items);
-      setDisclaimer(data.disclaimer);
+      // Fetch screener (tech criteria) + unified signals in parallel
+      const [screenerData, signalsData] = await Promise.all([getScreener(), getSignals()]);
+      setItems(screenerData.items);
+      setDisclaimer(screenerData.disclaimer);
+      // Build ticker → signal lookup map
+      const map: Record<string, SignalItem> = {};
+      for (const sig of signalsData.items) {
+        map[sig.ticker] = sig;
+      }
+      setSignalMap(map);
     } catch (e) {
       setError(e instanceof Error ? e.message : t('error', lang));
     } finally {
@@ -56,13 +54,6 @@ export default function ScreenerPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // derive recommendation from score tiers (backend may not return it directly)
-  function deriveReco(score: number, passedCount: number): string {
-    if (score >= 0.7 && passedCount >= 5) return 'BUY';
-    if (score <= 0.3) return 'SELL';
-    return 'HOLD';
-  }
-
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const source = q ? items.filter((i) => i.ticker.toLowerCase().includes(q)) : items;
@@ -71,10 +62,15 @@ export default function ScreenerPage() {
       if (sortKey === 'rank') diff = a.rank - b.rank;
       else if (sortKey === 'score') diff = a.score - b.score;
       else if (sortKey === 'passed_count') diff = a.passed_count - b.passed_count;
+      else if (sortKey === 'signalScore') {
+        const sa = signalMap[a.ticker]?.score ?? -1;
+        const sb = signalMap[b.ticker]?.score ?? -1;
+        diff = sa - sb;
+      }
       else diff = a.ticker.localeCompare(b.ticker);
       return sortDir === 'asc' ? diff : -diff;
     });
-  }, [items, search, sortKey, sortDir]);
+  }, [items, search, sortKey, sortDir, signalMap]);
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) {
@@ -171,13 +167,25 @@ export default function ScreenerPage() {
                     className="cursor-pointer select-none hover:text-neo-primary"
                     onClick={() => toggleSort('ticker')}
                   >
-                    {t('strategy', lang)} <SortIndicator col="ticker" />
+                    {t('ticker', lang)} <SortIndicator col="ticker" />
+                  </th>
+                  <th
+                    className="cursor-pointer select-none hover:text-neo-primary"
+                    onClick={() => toggleSort('signalScore')}
+                  >
+                    {t('signalAction', lang)} <SortIndicator col="signalScore" />
+                  </th>
+                  <th
+                    className="cursor-pointer select-none hover:text-neo-primary"
+                    onClick={() => toggleSort('signalScore')}
+                  >
+                    {t('signalScore', lang)} <SortIndicator col="signalScore" />
                   </th>
                   <th
                     className="cursor-pointer select-none hover:text-neo-primary"
                     onClick={() => toggleSort('score')}
                   >
-                    Score <SortIndicator col="score" />
+                    Tech Score <SortIndicator col="score" />
                   </th>
                   <th
                     className="cursor-pointer select-none hover:text-neo-primary"
@@ -185,20 +193,40 @@ export default function ScreenerPage() {
                   >
                     Passed <SortIndicator col="passed_count" />
                   </th>
-                  <th>Recommendation</th>
                   <th>Key Criteria</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((item) => {
-                  const reco = deriveReco(item.score, item.passed_count);
-                  const variant = recoVariant(reco);
+                  const sig = signalMap[item.ticker];
                   const top = topCriteria(item.criteria);
                   return (
                     <tr key={item.ticker}>
                       <td className="font-mono text-neo-muted">{item.rank}</td>
                       <td className="font-black tracking-wider">{item.ticker}</td>
+                      {/* Unified signal action — headline */}
+                      <td>
+                        {sig
+                          ? <SignalBadge action={sig.action} />
+                          : <span className="text-neo-muted font-mono text-xs">—</span>
+                        }
+                      </td>
+                      {/* Unified signal score */}
+                      <td className="font-mono font-bold">
+                        {sig != null ? (
+                          <span className={
+                            sig.score >= 60
+                              ? 'text-neo-bullish'
+                              : sig.score <= 30
+                                ? 'text-neo-bearish'
+                                : 'text-neo-warning'
+                          }>
+                            {sig.score.toFixed(1)}
+                          </span>
+                        ) : <span className="text-neo-muted">—</span>}
+                      </td>
+                      {/* Technical screener score */}
                       <td className="font-mono font-bold">
                         <span className={
                           item.score >= 0.7
@@ -211,20 +239,6 @@ export default function ScreenerPage() {
                         </span>
                       </td>
                       <td className="font-mono">{item.passed_count}</td>
-                      <td>
-                        <NeoBadge
-                          status={
-                            reco === 'BUY'
-                              ? 'running'
-                              : reco === 'SELL'
-                                ? 'halted'
-                                : 'paper'
-                          }
-                        >
-                          <RecoIcon reco={reco} />
-                          {reco}
-                        </NeoBadge>
-                      </td>
                       <td>
                         <div className="flex flex-wrap gap-1">
                           {top.map((c) => (
@@ -255,7 +269,7 @@ export default function ScreenerPage() {
                 })}
                 {filtered.length === 0 && !loading && (
                   <tr>
-                    <td colSpan={7} className="text-center text-neo-muted py-8">
+                    <td colSpan={8} className="text-center text-neo-muted py-8">
                       {t('noStrategies', lang)}
                     </td>
                   </tr>

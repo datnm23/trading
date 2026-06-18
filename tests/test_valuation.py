@@ -409,11 +409,19 @@ class TestAltmanZ:
         assert result.z_score is None
         assert result.z_interpretation == "n/a"
 
-    def test_z_score_nonbank_present(self, src):
-        result = run_quality("FPT", src)
+    def test_z_score_applies_for_manufacturing(self, src):
+        # Altman Z only applies to manufacturing-type sectors (FPT's mock BS is reused).
+        mfg = CompanyInfo(ticker="HPG", organ_name="Hoa Phat", sector="Thép", is_bank=False)
+        result = run_quality("FPT", src, company=mfg)
         assert result.z_score_applicable is True
-        # May be None if BS missing, but the flag must be True
         assert result.z_score is not None  # fixture has full BS
+
+    def test_z_score_skipped_for_non_manufacturing(self, src):
+        # Non-bank but non-manufacturing (Technology) → Altman Z mislabels these, so skip.
+        result = run_quality("FPT", src)  # mock sector = "Technology"
+        assert result.z_score_applicable is False
+        assert result.z_score is None
+        assert result.z_interpretation == "n/a"
 
     def test_interpretation_safe(self):
         from valuation.quality import _z_interp

@@ -32,6 +32,7 @@ from backend.api.models import (
     MarketOverviewResponse,
     RecommendationsResponse,
     ScreenerResponse,
+    SignalsResponse,
     StockDetail,
     ValuationResponse,
     WikiSearchResponse,
@@ -127,6 +128,22 @@ def create_app(stock_service: Optional[StockService] = None) -> FastAPI:
         """Stored BS/IS/CF statements for a ticker (collected from vnstock → DB)."""
         svc = _get_service(request)
         return svc.get_financials(ticker.upper(), period_type)
+
+    # NOTE: plain `def` (not async) — the signal build runs a screener pass + 30
+    # valuations synchronously. Starlette offloads sync handlers to a threadpool, so
+    # this heavy work never blocks the event loop (health/other routes stay live).
+    @app.get("/api/v1/signals", response_model=SignalsResponse)
+    def get_signals(request: Request):
+        """Unified signals (tech × value matrix) for VN30 — single source of truth."""
+        items = _get_service(request).get_signals()
+        return SignalsResponse(items=items, count=len(items), disclaimer=DISCLAIMER)
+
+    @app.get("/api/v1/signal/{ticker}", response_model=SignalsResponse)
+    def get_signal(ticker: str, request: Request):
+        """Unified signal for one ticker (from the cached VN30 batch)."""
+        item = _get_service(request).get_signal(ticker.upper())
+        items = [item] if item else []
+        return SignalsResponse(items=items, count=len(items), disclaimer=DISCLAIMER)
 
     @app.get("/api/v1/market/overview", response_model=MarketOverviewResponse)
     async def get_market_overview(request: Request):

@@ -127,6 +127,12 @@ export const translations = {
     noRecommendations: 'Chưa có khuyến nghị nào — xem chi tiết một mã để tạo khuyến nghị.',
     upcomingDate: 'Ngày',
 
+    // Signal (unified)
+    topSignals: 'Top tín hiệu',
+    signalAction: 'Tín hiệu',
+    signalScore: 'Điểm tín hiệu',
+    insufficientData: 'Chưa đủ dữ liệu',
+
     // General
     loading: 'Đang tải...',
     error: 'Lỗi',
@@ -260,6 +266,12 @@ export const translations = {
     recommendationJournal: 'Recommendation Journal',
     noRecommendations: 'No recommendations yet — view a stock detail to generate one.',
     upcomingDate: 'Date',
+
+    // Signal (unified)
+    topSignals: 'Top Signals',
+    signalAction: 'Signal',
+    signalScore: 'Signal Score',
+    insufficientData: 'Insufficient Data',
 
     // General
     loading: 'Loading...',

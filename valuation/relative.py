@@ -89,15 +89,12 @@ def _collect_peer_pes(
     if len(sector_pes) >= min_peers:
         return sector_pes, len(sector_pes)
 
-    # Fallback: whole VN30
-    logger.debug(f"{ticker}: <{min_peers} sector peers, falling back to VN30 P/E")
-    vn30_pes: list[float] = []
-    for peer in peers:
-        r = src.get_ratios(peer, period="year")
-        pe = _latest_value(r.items, "pe_ratio")
-        if pe and 0 < pe < 200:
-            vn30_pes.append(pe)
-    return vn30_pes, len(vn30_pes)
+    # No whole-VN30 fallback: applying one VN30-wide median P/E across every sector
+    # produced absurd targets (e.g. VIC P/E 134 → −90% vs a 13.2 median). When there
+    # aren't enough same-sector peers, emit nothing so the recommender skips relative
+    # valuation rather than fabricating a target.
+    logger.debug(f"{ticker}: <{min_peers} same-sector peers — no relative P/E target")
+    return [], len(sector_pes)
 
 
 def _median(vals: list[float]) -> Optional[float]:

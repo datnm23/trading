@@ -4,10 +4,10 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useLang } from '@/components/layout/LangProvider';
 import { NeoCard } from '@/components/ui/NeoCard';
-import { NeoBadge } from '@/components/ui/NeoBadge';
 import { t } from '@/lib/i18n';
 import { getRecommendations, type RecommendationItem } from '@/lib/api';
-import { TrendingUp, TrendingDown, Minus, AlertTriangle, RefreshCw } from 'lucide-react';
+import { SignalBadge } from '@/components/stock/SignalBadge';
+import { Minus, AlertTriangle, RefreshCw } from 'lucide-react';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -21,18 +21,6 @@ function fmtUpside(val: number | null): string {
   // API returns fraction (e.g. 0.109 = +10.9%)
   const pct = val * 100;
   return `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`;
-}
-
-function recoStatus(reco: string): 'running' | 'halted' | 'paper' {
-  if (reco === 'BUY') return 'running';
-  if (reco === 'SELL') return 'halted';
-  return 'paper';
-}
-
-function RecoIcon({ reco }: { reco: string }) {
-  if (reco === 'BUY') return <TrendingUp size={13} className="inline mr-1 text-neo-bullish" />;
-  if (reco === 'SELL') return <TrendingDown size={13} className="inline mr-1 text-neo-bearish" />;
-  return <Minus size={13} className="inline mr-1 text-neo-muted" />;
 }
 
 // ── component ─────────────────────────────────────────────────────────────────
@@ -135,10 +123,7 @@ export default function ReportsPage() {
                         </Link>
                       </td>
                       <td>
-                        <NeoBadge status={recoStatus(item.recommendation)}>
-                          <RecoIcon reco={item.recommendation} />
-                          {item.recommendation}
-                        </NeoBadge>
+                        <SignalBadge action={item.recommendation} />
                       </td>
                       <td
                         className={`font-mono font-bold ${
