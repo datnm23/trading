@@ -1,9 +1,7 @@
 """Daily Report Generator — Automated P&L, metrics, and insight reports."""
 
 import os
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional
-from pathlib import Path
+from datetime import datetime
 
 import pandas as pd
 from loguru import logger
@@ -18,15 +16,16 @@ class DailyReportGenerator:
         print(summary.to_text())
     """
 
-    def __init__(self, db_url: Optional[str] = None):
+    def __init__(self, db_url: str | None = None):
         self.db_url = db_url or os.getenv(
             "TRADING_DB_URL",
-            "postgresql://trader:trading123@localhost:5432/trading_journal"
+            "postgresql://trader:trading123@localhost:5432/trading_journal",
         )
 
     def _get_connection(self):
         """Return PostgreSQL connection."""
         import psycopg2
+
         return psycopg2.connect(self.db_url)
 
     def get_today_trades(self) -> pd.DataFrame:
@@ -91,9 +90,20 @@ class DailyReportGenerator:
 class DailyReport:
     """Immutable daily report data."""
 
-    def __init__(self, date: str, total_trades: int, wins: int, losses: int,
-                 total_pnl: float, avg_trade: float, max_profit: float, max_loss: float,
-                 start_equity: float, end_equity: float, strategies: List[str]):
+    def __init__(
+        self,
+        date: str,
+        total_trades: int,
+        wins: int,
+        losses: int,
+        total_pnl: float,
+        avg_trade: float,
+        max_profit: float,
+        max_loss: float,
+        start_equity: float,
+        end_equity: float,
+        strategies: list[str],
+    ):
         self.date = date
         self.total_trades = total_trades
         self.wins = wins
@@ -107,7 +117,9 @@ class DailyReport:
         self.strategies = strategies
 
         self.winrate = wins / total_trades if total_trades > 0 else 0.0
-        self.profit_factor = abs(total_pnl / max_loss) if max_loss != 0 else float("inf")
+        self.profit_factor = (
+            abs(total_pnl / max_loss) if max_loss != 0 else float("inf")
+        )
         self.return_pct = (end_equity / start_equity - 1) if start_equity > 0 else 0.0
 
     def to_text(self) -> str:
@@ -150,6 +162,7 @@ class DailyReport:
 
 def main():
     import argparse
+
     parser = argparse.ArgumentParser(description="Generate daily trading report")
     parser.add_argument("--db-url", help="PostgreSQL URL")
     parser.add_argument("--db-path", default="./data/journal.db", help="SQLite path")

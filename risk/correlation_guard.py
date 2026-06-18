@@ -1,9 +1,6 @@
 """Correlation Risk Guard — Prevents over-concentration in correlated assets."""
 
-import numpy as np
 import pandas as pd
-from typing import Dict, List, Optional, Tuple
-from loguru import logger
 
 
 class CorrelationGuard:
@@ -20,8 +17,8 @@ class CorrelationGuard:
     def __init__(self, max_correlation: float = 0.80, lookback_days: int = 90):
         self.max_correlation = max_correlation
         self.lookback_days = lookback_days
-        self.price_history: Dict[str, pd.Series] = {}
-        self.correlation_matrix: Optional[pd.DataFrame] = None
+        self.price_history: dict[str, pd.Series] = {}
+        self.correlation_matrix: pd.DataFrame | None = None
 
     def update_data(self, symbol: str, df: pd.DataFrame, price_col: str = "close"):
         """Store price history for correlation calculation."""
@@ -29,7 +26,7 @@ class CorrelationGuard:
             return
         prices = df[price_col].dropna()
         if len(prices) > self.lookback_days:
-            prices = prices.iloc[-self.lookback_days:]
+            prices = prices.iloc[-self.lookback_days :]
         self.price_history[symbol] = prices
         self._recalculate()
 
@@ -48,7 +45,9 @@ class CorrelationGuard:
 
         self.correlation_matrix = returns.corr()
 
-    def check_new_position(self, new_symbol: str, held_symbols: List[str]) -> Tuple[bool, str]:
+    def check_new_position(
+        self, new_symbol: str, held_symbols: list[str]
+    ) -> tuple[bool, str]:
         """Check if adding new_symbol would create excessive correlation risk.
 
         Returns:
@@ -57,7 +56,10 @@ class CorrelationGuard:
         if not held_symbols:
             return True, "No existing positions"
 
-        if self.correlation_matrix is None or new_symbol not in self.correlation_matrix.columns:
+        if (
+            self.correlation_matrix is None
+            or new_symbol not in self.correlation_matrix.columns
+        ):
             return True, "Insufficient correlation data"
 
         max_corr = 0.0
@@ -71,22 +73,32 @@ class CorrelationGuard:
                 max_sym = held
 
         if max_corr >= self.max_correlation:
-            return False, f"Correlation {max_corr:.2f} with {max_sym} exceeds max {self.max_correlation:.2f}"
+            return (
+                False,
+                f"Correlation {max_corr:.2f} with {max_sym} exceeds max {self.max_correlation:.2f}",
+            )
 
         return True, f"Max correlation {max_corr:.2f} with {max_sym} — acceptable"
 
-    def get_correlation(self, sym1: str, sym2: str) -> Optional[float]:
+    def get_correlation(self, sym1: str, sym2: str) -> float | None:
         """Get correlation between two symbols."""
         if self.correlation_matrix is None:
             return None
-        if sym1 not in self.correlation_matrix.columns or sym2 not in self.correlation_matrix.columns:
+        if (
+            sym1 not in self.correlation_matrix.columns
+            or sym2 not in self.correlation_matrix.columns
+        ):
             return None
         return self.correlation_matrix.loc[sym1, sym2]
 
-    def summary(self) -> Dict[str, any]:
+    def summary(self) -> dict[str, any]:
         """Return current correlation matrix summary."""
         return {
             "symbols_tracked": list(self.price_history.keys()),
-            "matrix_shape": self.correlation_matrix.shape if self.correlation_matrix is not None else None,
+            "matrix_shape": (
+                self.correlation_matrix.shape
+                if self.correlation_matrix is not None
+                else None
+            ),
             "max_correlation_threshold": self.max_correlation,
         }

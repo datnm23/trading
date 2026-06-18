@@ -1,7 +1,5 @@
 """Benchmark strategies for comparison."""
 
-from typing import Optional
-
 import pandas as pd
 
 from strategies.base import BaseStrategy, Signal, StrategyContext
@@ -13,7 +11,7 @@ class BuyHoldStrategy(BaseStrategy):
     Used as a benchmark to compare against active trading strategies.
     """
 
-    def __init__(self, params: Optional[dict] = None):
+    def __init__(self, params: dict | None = None):
         super().__init__(name="BuyHold", params=params)
         self.has_bought = False
 
@@ -24,7 +22,7 @@ class BuyHoldStrategy(BaseStrategy):
         super().reset()
         self.has_bought = False
 
-    def on_bar(self, context: StrategyContext) -> Optional[Signal]:
+    def on_bar(self, context: StrategyContext) -> Signal | None:
         if not self.is_warm:
             return None
         if not self.has_bought:

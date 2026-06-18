@@ -4,9 +4,8 @@ Supports bilingual alerts (English + Vietnamese) via Telegram.
 Tracks round numbers, percentage levels, and key support/resistance.
 """
 
+from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
-from dataclasses import dataclass, field
 
 from loguru import logger
 
@@ -16,10 +15,11 @@ from monitoring.telegram import TelegramAlerter
 @dataclass
 class PriceLevel:
     """A price level to watch."""
+
     price: float
     label_en: str
     label_vn: str
-    last_alerted: Optional[datetime] = None
+    last_alerted: datetime | None = None
     cooldown_hours: float = 1.0
 
 
@@ -33,7 +33,7 @@ class PriceAlertManager:
 
     def __init__(
         self,
-        alerter: Optional[TelegramAlerter] = None,
+        alerter: TelegramAlerter | None = None,
         connector=None,
         enabled: bool = True,
         threshold_pct: float = 0.008,  # 0.8% — alert when within 0.8% of level
@@ -42,11 +42,11 @@ class PriceAlertManager:
         self.connector = connector
         self.enabled = enabled and (alerter is not None and alerter.enabled)
         self.threshold_pct = threshold_pct
-        self._levels: Dict[str, List[PriceLevel]] = {}
-        self._last_price: Dict[str, float] = {}
-        self._initialized: Dict[str, bool] = {}
+        self._levels: dict[str, list[PriceLevel]] = {}
+        self._last_price: dict[str, float] = {}
+        self._initialized: dict[str, bool] = {}
 
-    def _generate_levels(self, current_price: float, symbol: str) -> List[PriceLevel]:
+    def _generate_levels(self, current_price: float, symbol: str) -> list[PriceLevel]:
         """Generate key price levels based on current price."""
         levels = []
 
@@ -55,7 +55,7 @@ class PriceAlertManager:
             step = 5000
         elif current_price >= 1000:  # ETH
             step = 100
-        elif current_price >= 100:   # SOL, etc
+        elif current_price >= 100:  # SOL, etc
             step = 10
         else:
             step = 1
@@ -67,11 +67,13 @@ class PriceAlertManager:
             if price > 0:
                 direction = "Support" if price < current_price else "Resistance"
                 direction_vn = "Hỗ trợ" if price < current_price else "Kháng cự"
-                levels.append(PriceLevel(
-                    price=float(price),
-                    label_en=f"Round Number {direction}",
-                    label_vn=f"Số tròn {direction_vn}",
-                ))
+                levels.append(
+                    PriceLevel(
+                        price=float(price),
+                        label_en=f"Round Number {direction}",
+                        label_vn=f"Số tròn {direction_vn}",
+                    )
+                )
 
         # Percentage levels
         for pct in [0.02, 0.05, 0.10]:
@@ -83,11 +85,13 @@ class PriceAlertManager:
                 else:
                     label_en = f"-{pct:.0%} Support"
                     label_vn = f"Hỗ trợ -{pct:.0%}"
-                levels.append(PriceLevel(
-                    price=price,
-                    label_en=label_en,
-                    label_vn=label_vn,
-                ))
+                levels.append(
+                    PriceLevel(
+                        price=price,
+                        label_en=label_en,
+                        label_vn=label_vn,
+                    )
+                )
 
         return levels
 
@@ -115,14 +119,18 @@ class PriceAlertManager:
         if symbol not in self._initialized or not self._initialized[symbol]:
             self._levels[symbol] = self._generate_levels(current_price, symbol)
             self._initialized[symbol] = True
-            logger.info(f"PriceAlertManager initialized for {symbol} at ${current_price:,.2f}")
+            logger.info(
+                f"PriceAlertManager initialized for {symbol} at ${current_price:,.2f}"
+            )
 
         self._last_price[symbol] = current_price
         now = datetime.now()
 
         for level in self._levels[symbol]:
             # Skip if on cooldown
-            if level.last_alerted and (now - level.last_alerted) < timedelta(hours=level.cooldown_hours):
+            if level.last_alerted and (now - level.last_alerted) < timedelta(
+                hours=level.cooldown_hours
+            ):
                 continue
 
             distance_pct = abs(current_price - level.price) / level.price
@@ -131,12 +139,12 @@ class PriceAlertManager:
                 self._send_alert(symbol, current_price, level, distance_pct)
                 level.last_alerted = now
 
-    def _send_alert(self, symbol: str, current_price: float, level: PriceLevel, distance_pct: float):
+    def _send_alert(
+        self, symbol: str, current_price: float, level: PriceLevel, distance_pct: float
+    ):
         """Send bilingual price alert via Telegram."""
-        direction = "above" if current_price > level.price else "below"
         direction_pct = ((current_price - level.price) / level.price) * 100
 
-        emoji = "🟢" if direction_pct > 0 else "🔴"
         arrow = "↑" if direction_pct > 0 else "↓"
 
         text = (
@@ -155,9 +163,11 @@ class PriceAlertManager:
 
         if self.alerter:
             self.alerter._send(text)
-            logger.info(f"Price alert sent for {symbol} at ${current_price:,.2f} near ${level.price:,.2f}")
+            logger.info(
+                f"Price alert sent for {symbol} at ${current_price:,.2f} near ${level.price:,.2f}"
+            )
 
-    def get_status(self, symbol: str) -> Dict:
+    def get_status(self, symbol: str) -> dict:
         """Return current alert status for a symbol."""
         levels = self._levels.get(symbol, [])
         current_price = self._last_price.get(symbol, 0)
@@ -167,10 +177,12 @@ class PriceAlertManager:
             "levels_tracked": len(levels),
             "levels": [
                 {
-                    "price": l.price,
-                    "label": l.label_en,
-                    "last_alerted": l.last_alerted.isoformat() if l.last_alerted else None,
+                    "price": level.price,
+                    "label": level.label_en,
+                    "last_alerted": (
+                        level.last_alerted.isoformat() if level.last_alerted else None
+                    ),
                 }
-                for l in levels
+                for level in levels
             ],
         }

@@ -1,12 +1,10 @@
 """Lightweight embedder using TF-IDF + SVD (no heavy dependencies)."""
 
 import re
-from pathlib import Path
-from typing import List
 
 import numpy as np
-from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import TruncatedSVD
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 
 class SimpleEmbedder:
@@ -33,7 +31,7 @@ class SimpleEmbedder:
         text = re.sub(r"\s+", " ", text).lower().strip()
         return text
 
-    def fit_transform(self, texts: List[str]) -> np.ndarray:
+    def fit_transform(self, texts: list[str]) -> np.ndarray:
         """Fit on texts and return embeddings."""
         cleaned = [self._preprocess(t) for t in texts]
         tfidf = self.vectorizer.fit_transform(cleaned)
@@ -41,7 +39,7 @@ class SimpleEmbedder:
         self.is_fitted = True
         return embeddings
 
-    def transform(self, texts: List[str]) -> np.ndarray:
+    def transform(self, texts: list[str]) -> np.ndarray:
         """Transform new texts using fitted model."""
         if not self.is_fitted:
             raise RuntimeError("Embedder not fitted. Call fit_transform first.")
@@ -52,17 +50,22 @@ class SimpleEmbedder:
     def save(self, path: str):
         """Save fitted model."""
         import pickle
+
         with open(path, "wb") as f:
-            pickle.dump({
-                "vectorizer": self.vectorizer,
-                "svd": self.svd,
-                "is_fitted": self.is_fitted,
-                "n_components": self.n_components,
-            }, f)
+            pickle.dump(
+                {
+                    "vectorizer": self.vectorizer,
+                    "svd": self.svd,
+                    "is_fitted": self.is_fitted,
+                    "n_components": self.n_components,
+                },
+                f,
+            )
 
     def load(self, path: str):
         """Load fitted model."""
         import pickle
+
         with open(path, "rb") as f:
             data = pickle.load(f)
         self.vectorizer = data["vectorizer"]

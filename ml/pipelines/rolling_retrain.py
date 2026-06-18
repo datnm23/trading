@@ -4,22 +4,17 @@ This avoids look-ahead bias by strictly training only on data available
 before the prediction period.
 """
 
-from pathlib import Path
 from datetime import datetime, timedelta
-from typing import List, Dict
 
-import numpy as np
 import pandas as pd
 from loguru import logger
 
-from data.feed import DataFeed
-from ml.features.engineering import compute_features
-from ml.features.selection import full_feature_selection, select_by_importance
-from ml.pipelines.xgboost_pipeline import MLClassifierPipeline
-from ml.models.registry import ModelRegistry, ModelRecord
-from strategies.ml_based import MLStrategy
 from backtest.engine import BacktestEngine
+from data.feed import DataFeed
+from ml.models.registry import ModelRecord, ModelRegistry
+from ml.pipelines.xgboost_pipeline import MLClassifierPipeline
 from risk.manager import RiskManager
+from strategies.ml_based import MLStrategy
 
 
 class RollingRetrainer:
@@ -41,9 +36,9 @@ class RollingRetrainer:
         self.feed = DataFeed()
         self.registry = ModelRegistry()
 
-    def run(self, start_date: str, end_date: str) -> List[dict]:
+    def run(self, start_date: str, end_date: str) -> list[dict]:
         """Run rolling retraining from start to end date.
-        
+
         Returns list of period results.
         """
         # Load full history
@@ -70,7 +65,9 @@ class RollingRetrainer:
 
         return periods
 
-    def _train_and_evaluate(self, df: pd.DataFrame, period_start: pd.Timestamp, period_end: pd.Timestamp) -> dict:
+    def _train_and_evaluate(
+        self, df: pd.DataFrame, period_start: pd.Timestamp, period_end: pd.Timestamp
+    ) -> dict:
         """Train on data before period_start, evaluate on [period_start, period_end)."""
         train_cutoff = period_start
         train_start = train_cutoff - timedelta(days=self.train_window_days)
@@ -82,7 +79,9 @@ class RollingRetrainer:
         test_df = df[test_mask]
 
         if len(train_df) < 100 or len(test_df) < 5:
-            logger.warning(f"Insufficient data for period {period_start.date()} - {period_end.date()}")
+            logger.warning(
+                f"Insufficient data for period {period_start.date()} - {period_end.date()}"
+            )
             return {
                 "period_start": period_start,
                 "period_end": period_end,
@@ -91,7 +90,9 @@ class RollingRetrainer:
                 "skipped": True,
             }
 
-        logger.info(f"Training {period_start.date()} | Train: {len(train_df)} bars | Test: {len(test_df)} bars")
+        logger.info(
+            f"Training {period_start.date()} | Train: {len(train_df)} bars | Test: {len(test_df)} bars"
+        )
 
         # Train model
         pipeline = MLClassifierPipeline()
@@ -100,13 +101,17 @@ class RollingRetrainer:
         # Backtest on test period (include last 100 bars of train for warmup)
         warmup_df = pd.concat([train_df.tail(100), test_df])
         strategy = MLStrategy(pipeline, name=f"ML-{period_start.strftime('%Y%m')}")
-        risk = RiskManager({
-            "max_risk_per_trade": 0.01,
-            "max_total_exposure": 0.10,
-            "max_drawdown_pct": 0.20,
-            "position_sizing": "fixed_fractional",
-        })
-        engine = BacktestEngine(initial_capital=100000, commission=0.001, slippage=0.0005)
+        risk = RiskManager(
+            {
+                "max_risk_per_trade": 0.01,
+                "max_total_exposure": 0.10,
+                "max_drawdown_pct": 0.20,
+                "position_sizing": "fixed_fractional",
+            }
+        )
+        engine = BacktestEngine(
+            initial_capital=100000, commission=0.001, slippage=0.0005
+        )
         result = engine.run(warmup_df, strategy, risk)
 
         # Save model
@@ -146,7 +151,7 @@ class RollingRetrainer:
             "skipped": False,
         }
 
-    def summary(self, periods: List[dict]) -> pd.DataFrame:
+    def summary(self, periods: list[dict]) -> pd.DataFrame:
         """Return summary of all periods."""
         valid = [p for p in periods if not p.get("skipped", False)]
         if not valid:
@@ -171,6 +176,7 @@ class RollingRetrainer:
 
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--symbol", default="BTC/USDT")
     parser.add_argument("--start", default="2023-01-01")

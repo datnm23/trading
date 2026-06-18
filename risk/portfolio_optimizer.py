@@ -1,6 +1,5 @@
 """Portfolio optimization: Kelly criterion, correlation matrix, allocation."""
 
-from typing import List, Dict, Optional
 from dataclasses import dataclass
 
 import numpy as np
@@ -11,6 +10,7 @@ from loguru import logger
 @dataclass
 class KellyResult:
     """Kelly criterion optimization result."""
+
     optimal_fraction: float
     half_kelly: float
     quarter_kelly: float
@@ -23,12 +23,12 @@ class KellyOptimizer:
 
     def optimize(self, win_rate: float, avg_win: float, avg_loss: float) -> KellyResult:
         """Calculate Kelly fraction from win rate and payoff.
-        
+
         Args:
             win_rate: Probability of winning trade
             avg_win: Average win amount (positive)
             avg_loss: Average loss amount (positive)
-        
+
         Returns:
             KellyResult with optimal and conservative fractions
         """
@@ -42,7 +42,9 @@ class KellyOptimizer:
         kelly = max(0.0, min(1.0, kelly))
 
         # Expected geometric growth
-        expected_growth = win_rate * np.log(1 + kelly * b) + (1 - win_rate) * np.log(1 - kelly)
+        expected_growth = win_rate * np.log(1 + kelly * b) + (1 - win_rate) * np.log(
+            1 - kelly
+        )
 
         # Risk of ruin (simplified)
         risk_of_ruin = (1 - win_rate) ** (1 / kelly) if kelly > 0 else 1.0
@@ -101,7 +103,7 @@ class PortfolioOptimizer:
 
     def equal_risk_contribution_weights(self) -> pd.Series:
         """Compute Equal Risk Contribution (ERC) portfolio weights.
-        
+
         ERC allocates risk equally across assets rather than capital.
         """
         cov = self.covariance_matrix().values
@@ -111,7 +113,7 @@ class PortfolioOptimizer:
         weights = np.ones(n) / n
         for _ in range(100):
             # Portfolio volatility
-            port_var = weights.T @ cov @ weights
+            weights.T @ cov @ weights
             # Marginal risk contribution
             mrc = cov @ weights
             # Risk contribution
@@ -131,7 +133,7 @@ class PortfolioOptimizer:
     def report(self) -> None:
         """Print portfolio analysis report."""
         corr = self.correlation_matrix()
-        cov = self.covariance_matrix()
+        self.covariance_matrix()
 
         print("\n" + "=" * 70)
         print("PORTFOLIO OPTIMIZATION REPORT")
@@ -159,8 +161,10 @@ class PortfolioOptimizer:
         kelly = KellyOptimizer()
         for col in self.returns.columns:
             result = kelly.from_returns(self.returns[col])
-            print(f"  {col}: optimal={result.optimal_fraction:.2%}, half={result.half_kelly:.2%}, "
-                  f"expected_growth={result.expected_growth:.4f}")
+            print(
+                f"  {col}: optimal={result.optimal_fraction:.2%}, half={result.half_kelly:.2%}, "
+                f"expected_growth={result.expected_growth:.4f}"
+            )
 
         print("=" * 70 + "\n")
 
@@ -171,9 +175,13 @@ if __name__ == "__main__":
     n_days = 500
 
     # Correlated returns
-    cov = np.array([[0.0004, 0.0001, 0.00005],
-                    [0.0001, 0.0006, 0.00008],
-                    [0.00005, 0.00008, 0.0003]])
+    cov = np.array(
+        [
+            [0.0004, 0.0001, 0.00005],
+            [0.0001, 0.0006, 0.00008],
+            [0.00005, 0.00008, 0.0003],
+        ]
+    )
     means = [0.0005, 0.0003, 0.0002]
 
     returns = np.random.multivariate_normal(means, cov, n_days)

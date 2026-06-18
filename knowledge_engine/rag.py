@@ -1,8 +1,6 @@
 """RAG-based knowledge engine using crawled wiki."""
 
-import re
 from pathlib import Path
-from typing import List, Optional
 
 import yaml
 from loguru import logger
@@ -28,7 +26,9 @@ class WikiRAG:
         self._is_built = False
 
         # Try to load existing index
-        if (self.persist_dir / "vectors.npy").exists() and (self.persist_dir / "embedder.pkl").exists():
+        if (self.persist_dir / "vectors.npy").exists() and (
+            self.persist_dir / "embedder.pkl"
+        ).exists():
             self.store.load()
             self.embedder.load(self.persist_dir / "embedder.pkl")
             self._is_built = True
@@ -64,12 +64,14 @@ class WikiRAG:
             # Use title + first 800 chars of body as embedding text
             text = f"{title}\n{body[:2000]}"
             texts.append(text)
-            documents.append({
-                "id": md_file.stem,
-                "title": title,
-                "source_url": meta.get("source_url", "") if "meta" in dir() else "",
-                "content": body[:3000],
-            })
+            documents.append(
+                {
+                    "id": md_file.stem,
+                    "title": title,
+                    "source_url": meta.get("source_url", "") if "meta" in dir() else "",
+                    "content": body[:3000],
+                }
+            )
 
         logger.info(f"Building index from {len(texts)} concepts...")
         embeddings = self.embedder.fit_transform(texts)
@@ -79,7 +81,7 @@ class WikiRAG:
         self._is_built = True
         logger.info(f"Index built: {len(documents)} documents")
 
-    def search(self, query: str) -> List[dict]:
+    def search(self, query: str) -> list[dict]:
         """Semantic search over wiki concepts."""
         if not self._is_built:
             self.build_index()

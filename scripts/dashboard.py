@@ -10,10 +10,10 @@ Or with custom port:
     streamlit run scripts/dashboard.py --server.port 8501
 """
 
+import base64
 import os
 import sys
-import base64
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
@@ -24,6 +24,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
+
 from journal.trade_logger import TradeLogger
 
 
@@ -31,6 +32,7 @@ def get_live_prices():
     """Fetch real-time prices from Binance testnet."""
     try:
         from execution.connectors.ccxt_connector import CCXTConnector
+
         conn = CCXTConnector(exchange_id="binance", testnet=True)
         prices = {}
         for sym in ["BTC/USDT", "ETH/USDT", "SOL/USDT"]:
@@ -44,7 +46,7 @@ def get_live_prices():
                     "volume": ticker.get("quoteVolume", 0),
                 }
         return prices
-    except Exception as e:
+    except Exception:
         return {}
 
 
@@ -57,7 +59,8 @@ st.set_page_config(
 )
 
 # ── Custom CSS ───────────────────────────────────────────────────────
-st.markdown("""
+st.markdown(
+    """
 <style>
     .metric-card {
         background-color: #1e1e1e;
@@ -70,7 +73,9 @@ st.markdown("""
     .neutral { color: #ffa502; }
     div[data-testid="stMetricValue"] { font-size: 28px !important; font-weight: bold; }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 
 # ── Initialize logger ────────────────────────────────────────────────
@@ -78,7 +83,7 @@ st.markdown("""
 def get_logger():
     db_url = os.getenv(
         "TRADING_DB_URL",
-        "postgresql://trader:trading123@localhost:5432/trading_journal"
+        "postgresql://trader:trading123@localhost:5432/trading_journal",
     )
     return TradeLogger(db_url=db_url)
 
@@ -100,19 +105,28 @@ st.sidebar.markdown("---")
 health_url = "http://localhost:8080/health"
 try:
     import requests
+
     resp = requests.get(health_url, timeout=2)
     health = resp.json()
     status_color = "🟢" if health.get("status") == "healthy" else "🔴"
-    st.sidebar.markdown(f"**Status:** {status_color} {health.get('status', 'unknown').upper()}")
-    st.sidebar.markdown(f"**Mode:** {health.get('data', {}).get('mode', 'unknown').upper()}")
-    st.sidebar.markdown(f"**Strategy:** {health.get('data', {}).get('strategy', 'unknown')}")
-    symbols = health.get('data', {}).get('symbols', [])
+    st.sidebar.markdown(
+        f"**Status:** {status_color} {health.get('status', 'unknown').upper()}"
+    )
+    st.sidebar.markdown(
+        f"**Mode:** {health.get('data', {}).get('mode', 'unknown').upper()}"
+    )
+    st.sidebar.markdown(
+        f"**Strategy:** {health.get('data', {}).get('strategy', 'unknown')}"
+    )
+    symbols = health.get("data", {}).get("symbols", [])
     st.sidebar.markdown(f"**Symbols:** {', '.join(symbols)}")
 except Exception:
     st.sidebar.warning("⚠️ Bot health check failed")
 
 st.sidebar.markdown("---")
-st.sidebar.info("Dashboard auto-refreshes every page load.\nHit **R** to refresh manually.")
+st.sidebar.info(
+    "Dashboard auto-refreshes every page load.\nHit **R** to refresh manually."
+)
 
 # ── Export Section ───────────────────────────────────────────────────
 st.sidebar.markdown("---")
@@ -125,23 +139,29 @@ summary = logger.trade_summary()
 
 if trades:
     # Export trades CSV
-    df_export = pd.DataFrame([
-        {
-            "timestamp": t.timestamp.isoformat() if isinstance(t.timestamp, datetime) else str(t.timestamp),
-            "symbol": t.symbol,
-            "strategy": t.strategy,
-            "side": t.side,
-            "entry_price": t.entry_price,
-            "exit_price": t.exit_price,
-            "size": t.size,
-            "pnl": t.pnl,
-            "pnl_pct": t.pnl_pct,
-            "holding_bars": t.holding_bars,
-            "exit_reason": t.exit_reason,
-            "market_regime": t.market_regime,
-        }
-        for t in trades
-    ])
+    df_export = pd.DataFrame(
+        [
+            {
+                "timestamp": (
+                    t.timestamp.isoformat()
+                    if isinstance(t.timestamp, datetime)
+                    else str(t.timestamp)
+                ),
+                "symbol": t.symbol,
+                "strategy": t.strategy,
+                "side": t.side,
+                "entry_price": t.entry_price,
+                "exit_price": t.exit_price,
+                "size": t.size,
+                "pnl": t.pnl,
+                "pnl_pct": t.pnl_pct,
+                "holding_bars": t.holding_bars,
+                "exit_reason": t.exit_reason,
+                "market_regime": t.market_regime,
+            }
+            for t in trades
+        ]
+    )
     csv = df_export.to_csv(index=False)
     b64 = base64.b64encode(csv.encode()).decode()
     st.sidebar.download_button(
@@ -253,7 +273,7 @@ with col2:
     )
 
 with col3:
-    winrate = summary.get('winrate', 0)
+    winrate = summary.get("winrate", 0)
     st.metric(
         label="🏆 Winrate",
         value=f"{winrate:.1%}",
@@ -275,19 +295,22 @@ st.markdown("---")
 
 # ── Charts ───────────────────────────────────────────────────────────
 if snapshots:
-    df_snap = pd.DataFrame([
-        {
-            "timestamp": s.timestamp,
-            "equity": s.equity,
-            "cash": s.cash,
-            "drawdown": s.drawdown_pct * 100,
-        }
-        for s in reversed(snapshots)
-    ])
+    df_snap = pd.DataFrame(
+        [
+            {
+                "timestamp": s.timestamp,
+                "equity": s.equity,
+                "cash": s.cash,
+                "drawdown": s.drawdown_pct * 100,
+            }
+            for s in reversed(snapshots)
+        ]
+    )
     df_snap["timestamp"] = pd.to_datetime(df_snap["timestamp"])
 
     fig = make_subplots(
-        rows=2, cols=1,
+        rows=2,
+        cols=1,
         shared_xaxes=True,
         vertical_spacing=0.1,
         row_heights=[0.7, 0.3],
@@ -305,7 +328,8 @@ if snapshots:
             fill="tozeroy",
             fillcolor="rgba(0, 255, 136, 0.1)",
         ),
-        row=1, col=1,
+        row=1,
+        col=1,
     )
 
     # Drawdown
@@ -319,7 +343,8 @@ if snapshots:
             fill="tozeroy",
             fillcolor="rgba(255, 71, 87, 0.1)",
         ),
-        row=2, col=1,
+        row=2,
+        col=1,
     )
 
     fig.update_layout(
@@ -346,20 +371,26 @@ st.markdown("---")
 st.subheader("📝 Recent Trades")
 
 if trades:
-    df_trades = pd.DataFrame([
-        {
-            "Time": t.timestamp.strftime("%Y-%m-%d %H:%M") if isinstance(t.timestamp, datetime) else str(t.timestamp)[:16],
-            "Symbol": t.symbol,
-            "Side": t.side.upper(),
-            "Entry": f"${t.entry_price:,.2f}",
-            "Exit": f"${t.exit_price:,.2f}" if t.exit_price else "—",
-            "P&L": f"${t.pnl:,.2f}",
-            "P&L%": f"{t.pnl_pct:.2%}",
-            "Reason": t.exit_reason,
-            "Regime": t.market_regime,
-        }
-        for t in trades[:20]
-    ])
+    df_trades = pd.DataFrame(
+        [
+            {
+                "Time": (
+                    t.timestamp.strftime("%Y-%m-%d %H:%M")
+                    if isinstance(t.timestamp, datetime)
+                    else str(t.timestamp)[:16]
+                ),
+                "Symbol": t.symbol,
+                "Side": t.side.upper(),
+                "Entry": f"${t.entry_price:,.2f}",
+                "Exit": f"${t.exit_price:,.2f}" if t.exit_price else "—",
+                "P&L": f"${t.pnl:,.2f}",
+                "P&L%": f"{t.pnl_pct:.2%}",
+                "Reason": t.exit_reason,
+                "Regime": t.market_regime,
+            }
+            for t in trades[:20]
+        ]
+    )
 
     def highlight_pnl(val):
         try:
@@ -368,7 +399,7 @@ if trades:
                 return "background-color: rgba(0, 255, 136, 0.2)"
             elif num < 0:
                 return "background-color: rgba(255, 71, 87, 0.2)"
-        except:
+        except Exception:
             pass
         return ""
 
@@ -403,15 +434,19 @@ st.markdown("---")
 emotions = logger.emotion_distribution()
 if emotions:
     st.subheader("🎭 Emotion Distribution")
-    df_emo = pd.DataFrame([
-        {"Emotion": k, "Count": v}
-        for k, v in sorted(emotions.items(), key=lambda x: -x[1])
-    ])
-    fig_emo = go.Figure(go.Bar(
-        x=df_emo["Emotion"],
-        y=df_emo["Count"],
-        marker_color=["#00ff88", "#ffa502", "#ff4757", "#74b9ff", "#a29bfe"],
-    ))
+    df_emo = pd.DataFrame(
+        [
+            {"Emotion": k, "Count": v}
+            for k, v in sorted(emotions.items(), key=lambda x: -x[1])
+        ]
+    )
+    fig_emo = go.Figure(
+        go.Bar(
+            x=df_emo["Emotion"],
+            y=df_emo["Count"],
+            marker_color=["#00ff88", "#ffa502", "#ff4757", "#74b9ff", "#a29bfe"],
+        )
+    )
     fig_emo.update_layout(
         template="plotly_dark",
         paper_bgcolor="#0e0e0e",
@@ -423,4 +458,6 @@ if emotions:
 
 # ── Footer ───────────────────────────────────────────────────────────
 st.markdown("---")
-st.caption(f"🕐 Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | Auto-refresh: {refresh_interval}s")
+st.caption(
+    f"🕐 Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | Auto-refresh: {refresh_interval}s"
+)

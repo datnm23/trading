@@ -1,8 +1,9 @@
 """Tests for knowledge engine signal validator."""
 
 import pytest
+
+from knowledge_engine.signal_validator import WikiSignalValidator
 from strategies.base import Signal
-from knowledge_engine.signal_validator import WikiSignalValidator, WikiValidationResult
 
 
 class TestWikiSignalValidator:
@@ -16,7 +17,9 @@ class TestWikiSignalValidator:
             strength=0.8,
             meta={"ensemble_source": "ema", "stop": 60000, "atr": 1000},
         )
-        score = validator._compute_alignment(signal, "trending", "trend following strategy entry rules")
+        score = validator._compute_alignment(
+            signal, "trending", "trend following strategy entry rules"
+        )
         assert score > 0.5
 
     def test_alignment_computation_ranging_penalty(self):
@@ -61,8 +64,11 @@ class TestWikiSignalValidator:
         )
         # Mock context that supports trend
         import unittest.mock
+
         with unittest.mock.patch.object(
-            validator.rag, "get_context", return_value="trend following strategy use EMA"
+            validator.rag,
+            "get_context",
+            return_value="trend following strategy use EMA",
         ):
             result = validator.validate(signal, regime="trending")
             assert result.block_reason is None
@@ -79,6 +85,7 @@ class TestWikiSignalValidator:
             meta={"ensemble_source": "grid"},
         )
         import unittest.mock
+
         with unittest.mock.patch.object(
             validator.rag, "get_context", return_value="mean reversion grid strategy"
         ):

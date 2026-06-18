@@ -7,6 +7,7 @@ Thresholds tested: 0.30, 0.25, 0.20, 0.15, 0.10
 """
 
 import sys
+
 sys.path.insert(0, "/home/datnm/projects/trading")
 
 import json
@@ -15,12 +16,14 @@ from pathlib import Path
 
 import pandas as pd
 from loguru import logger
+
 logger.remove()
 logger.add(lambda msg: print(msg, end=""), level="WARNING")  # Quieter
 
 import yaml
-from data.feed import DataFeed
+
 from backtest.enhanced_engine import EnhancedBacktestEngine
+from data.feed import DataFeed
 from risk.manager import RiskManager
 from strategies.ensemble.regime_ensemble import RegimeEnsembleStrategy
 
@@ -32,19 +35,22 @@ def load_config():
 
 def run_with_threshold(symbol: str, timeframe: str, threshold: float, config: dict):
     """Run single backtest with specific wiki threshold."""
+    # ruff: noqa: E402
     feed = DataFeed()
     df = feed.fetch(symbol, timeframe=timeframe, limit=2000)
     if df.empty or len(df) < 150:
         return None
 
-    strategy = RegimeEnsembleStrategy(params={
-        "ema": config["strategies"]["registry"][0]["params"],
-        "breakout": config["strategies"]["registry"][1]["params"],
-        "grid": {"grid_levels": 5, "lookback_days": 30, "atr_period": 14},
-        "regime_lookback": 30,
-        "atr_period": 14,
-        "wiki_min_alignment": threshold,
-    })
+    strategy = RegimeEnsembleStrategy(
+        params={
+            "ema": config["strategies"]["registry"][0]["params"],
+            "breakout": config["strategies"]["registry"][1]["params"],
+            "grid": {"grid_levels": 5, "lookback_days": 30, "atr_period": 14},
+            "regime_lookback": 30,
+            "atr_period": 14,
+            "wiki_min_alignment": threshold,
+        }
+    )
 
     risk = RiskManager(config["risk"])
 
@@ -103,7 +109,11 @@ def run_threshold_sweep():
             print(f"\n--- {symbol} @ {tf} ---")
             for thresh in thresholds:
                 run_count += 1
-                print(f"  [{run_count}/{total_runs}] threshold={thresh:.2f}... ", end="", flush=True)
+                print(
+                    f"  [{run_count}/{total_runs}] threshold={thresh:.2f}... ",
+                    end="",
+                    flush=True,
+                )
                 start = time.time()
                 r = run_with_threshold(symbol, tf, thresh, config)
                 elapsed = time.time() - start
@@ -138,7 +148,11 @@ def print_summary(results):
     print("\n" + "=" * 120)
     print("DETAILED RESULTS BY THRESHOLD")
     print("=" * 120)
-    print(f"{'Symbol':<12} {'TF':<4} {'Thresh':<6} {'Return':>8} {'Sharpe':>7} {'MaxDD':>8} {'Win%':>7} {'PF':>6} {'Trades':>6} {'Blocked':>7} {'Downgraded':>10} {'AvgAlign':>8}")
+    print(
+        f"{'Symbol':<12} {'TF':<4} {'Thresh':<6} {'Return':>8} {'Sharpe':>7} "
+        f"{'MaxDD':>8} {'Win%':>7} {'PF':>6} {'Trades':>6} {'Blocked':>7} "
+        f"{'Downgraded':>10} {'AvgAlign':>8}"
+    )
     print("-" * 120)
 
     for _, r in df.sort_values(["symbol", "timeframe", "wiki_threshold"]).iterrows():
@@ -153,7 +167,10 @@ def print_summary(results):
     print("\n" + "=" * 120)
     print("OPTIMAL THRESHOLD PER CONFIGURATION (best Sharpe)")
     print("=" * 120)
-    print(f"{'Symbol':<12} {'TF':<4} {'BestThresh':>10} {'Return':>8} {'Sharpe':>7} {'MaxDD':>8} {'Trades':>6} {'Blocked':>7}")
+    print(
+        f"{'Symbol':<12} {'TF':<4} {'BestThresh':>10} {'Return':>8} {'Sharpe':>7} "
+        f"{'MaxDD':>8} {'Trades':>6} {'Blocked':>7}"
+    )
     print("-" * 120)
 
     for symbol in df["symbol"].unique():
@@ -172,7 +189,10 @@ def print_summary(results):
     print("\n" + "=" * 120)
     print("AGGREGATE BY THRESHOLD")
     print("=" * 120)
-    print(f"{'Threshold':<10} {'AvgReturn':>10} {'AvgSharpe':>10} {'AvgMaxDD':>10} {'AvgTrades':>10} {'TotalBlocked':>12} {'TotalDowngraded':>15}")
+    print(
+        f"{'Threshold':<10} {'AvgReturn':>10} {'AvgSharpe':>10} {'AvgMaxDD':>10} "
+        f"{'AvgTrades':>10} {'TotalBlocked':>12} {'TotalDowngraded':>15}"
+    )
     print("-" * 120)
 
     for thresh in sorted(df["wiki_threshold"].unique()):
@@ -188,22 +208,29 @@ def print_summary(results):
     print("RECOMMENDATION")
     print("=" * 120)
 
-    by_thresh = df.groupby("wiki_threshold").agg({
-        "total_return": "mean",
-        "sharpe": "mean",
-        "max_drawdown": "mean",
-        "wiki_blocked": "sum",
-    }).reset_index()
+    by_thresh = (
+        df.groupby("wiki_threshold")
+        .agg(
+            {
+                "total_return": "mean",
+                "sharpe": "mean",
+                "max_drawdown": "mean",
+                "wiki_blocked": "sum",
+            }
+        )
+        .reset_index()
+    )
 
     # Score: higher return, higher sharpe, less negative DD, but not too many blocks
     by_thresh["score"] = (
-        by_thresh["total_return"] * 2 +
-        by_thresh["sharpe"] * 0.5 +
-        by_thresh["max_drawdown"] * 1.5  # max_drawdown is negative, so less negative = better
+        by_thresh["total_return"] * 2
+        + by_thresh["sharpe"] * 0.5
+        + by_thresh["max_drawdown"]
+        * 1.5  # max_drawdown is negative, so less negative = better
     )
     best = by_thresh.loc[by_thresh["score"].idxmax()]
 
-    print(f"\nBased on aggregate performance (return, sharpe, drawdown):")
+    print("\nBased on aggregate performance (return, sharpe, drawdown):")
     print(f"  Recommended wiki_min_alignment: {best['wiki_threshold']:.2f}")
     print(f"  Expected avg return: {best['total_return']:.2%}")
     print(f"  Expected avg sharpe: {best['sharpe']:.2f}")

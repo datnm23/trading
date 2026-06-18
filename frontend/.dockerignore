@@ -1,0 +1,28 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build outputs
+.next
+dist
+out
+
+# Testing
+coverage
+test-results
+playwright-report
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env.local
+.env.*.local
+
+# Misc
+.git
+.gitignore
+README.md
+*.md
+.DS_Store

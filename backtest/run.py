@@ -1,13 +1,12 @@
 """CLI to run backtest — supports all strategies including ensemble."""
 
 import argparse
-from pathlib import Path
 
 import yaml
 from loguru import logger
 
-from data.feed import DataFeed
 from backtest.engine import BacktestEngine
+from data.feed import DataFeed
 from risk.manager import RiskManager
 
 
@@ -18,36 +17,46 @@ def load_config(path: str) -> dict:
 
 def create_strategy(name: str, config: dict, model_path: str = None):
     """Factory to create any registered strategy."""
-    from strategies.rule_based.ema_trend import EMATrendStrategy
-    from strategies.rule_based.monthly_breakout import MonthlyBreakoutStrategy
-    from strategies.rule_based.grid_mean_reversion import GridMeanReversionStrategy
     from strategies.ensemble.regime_ensemble import RegimeEnsembleStrategy
     from strategies.ml_based import MLStrategy
+    from strategies.rule_based.ema_trend import EMATrendStrategy
+    from strategies.rule_based.grid_mean_reversion import GridMeanReversionStrategy
+    from strategies.rule_based.monthly_breakout import MonthlyBreakoutStrategy
 
     if name == "EMA-Trend":
         return EMATrendStrategy(params=config["strategies"]["registry"][0]["params"])
     elif name == "Monthly-Breakout":
-        return MonthlyBreakoutStrategy(params=config["strategies"]["registry"][1]["params"])
+        return MonthlyBreakoutStrategy(
+            params=config["strategies"]["registry"][1]["params"]
+        )
     elif name == "Grid-MeanReversion":
-        return GridMeanReversionStrategy(params={"grid_levels": 5, "lookback_days": 30, "atr_period": 14})
+        return GridMeanReversionStrategy(
+            params={"grid_levels": 5, "lookback_days": 30, "atr_period": 14}
+        )
     elif name == "RegimeEnsemble":
-        return RegimeEnsembleStrategy(params={
-            "ema": config["strategies"]["registry"][0]["params"],
-            "breakout": config["strategies"]["registry"][1]["params"],
-            "grid": {"grid_levels": 5, "lookback_days": 30, "atr_period": 14},
-            "regime_lookback": 30,
-            "atr_period": 14,
-        })
+        return RegimeEnsembleStrategy(
+            params={
+                "ema": config["strategies"]["registry"][0]["params"],
+                "breakout": config["strategies"]["registry"][1]["params"],
+                "grid": {"grid_levels": 5, "lookback_days": 30, "atr_period": 14},
+                "regime_lookback": 30,
+                "atr_period": 14,
+            }
+        )
     elif name == "ML-Strategy":
         if model_path is None:
             # Try to load latest model by mtime
             import glob
             import os
+
             models = glob.glob("./ml/models/*.pkl")
             if not models:
-                raise ValueError("No trained model found. Train a model first with: python -m ml.pipelines.train")
+                raise ValueError(
+                    "No trained model found. Train a model first with: python -m ml.pipelines.train"
+                )
             model_path = max(models, key=os.path.getmtime)
         from ml.pipelines.xgboost_pipeline import MLClassifierPipeline
+
         pipeline = MLClassifierPipeline()
         pipeline.load(model_path)
         return MLStrategy(pipeline, name="ML-Strategy")
@@ -55,7 +64,13 @@ def create_strategy(name: str, config: dict, model_path: str = None):
         raise ValueError(f"Unknown strategy: {name}")
 
 
-def run_backtest(strategy_name: str, symbol: str, timeframe: str, config_path: str, model_path: str = None) -> dict:
+def run_backtest(
+    strategy_name: str,
+    symbol: str,
+    timeframe: str,
+    config_path: str,
+    model_path: str = None,
+) -> dict:
     """Run a single backtest and return metrics."""
     config = load_config(config_path)
 
@@ -101,11 +116,18 @@ def main():
     parser.add_argument("--symbol", default="BTC/USDT")
     parser.add_argument("--timeframe", default="1d")
     parser.add_argument("--config", default="config/system.yaml")
-    parser.add_argument("--compare", action="store_true", help="Run all strategies and compare")
+    parser.add_argument(
+        "--compare", action="store_true", help="Run all strategies and compare"
+    )
     args = parser.parse_args()
 
     if args.compare:
-        strategies = ["EMA-Trend", "Monthly-Breakout", "Grid-MeanReversion", "RegimeEnsemble"]
+        strategies = [
+            "EMA-Trend",
+            "Monthly-Breakout",
+            "Grid-MeanReversion",
+            "RegimeEnsemble",
+        ]
         results = []
         for name in strategies:
             logger.info(f"Running {name}...")
@@ -117,7 +139,9 @@ def main():
 
         # Print comparison table
         print("\n" + "=" * 90)
-        print(f"{'Strategy':<22} {'Return':>8} {'Sharpe':>7} {'Max DD':>8} {'Winrate':>8} {'PF':>7} {'Trades':>7}")
+        print(
+            f"{'Strategy':<22} {'Return':>8} {'Sharpe':>7} {'Max DD':>8} {'Winrate':>8} {'PF':>7} {'Trades':>7}"
+        )
         print("-" * 90)
         for r in results:
             print(
@@ -131,7 +155,10 @@ def main():
             )
             if "regime_distribution" in r:
                 rd = r["regime_distribution"]
-                print(f"  → Regime: trending={rd.get('trending',0):.0%}, ranging={rd.get('ranging',0):.0%}, neutral={rd.get('neutral',0):.0%}")
+                print(
+                    f"  → Regime: trending={rd.get('trending',0):.0%}, "
+                    f"ranging={rd.get('ranging',0):.0%}, neutral={rd.get('neutral',0):.0%}"
+                )
         print("=" * 90 + "\n")
     else:
         metrics = run_backtest(args.strategy, args.symbol, args.timeframe, args.config)
@@ -145,7 +172,10 @@ def main():
         print(f"Total Trades : {metrics['total_trades']}")
         if "regime_distribution" in metrics:
             rd = metrics["regime_distribution"]
-            print(f"Regimes      : trending={rd.get('trending',0):.0%}, ranging={rd.get('ranging',0):.0%}, neutral={rd.get('neutral',0):.0%}")
+            print(
+                f"Regimes      : trending={rd.get('trending',0):.0%}, "
+                f"ranging={rd.get('ranging',0):.0%}, neutral={rd.get('neutral',0):.0%}"
+            )
         print("=====================================\n")
 
 

@@ -1,9 +1,8 @@
 """Tests for psychological enforcer."""
 
-import pytest
 from datetime import datetime, timedelta
 
-from risk.psychology import PsychologicalEnforcer, PsychologicalState
+from risk.psychology import PsychologicalEnforcer
 
 
 class TestPsychologicalEnforcer:
@@ -17,10 +16,12 @@ class TestPsychologicalEnforcer:
         assert "3 consecutive losses" in state.blocked_reason
 
     def test_pause_expires(self):
-        enforcer = PsychologicalEnforcer({
-            "max_consecutive_losses": 2,
-            "pause_after_losses_hours": 0,
-        })
+        enforcer = PsychologicalEnforcer(
+            {
+                "max_consecutive_losses": 2,
+                "pause_after_losses_hours": 0,
+            }
+        )
         enforcer.check_state(pnl=-100)
         state = enforcer.check_state(pnl=-100)
         assert state.is_paused is True
@@ -36,10 +37,12 @@ class TestPsychologicalEnforcer:
         assert state.last_emotion == "fomo"
 
     def test_win_streak_cooldown(self):
-        enforcer = PsychologicalEnforcer({
-            "win_streak_cooldown": 3,
-            "win_streak_multiplier": 0.8,
-        })
+        enforcer = PsychologicalEnforcer(
+            {
+                "win_streak_cooldown": 3,
+                "win_streak_multiplier": 0.8,
+            }
+        )
         enforcer.check_state(pnl=100)
         enforcer.check_state(pnl=100)
         state = enforcer.check_state(pnl=100)

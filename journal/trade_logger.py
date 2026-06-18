@@ -19,21 +19,21 @@ Schema:
     equity_snapshots -> equity curve points
 """
 
-import sqlite3
-import json
 import csv
-from dataclasses import dataclass, asdict, field
+import json
+import sqlite3
+from contextlib import contextmanager
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, List, Dict, Any
-from contextlib import contextmanager
+from typing import Any
 from urllib.parse import urlparse
 
 from loguru import logger
 
 try:
     import psycopg2
-    from psycopg2.extras import RealDictCursor
+
     POSTGRES_AVAILABLE = True
 except ImportError:
     POSTGRES_AVAILABLE = False
@@ -42,40 +42,44 @@ except ImportError:
 @dataclass
 class TradeRecord:
     """Complete record of a single round-trip trade."""
-    id: Optional[int] = None
+
+    id: int | None = None
     timestamp: datetime = field(default_factory=datetime.now)
     symbol: str = ""
     strategy: str = ""
-    side: str = ""            # 'long' or 'short'
+    side: str = ""  # 'long' or 'short'
     entry_price: float = 0.0
     exit_price: float = 0.0
     size: float = 0.0
     pnl: float = 0.0
     pnl_pct: float = 0.0
     holding_bars: int = 0
-    exit_reason: str = ""     # 'signal', 'stop_loss', 'take_profit', 'manual', 'liquidation'
-    stop_price: Optional[float] = None
-    target_price: Optional[float] = None
-    reasoning: str = ""       # why this trade was taken
-    emotion_before: Optional[str] = None   # e.g. 'calm', 'fomo', 'fear', 'confident'
-    emotion_after: Optional[str] = None    # reflection after close
-    market_regime: Optional[str] = None    # e.g. 'trending', 'ranging'
+    exit_reason: str = (
+        ""  # 'signal', 'stop_loss', 'take_profit', 'manual', 'liquidation'
+    )
+    stop_price: float | None = None
+    target_price: float | None = None
+    reasoning: str = ""  # why this trade was taken
+    emotion_before: str | None = None  # e.g. 'calm', 'fomo', 'fear', 'confident'
+    emotion_after: str | None = None  # reflection after close
+    market_regime: str | None = None  # e.g. 'trending', 'ranging'
     notes: str = ""
-    tags: str = ""            # comma-separated tags
-    raw_metadata: str = ""    # JSON string for extensibility
+    tags: str = ""  # comma-separated tags
+    raw_metadata: str = ""  # JSON string for extensibility
 
 
 @dataclass
 class JournalEntry:
     """Daily or ad-hoc journal entry."""
-    id: Optional[int] = None
-    date: str = ""            # YYYY-MM-DD
+
+    id: int | None = None
+    date: str = ""  # YYYY-MM-DD
     timestamp: datetime = field(default_factory=datetime.now)
-    entry_type: str = "daily" # 'daily', 'pre_session', 'post_session', 'review'
+    entry_type: str = "daily"  # 'daily', 'pre_session', 'post_session', 'review'
     content: str = ""
-    emotion: Optional[str] = None
-    focus_score: Optional[int] = None      # 1-10 self-rated focus
-    discipline_score: Optional[int] = None # 1-10 self-rated discipline
+    emotion: str | None = None
+    focus_score: int | None = None  # 1-10 self-rated focus
+    discipline_score: int | None = None  # 1-10 self-rated discipline
     lessons: str = ""
     tags: str = ""
 
@@ -83,7 +87,8 @@ class JournalEntry:
 @dataclass
 class EquitySnapshot:
     """Periodic snapshot of account state."""
-    id: Optional[int] = None
+
+    id: int | None = None
     timestamp: datetime = field(default_factory=datetime.now)
     equity: float = 0.0
     cash: float = 0.0
@@ -106,15 +111,19 @@ class TradeLogger:
     def __init__(
         self,
         db_path: str = "./data/journal.db",
-        db_url: Optional[str] = None,
+        db_url: str | None = None,
     ):
         self.db_url = db_url
         self.db_path = Path(db_path) if db_path else None
-        self.backend = "postgres" if (db_url and db_url.startswith("postgresql://")) else "sqlite"
+        self.backend = (
+            "postgres" if (db_url and db_url.startswith("postgresql://")) else "sqlite"
+        )
 
         if self.backend == "postgres":
             if not POSTGRES_AVAILABLE:
-                raise ImportError("psycopg2-binary required for PostgreSQL. Run: pip install psycopg2-binary")
+                raise ImportError(
+                    "psycopg2-binary required for PostgreSQL. Run: pip install psycopg2-binary"
+                )
             parsed = urlparse(db_url)
             self.pg_config = {
                 "host": parsed.hostname or "localhost",
@@ -154,7 +163,7 @@ class TradeLogger:
         cur.execute(sql, params)
         return cur
 
-    def _fetchall(self, cur) -> List[Dict[str, Any]]:
+    def _fetchall(self, cur) -> list[dict[str, Any]]:
         """Fetch all rows as dicts (uniform for both backends)."""
         if self.backend == "postgres":
             rows = cur.fetchall()
@@ -166,7 +175,7 @@ class TradeLogger:
             rows = cur.fetchall()
             return [dict(r) for r in rows]
 
-    def _fetchone(self, cur) -> Optional[Dict[str, Any]]:
+    def _fetchone(self, cur) -> dict[str, Any] | None:
         """Fetch one row as dict."""
         rows = self._fetchall(cur)
         return rows[0] if rows else None
@@ -250,8 +259,12 @@ class TradeLogger:
                     drawdown_pct REAL
                 )
             """)
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_trades_symbol ON trades(symbol)")
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_trades_date ON trades(timestamp)")
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_trades_symbol ON trades(symbol)"
+            )
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_trades_date ON trades(timestamp)"
+            )
             conn.execute("CREATE INDEX IF NOT EXISTS idx_journal_date ON journal(date)")
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS wiki_feedback (
@@ -340,11 +353,19 @@ class TradeLogger:
                 )
             """)
             # Indexes
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_trades_timestamp ON trades(timestamp)")
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_trades_symbol ON trades(symbol)")
+            cur.execute(
+                "CREATE INDEX IF NOT EXISTS idx_trades_timestamp ON trades(timestamp)"
+            )
+            cur.execute(
+                "CREATE INDEX IF NOT EXISTS idx_trades_symbol ON trades(symbol)"
+            )
             cur.execute("CREATE INDEX IF NOT EXISTS idx_journal_date ON journal(date)")
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_snapshots_timestamp ON snapshots(timestamp)")
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_equity_timestamp ON equity_snapshots(timestamp)")
+            cur.execute(
+                "CREATE INDEX IF NOT EXISTS idx_snapshots_timestamp ON snapshots(timestamp)"
+            )
+            cur.execute(
+                "CREATE INDEX IF NOT EXISTS idx_equity_timestamp ON equity_snapshots(timestamp)"
+            )
             # Wiki feedback table for learning loop
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS wiki_feedback (
@@ -364,10 +385,17 @@ class TradeLogger:
                     context_summary TEXT
                 )
             """)
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_wiki_outcome ON wiki_feedback(outcome)")
-            cur.execute("CREATE INDEX IF NOT EXISTS idx_wiki_symbol ON wiki_feedback(symbol)")
+            cur.execute(
+                "CREATE INDEX IF NOT EXISTS idx_wiki_outcome ON wiki_feedback(outcome)"
+            )
+            cur.execute(
+                "CREATE INDEX IF NOT EXISTS idx_wiki_symbol ON wiki_feedback(symbol)"
+            )
             conn.commit()
-            logger.info(f"Trade journal initialized at PostgreSQL {self.pg_config['host']}:{self.pg_config['port']}/{self.pg_config['dbname']}")
+            logger.info(
+                f"Trade journal initialized at PostgreSQL "
+                f"{self.pg_config['host']}:{self.pg_config['port']}/{self.pg_config['dbname']}"
+            )
 
     # ------------------------------------------------------------------
     # Trade logging
@@ -428,16 +456,16 @@ class TradeLogger:
 
     def get_trades(
         self,
-        symbol: Optional[str] = None,
-        strategy: Optional[str] = None,
-        start: Optional[str] = None,
-        end: Optional[str] = None,
+        symbol: str | None = None,
+        strategy: str | None = None,
+        start: str | None = None,
+        end: str | None = None,
         limit: int = 1000,
-    ) -> List[TradeRecord]:
+    ) -> list[TradeRecord]:
         """Query trades with optional filters."""
         ph = self._ph()
         query = "SELECT * FROM trades WHERE 1=1"
-        params: List = []
+        params: list = []
         if symbol:
             query += f" AND symbol = {ph}"
             params.append(symbol)
@@ -459,7 +487,7 @@ class TradeLogger:
             rows = self._fetchall(cur)
             return [self._row_to_trade(r) for r in rows]
 
-    def _row_to_trade(self, row: Dict[str, Any]) -> TradeRecord:
+    def _row_to_trade(self, row: dict[str, Any]) -> TradeRecord:
         ts = row["timestamp"]
         if isinstance(ts, str):
             ts = datetime.fromisoformat(ts)
@@ -524,10 +552,12 @@ class TradeLogger:
             conn.commit()
             return self._lastrowid(cur)
 
-    def get_journal(self, date: Optional[str] = None, limit: int = 100) -> List[JournalEntry]:
+    def get_journal(
+        self, date: str | None = None, limit: int = 100
+    ) -> list[JournalEntry]:
         ph = self._ph()
         query = "SELECT * FROM journal WHERE 1=1"
-        params: List = []
+        params: list = []
         if date:
             query += f" AND date = {ph}"
             params.append(date)
@@ -539,7 +569,7 @@ class TradeLogger:
             rows = self._fetchall(cur)
             return [self._row_to_journal(r) for r in rows]
 
-    def _row_to_journal(self, row: Dict[str, Any]) -> JournalEntry:
+    def _row_to_journal(self, row: dict[str, Any]) -> JournalEntry:
         ts = row["timestamp"]
         if isinstance(ts, str):
             ts = datetime.fromisoformat(ts)
@@ -591,7 +621,7 @@ class TradeLogger:
             conn.commit()
             return self._lastrowid(cur)
 
-    def get_snapshots(self, limit: int = 1000) -> List[EquitySnapshot]:
+    def get_snapshots(self, limit: int = 1000) -> list[EquitySnapshot]:
         ph = self._ph()
         with self._connect() as conn:
             cur = self._exec(
@@ -602,7 +632,7 @@ class TradeLogger:
             rows = self._fetchall(cur)
             return [self._row_to_snapshot(r) for r in rows]
 
-    def _row_to_snapshot(self, row: Dict[str, Any]) -> EquitySnapshot:
+    def _row_to_snapshot(self, row: dict[str, Any]) -> EquitySnapshot:
         ts = row["timestamp"]
         if isinstance(ts, str):
             ts = datetime.fromisoformat(ts)
@@ -620,11 +650,13 @@ class TradeLogger:
     # ------------------------------------------------------------------
     # Summary & analytics
     # ------------------------------------------------------------------
-    def trade_summary(self, symbol: Optional[str] = None, strategy: Optional[str] = None) -> dict:
+    def trade_summary(
+        self, symbol: str | None = None, strategy: str | None = None
+    ) -> dict:
         """Compute summary statistics over logged trades."""
         ph = self._ph()
         query = "SELECT * FROM trades WHERE 1=1"
-        params: List = []
+        params: list = []
         if symbol:
             query += f" AND symbol = {ph}"
             params.append(symbol)
@@ -648,19 +680,26 @@ class TradeLogger:
             "total_pnl": sum(pnls),
             "avg_pnl": sum(pnls) / len(pnls),
             "winrate": len(wins) / len(pnls) if pnls else 0,
-            "profit_factor": abs(sum(wins) / sum(losses)) if losses and sum(losses) != 0 else float("inf"),
+            "profit_factor": (
+                abs(sum(wins) / sum(losses))
+                if losses and sum(losses) != 0
+                else float("inf")
+            ),
             "avg_win": sum(wins) / len(wins) if wins else 0,
             "avg_loss": sum(losses) / len(losses) if losses else 0,
             "max_win": max(wins) if wins else 0,
             "max_loss": min(losses) if losses else 0,
         }
 
-    def emotion_distribution(self) -> Dict[str, int]:
+    def emotion_distribution(self) -> dict[str, int]:
         """Count frequency of emotions recorded before trades."""
         with self._connect() as conn:
             cur = self._exec(
                 conn,
-                "SELECT emotion_before, COUNT(*) as cnt FROM trades WHERE emotion_before IS NOT NULL GROUP BY emotion_before",
+                (
+                    "SELECT emotion_before, COUNT(*) as cnt FROM trades "
+                    "WHERE emotion_before IS NOT NULL GROUP BY emotion_before"
+                ),
                 (),
             )
             rows = self._fetchall(cur)
@@ -669,7 +708,7 @@ class TradeLogger:
     # ------------------------------------------------------------------
     # Export
     # ------------------------------------------------------------------
-    def export_trades_csv(self, path: str, symbol: Optional[str] = None):
+    def export_trades_csv(self, path: str, symbol: str | None = None):
         """Export trades to CSV."""
         trades = self.get_trades(symbol=symbol, limit=100000)
         if not trades:
@@ -677,41 +716,62 @@ class TradeLogger:
             return
 
         fieldnames = [
-            "timestamp", "symbol", "strategy", "side", "entry_price",
-            "exit_price", "size", "pnl", "pnl_pct", "holding_bars",
-            "exit_reason", "reasoning", "emotion_before", "emotion_after",
-            "market_regime", "notes", "tags",
+            "timestamp",
+            "symbol",
+            "strategy",
+            "side",
+            "entry_price",
+            "exit_price",
+            "size",
+            "pnl",
+            "pnl_pct",
+            "holding_bars",
+            "exit_reason",
+            "reasoning",
+            "emotion_before",
+            "emotion_after",
+            "market_regime",
+            "notes",
+            "tags",
         ]
         with open(path, "w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
             for t in trades:
-                writer.writerow({
-                    "timestamp": t.timestamp.isoformat(),
-                    "symbol": t.symbol,
-                    "strategy": t.strategy,
-                    "side": t.side,
-                    "entry_price": t.entry_price,
-                    "exit_price": t.exit_price,
-                    "size": t.size,
-                    "pnl": t.pnl,
-                    "pnl_pct": t.pnl_pct,
-                    "holding_bars": t.holding_bars,
-                    "exit_reason": t.exit_reason,
-                    "reasoning": t.reasoning,
-                    "emotion_before": t.emotion_before,
-                    "emotion_after": t.emotion_after,
-                    "market_regime": t.market_regime,
-                    "notes": t.notes,
-                    "tags": t.tags,
-                })
+                writer.writerow(
+                    {
+                        "timestamp": t.timestamp.isoformat(),
+                        "symbol": t.symbol,
+                        "strategy": t.strategy,
+                        "side": t.side,
+                        "entry_price": t.entry_price,
+                        "exit_price": t.exit_price,
+                        "size": t.size,
+                        "pnl": t.pnl,
+                        "pnl_pct": t.pnl_pct,
+                        "holding_bars": t.holding_bars,
+                        "exit_reason": t.exit_reason,
+                        "reasoning": t.reasoning,
+                        "emotion_before": t.emotion_before,
+                        "emotion_after": t.emotion_after,
+                        "market_regime": t.market_regime,
+                        "notes": t.notes,
+                        "tags": t.tags,
+                    }
+                )
         logger.info(f"Exported {len(trades)} trades to {path}")
 
     def export_journal_json(self, path: str):
         """Export journal entries to JSON."""
         entries = self.get_journal(limit=100000)
         with open(path, "w", encoding="utf-8") as f:
-            json.dump([asdict(e) for e in entries], f, ensure_ascii=False, indent=2, default=str)
+            json.dump(
+                [asdict(e) for e in entries],
+                f,
+                ensure_ascii=False,
+                indent=2,
+                default=str,
+            )
         logger.info(f"Exported {len(entries)} journal entries to {path}")
 
     # ------------------------------------------------------------------
@@ -753,7 +813,9 @@ class TradeLogger:
             conn.commit()
             return self._lastrowid(cur)
 
-    def update_wiki_feedback(self, feedback_id: int, outcome: str, pnl: float, pnl_pct: float) -> bool:
+    def update_wiki_feedback(
+        self, feedback_id: int, outcome: str, pnl: float, pnl_pct: float
+    ) -> bool:
         """Update wiki feedback outcome after trade close."""
         ph = self._ph()
         sql = f"UPDATE wiki_feedback SET outcome={ph}, pnl={ph}, pnl_pct={ph} WHERE id={ph}"
@@ -808,24 +870,28 @@ class TradeLogger:
     def migrate_from_sqlite(self, sqlite_path: str):
         """Migrate data from SQLite to current backend (PostgreSQL)."""
         if self.backend != "postgres":
-            raise ValueError("migrate_from_sqlite only works when connected to PostgreSQL")
-        
+            raise ValueError(
+                "migrate_from_sqlite only works when connected to PostgreSQL"
+            )
+
         logger.info(f"Migrating data from {sqlite_path} to PostgreSQL...")
         src = TradeLogger(db_path=sqlite_path)
-        
+
         # Migrate trades
         trades = src.get_trades(limit=100000)
         for t in trades:
             self.log_trade(t)
-        
+
         # Migrate journal
         entries = src.get_journal(limit=100000)
         for e in entries:
             self.log_journal(e)
-        
+
         # Migrate snapshots
         snaps = src.get_snapshots(limit=100000)
         for s in snaps:
             self.snapshot(s)
-        
-        logger.info(f"Migration complete: {len(trades)} trades, {len(entries)} journal entries, {len(snaps)} snapshots")
+
+        logger.info(
+            f"Migration complete: {len(trades)} trades, {len(entries)} journal entries, {len(snaps)} snapshots"
+        )

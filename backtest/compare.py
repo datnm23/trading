@@ -1,12 +1,13 @@
 """Compare base backtest vs enhanced backtest (wiki + psych)."""
 
 import yaml
-from data.feed import DataFeed
+from loguru import logger
+
 from backtest.engine import BacktestEngine
 from backtest.enhanced_engine import EnhancedBacktestEngine
+from data.feed import DataFeed
 from risk.manager import RiskManager
 from strategies.ensemble.regime_ensemble import RegimeEnsembleStrategy
-from loguru import logger
 
 logger.remove()
 logger.add(lambda msg: print(msg, end=""), level="INFO")
@@ -26,14 +27,16 @@ def run_comparison(symbol="BTC/USDT", timeframe="1d"):
         raise ValueError("No data")
 
     # Strategy
-    strategy = RegimeEnsembleStrategy(params={
-        "ema": config["strategies"]["registry"][0]["params"],
-        "breakout": config["strategies"]["registry"][1]["params"],
-        "grid": {"grid_levels": 5, "lookback_days": 30, "atr_period": 14},
-        "regime_lookback": 30,
-        "atr_period": 14,
-        "wiki_min_alignment": 0.3,
-    })
+    strategy = RegimeEnsembleStrategy(
+        params={
+            "ema": config["strategies"]["registry"][0]["params"],
+            "breakout": config["strategies"]["registry"][1]["params"],
+            "grid": {"grid_levels": 5, "lookback_days": 30, "atr_period": 14},
+            "regime_lookback": 30,
+            "atr_period": 14,
+            "wiki_min_alignment": 0.3,
+        }
+    )
 
     risk = RiskManager(config["risk"])
 
@@ -78,7 +81,12 @@ def run_comparison(symbol="BTC/USDT", timeframe="1d"):
         ("Sharpe Ratio", base_result.sharpe, enhanced_result.sharpe, ".2f"),
         ("Max Drawdown", base_result.max_drawdown, enhanced_result.max_drawdown, ".2%"),
         ("Winrate", base_result.winrate, enhanced_result.winrate, ".2%"),
-        ("Profit Factor", base_result.profit_factor, enhanced_result.profit_factor, ".2f"),
+        (
+            "Profit Factor",
+            base_result.profit_factor,
+            enhanced_result.profit_factor,
+            ".2f",
+        ),
         ("Total Trades", len(base_result.trades), len(enhanced_result.trades), "d"),
     ]
 
@@ -93,9 +101,15 @@ def run_comparison(symbol="BTC/USDT", timeframe="1d"):
     print("-" * 80)
     print(f"{'Wiki Blocked':<25} {'N/A':>12} {enhanced_result.wiki_blocked:>12d}")
     print(f"{'Wiki Downgraded':<25} {'N/A':>12} {enhanced_result.wiki_downgraded:>12d}")
-    print(f"{'Wiki Avg Alignment':<25} {'N/A':>12} {enhanced_result.wiki_avg_alignment:>12.3f}")
-    print(f"{'Psych Paused Bars':<25} {'N/A':>12} {enhanced_result.psych_paused_bars:>12d}")
-    print(f"{'Psych Size Reductions':<25} {'N/A':>12} {enhanced_result.psych_size_reductions:>12d}")
+    print(
+        f"{'Wiki Avg Alignment':<25} {'N/A':>12} {enhanced_result.wiki_avg_alignment:>12.3f}"
+    )
+    print(
+        f"{'Psych Paused Bars':<25} {'N/A':>12} {enhanced_result.psych_paused_bars:>12d}"
+    )
+    print(
+        f"{'Psych Size Reductions':<25} {'N/A':>12} {enhanced_result.psych_size_reductions:>12d}"
+    )
     print("=" * 80)
 
     return base_result, enhanced_result

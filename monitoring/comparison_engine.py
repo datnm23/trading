@@ -10,7 +10,6 @@ Usage:
 import json
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Dict, List, Optional
 
 import requests
 from loguru import logger
@@ -19,6 +18,7 @@ from loguru import logger
 @dataclass
 class StrategySnapshot:
     """Single snapshot of a running strategy bot."""
+
     name: str
     port: int
     timestamp: datetime
@@ -44,13 +44,17 @@ class StrategyComparison:
 
     INITIAL_CAPITAL = 100000.0
 
-    def __init__(self, strategies: Optional[List[dict]] = None, initial_capital: float = 100000.0):
+    def __init__(
+        self, strategies: list[dict] | None = None, initial_capital: float = 100000.0
+    ):
         self.strategies = strategies or self.DEFAULT_STRATEGIES.copy()
         self.initial_capital = initial_capital
-        self.snapshots: Dict[str, StrategySnapshot] = {}
-        self.history: Dict[str, List[StrategySnapshot]] = {s["name"]: [] for s in self.strategies}
+        self.snapshots: dict[str, StrategySnapshot] = {}
+        self.history: dict[str, list[StrategySnapshot]] = {
+            s["name"]: [] for s in self.strategies
+        }
 
-    def _fetch_health(self, port: int) -> Optional[dict]:
+    def _fetch_health(self, port: int) -> dict | None:
         """Fetch health endpoint from a bot."""
         try:
             resp = requests.get(f"http://localhost:{port}/health", timeout=5)
@@ -60,7 +64,7 @@ class StrategyComparison:
             logger.warning(f"Health check failed on port {port}: {e}")
             return None
 
-    def poll(self, name: str, port: int) -> Optional[StrategySnapshot]:
+    def poll(self, name: str, port: int) -> StrategySnapshot | None:
         """Poll a single strategy bot."""
         data = self._fetch_health(port)
         if data is None:
@@ -91,25 +95,27 @@ class StrategyComparison:
             self.history[name] = self.history[name][-1000:]
         return snap
 
-    def poll_all(self) -> Dict[str, StrategySnapshot]:
+    def poll_all(self) -> dict[str, StrategySnapshot]:
         """Poll all strategy bots."""
         for s in self.strategies:
             self.poll(s["name"], s["port"])
         return self.snapshots
 
-    def leaderboard(self) -> List[dict]:
+    def leaderboard(self) -> list[dict]:
         """Return sorted leaderboard by total return."""
         rows = []
         for name, snap in self.snapshots.items():
-            rows.append({
-                "strategy": name,
-                "equity": snap.equity,
-                "return_pct": snap.total_return_pct,
-                "daily_pnl": snap.daily_pnl,
-                "open_positions": snap.open_positions,
-                "running": snap.running,
-                "last_update": snap.timestamp.strftime("%H:%M:%S"),
-            })
+            rows.append(
+                {
+                    "strategy": name,
+                    "equity": snap.equity,
+                    "return_pct": snap.total_return_pct,
+                    "daily_pnl": snap.daily_pnl,
+                    "open_positions": snap.open_positions,
+                    "running": snap.running,
+                    "last_update": snap.timestamp.strftime("%H:%M:%S"),
+                }
+            )
         rows.sort(key=lambda x: x["return_pct"], reverse=True)
         return rows
 
@@ -140,7 +146,9 @@ class StrategyComparison:
                 f"{status:5s} ║"
             )
 
-        lines.append("╚════════════════════╩══════════════╩═══════════╩════════════╩═════════╩═══════╝")
+        lines.append(
+            "╚════════════════════╩══════════════╩═══════════╩════════════╩═════════╩═══════╝"
+        )
         lines.append("")
         return "\n".join(lines)
 
@@ -148,6 +156,7 @@ class StrategyComparison:
         """Save current snapshots to PostgreSQL for historical tracking."""
         try:
             import psycopg2
+
             conn = psycopg2.connect(db_url)
             cur = conn.cursor()
 
@@ -167,20 +176,23 @@ class StrategyComparison:
             """)
 
             for name, snap in self.snapshots.items():
-                cur.execute("""
+                cur.execute(
+                    """
                     INSERT INTO strategy_comparison
                     (strategy, equity, capital, total_return_pct, daily_pnl, open_positions, running, raw_data)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                """, (
-                    snap.name,
-                    snap.equity,
-                    snap.capital,
-                    snap.total_return_pct,
-                    snap.daily_pnl,
-                    snap.open_positions,
-                    snap.running,
-                    json.dumps(snap.raw),
-                ))
+                """,
+                    (
+                        snap.name,
+                        snap.equity,
+                        snap.capital,
+                        snap.total_return_pct,
+                        snap.daily_pnl,
+                        snap.open_positions,
+                        snap.running,
+                        json.dumps(snap.raw),
+                    ),
+                )
 
             conn.commit()
             cur.close()
@@ -189,7 +201,7 @@ class StrategyComparison:
         except Exception as e:
             logger.error(f"Failed to save to PostgreSQL: {e}")
 
-    def get_equity_curves(self) -> Dict[str, List[tuple]]:
+    def get_equity_curves(self) -> dict[str, list[tuple]]:
         """Return equity curves for plotting: {strategy: [(timestamp, equity), ...]}."""
         curves = {}
         for name, snaps in self.history.items():
@@ -199,20 +211,28 @@ class StrategyComparison:
 
 def main():
     """CLI: Real-time strategy comparison."""
-    import time
     import argparse
+    import time
 
-    parser = argparse.ArgumentParser(description="Compare running strategies in real-time")
-    parser.add_argument("--interval", type=int, default=10, help="Polling interval in seconds")
-    parser.add_argument("--db-url", default=None, help="PostgreSQL URL to save snapshots")
+    parser = argparse.ArgumentParser(
+        description="Compare running strategies in real-time"
+    )
+    parser.add_argument(
+        "--interval", type=int, default=10, help="Polling interval in seconds"
+    )
+    parser.add_argument(
+        "--db-url", default=None, help="PostgreSQL URL to save snapshots"
+    )
     args = parser.parse_args()
 
     comp = StrategyComparison()
-    db_url = args.db_url or "postgresql://trader:trading123@localhost:5432/trading_journal"
+    db_url = (
+        args.db_url or "postgresql://trader:trading123@localhost:5432/trading_journal"
+    )
 
     print("\n🔍 Strategy Comparison Monitor")
     print("=" * 60)
-    print("Polling strategies every {} seconds...".format(args.interval))
+    print(f"Polling strategies every {args.interval} seconds...")
     print("Press Ctrl+C to stop\n")
 
     try:

@@ -2,26 +2,30 @@
 
 import numpy as np
 import pandas as pd
-from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
 from loguru import logger
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 
 
 class ThresholdOptimizer:
     """Find optimal probability threshold for classification."""
 
     def __init__(self, thresholds: np.ndarray = None):
-        self.thresholds = thresholds if thresholds is not None else np.arange(0.30, 0.81, 0.02)
+        self.thresholds = (
+            thresholds if thresholds is not None else np.arange(0.30, 0.81, 0.02)
+        )
         self.results = []
         self.best_threshold = 0.5
 
-    def optimize(self, y_true: np.ndarray, y_proba: np.ndarray, metric: str = "f1") -> dict:
+    def optimize(
+        self, y_true: np.ndarray, y_proba: np.ndarray, metric: str = "f1"
+    ) -> dict:
         """Grid search thresholds and return best.
-        
+
         Args:
             y_true: True labels (0/1)
             y_proba: Predicted probabilities for positive class
             metric: Metric to optimize ('f1', 'precision', 'recall', 'accuracy')
-        
+
         Returns:
             dict with best_threshold, best_score, and full results DataFrame
         """
@@ -39,15 +43,25 @@ class ThresholdOptimizer:
                 f1 = f1_score(y_true, y_pred, zero_division=0)
                 acc = accuracy_score(y_true, y_pred)
 
-            self.results.append({
-                "threshold": thresh,
-                "precision": prec,
-                "recall": rec,
-                "f1": f1,
-                "accuracy": acc,
-                "tp_rate": rec,  # recall = TP rate
-                "fp_rate": 1 - rec if prec == 0 else (1 - prec) * (sum(y_true == 0) / sum(y_true == 1)) if sum(y_true == 1) > 0 else 0,
-            })
+            self.results.append(
+                {
+                    "threshold": thresh,
+                    "precision": prec,
+                    "recall": rec,
+                    "f1": f1,
+                    "accuracy": acc,
+                    "tp_rate": rec,  # recall = TP rate
+                    "fp_rate": (
+                        1 - rec
+                        if prec == 0
+                        else (
+                            (1 - prec) * (sum(y_true == 0) / sum(y_true == 1))
+                            if sum(y_true == 1) > 0
+                            else 0
+                        )
+                    ),
+                }
+            )
 
         df = pd.DataFrame(self.results)
 
@@ -60,15 +74,23 @@ class ThresholdOptimizer:
         target_precision = df[df["precision"] >= 0.60]
         target_recall = df[df["recall"] >= 0.70]
 
-        logger.info(f"Threshold optimization complete | Best {metric}={best_score:.4f} @ threshold={self.best_threshold:.2f}")
+        logger.info(
+            f"Threshold optimization complete | Best {metric}={best_score:.4f} @ threshold={self.best_threshold:.2f}"
+        )
 
         return {
             "best_threshold": float(self.best_threshold),
             "best_score": float(best_score),
             "metric": metric,
             "results": df,
-            "target_precision_60": target_precision["threshold"].min() if not target_precision.empty else None,
-            "target_recall_70": target_recall["threshold"].max() if not target_recall.empty else None,
+            "target_precision_60": (
+                target_precision["threshold"].min()
+                if not target_precision.empty
+                else None
+            ),
+            "target_recall_70": (
+                target_recall["threshold"].max() if not target_recall.empty else None
+            ),
         }
 
     def get_threshold_for_precision(self, target: float = 0.60) -> float:

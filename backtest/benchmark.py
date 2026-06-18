@@ -13,7 +13,6 @@ Outputs:
 import json
 import time
 from pathlib import Path
-from datetime import datetime
 
 import pandas as pd
 from loguru import logger
@@ -22,36 +21,42 @@ logger.remove()
 logger.add(lambda msg: print(msg, end=""), level="INFO")
 
 import sys
+
 sys.path.insert(0, "/home/datnm/projects/trading")
 
-from data.feed import DataFeed
 from backtest.engine import BacktestEngine
 from backtest.enhanced_engine import EnhancedBacktestEngine, EnhancedBacktestResult
+from data.feed import DataFeed
 from risk.manager import RiskManager
 from strategies.ensemble.regime_ensemble import RegimeEnsembleStrategy
 
 
 def load_config():
     import yaml
+
     with open("/home/datnm/projects/trading/config/system.yaml") as f:
         return yaml.safe_load(f)
 
 
-def run_single_benchmark(symbol: str, timeframe: str, use_wiki: bool, use_psych: bool, config: dict):
+def run_single_benchmark(
+    symbol: str, timeframe: str, use_wiki: bool, use_psych: bool, config: dict
+):
     """Run one backtest and return metrics."""
     feed = DataFeed()
     df = feed.fetch(symbol, timeframe=timeframe, limit=2000)
     if df.empty or len(df) < 150:
         return None
 
-    strategy = RegimeEnsembleStrategy(params={
-        "ema": config["strategies"]["registry"][0]["params"],
-        "breakout": config["strategies"]["registry"][1]["params"],
-        "grid": {"grid_levels": 5, "lookback_days": 30, "atr_period": 14},
-        "regime_lookback": 30,
-        "atr_period": 14,
-        "wiki_min_alignment": 0.3,
-    })
+    strategy = RegimeEnsembleStrategy(
+        params={
+            "ema": config["strategies"]["registry"][0]["params"],
+            "breakout": config["strategies"]["registry"][1]["params"],
+            "grid": {"grid_levels": 5, "lookback_days": 30, "atr_period": 14},
+            "regime_lookback": 30,
+            "atr_period": 14,
+            "wiki_min_alignment": 0.3,
+        }
+    )
 
     risk = RiskManager(config["risk"])
 
@@ -113,7 +118,7 @@ def run_full_benchmark():
     print("=" * 100)
     print(f"Symbols: {symbols}")
     print(f"Timeframes: {timeframes}")
-    print(f"Strategies: RegimeEnsemble")
+    print("Strategies: RegimeEnsemble")
     print("=" * 100)
 
     for symbol in symbols:
@@ -126,7 +131,9 @@ def run_full_benchmark():
             base = run_single_benchmark(symbol, tf, False, False, config)
             elapsed = time.time() - start
             if base:
-                print(f"Done in {elapsed:.1f}s | Return: {base['total_return']:.2%} | Trades: {base['total_trades']}")
+                print(
+                    f"Done in {elapsed:.1f}s | Return: {base['total_return']:.2%} | Trades: {base['total_trades']}"
+                )
                 results.append(base)
             else:
                 print("SKIPPED (no data)")
@@ -138,7 +145,10 @@ def run_full_benchmark():
             wiki = run_single_benchmark(symbol, tf, True, False, config)
             elapsed = time.time() - start
             if wiki:
-                print(f"Done in {elapsed:.1f}s | Return: {wiki['total_return']:.2%} | Trades: {wiki['total_trades']} | Downgraded: {wiki.get('wiki_downgraded', 0)}")
+                print(
+                    f"Done in {elapsed:.1f}s | Return: {wiki['total_return']:.2%} | "
+                    f"Trades: {wiki['total_trades']} | Downgraded: {wiki.get('wiki_downgraded', 0)}"
+                )
                 results.append(wiki)
 
             # Enhanced (wiki + psych)
@@ -147,7 +157,11 @@ def run_full_benchmark():
             both = run_single_benchmark(symbol, tf, True, True, config)
             elapsed = time.time() - start
             if both:
-                print(f"Done in {elapsed:.1f}s | Return: {both['total_return']:.2%} | Trades: {both['total_trades']} | Downgraded: {both.get('wiki_downgraded', 0)} | PsychPauses: {both.get('psych_paused_bars', 0)}")
+                print(
+                    f"Done in {elapsed:.1f}s | Return: {both['total_return']:.2%} | "
+                    f"Trades: {both['total_trades']} | Downgraded: {both.get('wiki_downgraded', 0)} | "
+                    f"PsychPauses: {both.get('psych_paused_bars', 0)}"
+                )
                 results.append(both)
 
     # Print summary tables
@@ -165,6 +179,7 @@ def run_full_benchmark():
 
 def print_summary(results):
     """Print formatted comparison tables."""
+    # ruff: noqa: E402
     df = pd.DataFrame(results)
     if df.empty:
         print("No results to display.")
@@ -173,7 +188,10 @@ def print_summary(results):
     print("\n" + "=" * 120)
     print("DETAILED RESULTS")
     print("=" * 120)
-    print(f"{'Symbol':<12} {'TF':<4} {'Mode':<10} {'Return':>8} {'Sharpe':>7} {'MaxDD':>8} {'Win%':>7} {'PF':>6} {'Trades':>6} {'Wiki↓':>6} {'Psych⏸':>6}")
+    print(
+        f"{'Symbol':<12} {'TF':<4} {'Mode':<10} {'Return':>8} {'Sharpe':>7} "
+        f"{'MaxDD':>8} {'Win%':>7} {'PF':>6} {'Trades':>6} {'Wiki↓':>6} {'Psych⏸':>6}"
+    )
     print("-" * 120)
 
     for _, r in df.iterrows():
@@ -194,13 +212,25 @@ def print_summary(results):
     print("\n" + "=" * 120)
     print("IMPACT ANALYSIS (Enhanced vs Base)")
     print("=" * 120)
-    print(f"{'Symbol':<12} {'TF':<4} {'ΔReturn':>10} {'ΔSharpe':>9} {'ΔMaxDD':>9} {'ΔTrades':>9} {'WikiBlocked':>12} {'WikiDowngrade':>14}")
+    print(
+        f"{'Symbol':<12} {'TF':<4} {'ΔReturn':>10} {'ΔSharpe':>9} {'ΔMaxDD':>9} "
+        f"{'ΔTrades':>9} {'WikiBlocked':>12} {'WikiDowngrade':>14}"
+    )
     print("-" * 120)
 
     for symbol in df["symbol"].unique():
         for tf in df["timeframe"].unique():
-            base = df[(df["symbol"] == symbol) & (df["timeframe"] == tf) & (df["mode"] == "base")]
-            enhanced = df[(df["symbol"] == symbol) & (df["timeframe"] == tf) & (df["wiki"] == True) & (df["psych"] == True)]
+            base = df[
+                (df["symbol"] == symbol)
+                & (df["timeframe"] == tf)
+                & (df["mode"] == "base")
+            ]
+            enhanced = df[
+                (df["symbol"] == symbol)
+                & (df["timeframe"] == tf)
+                & (df["wiki"])
+                & (df["psych"])
+            ]
 
             if base.empty or enhanced.empty:
                 continue
@@ -224,13 +254,21 @@ def print_summary(results):
     print("=" * 120)
 
     base_df = df[df["mode"] == "base"]
-    enhanced_df = df[(df["wiki"] == True) & (df["psych"] == True)]
+    enhanced_df = df[(df["wiki"]) & (df["psych"])]
 
     if not base_df.empty and not enhanced_df.empty:
-        print(f"{'Metric':<25} {'Base Avg':>12} {'Enhanced Avg':>14} {'Improvement':>12}")
+        print(
+            f"{'Metric':<25} {'Base Avg':>12} {'Enhanced Avg':>14} {'Improvement':>12}"
+        )
         print("-" * 65)
 
-        for metric in ["total_return", "sharpe", "max_drawdown", "winrate", "profit_factor"]:
+        for metric in [
+            "total_return",
+            "sharpe",
+            "max_drawdown",
+            "winrate",
+            "profit_factor",
+        ]:
             base_avg = base_df[metric].mean()
             enh_avg = enhanced_df[metric].mean()
             delta = enh_avg - base_avg

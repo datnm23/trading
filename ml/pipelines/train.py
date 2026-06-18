@@ -1,26 +1,27 @@
 """Optimized training pipeline with feature selection + hyperparameter tuning."""
 
 import argparse
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
-import numpy as np
 import pandas as pd
-from sklearn.preprocessing import StandardScaler
-from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
-from xgboost import XGBClassifier
 from loguru import logger
+from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
+from sklearn.preprocessing import StandardScaler
+from xgboost import XGBClassifier
 
 from data.feed import DataFeed
 from ml.features.engineering import compute_features
 from ml.features.selection import full_feature_selection, select_by_importance
-from ml.pipelines.tuning import HyperparameterTuner
+from ml.models.registry import ModelRecord, ModelRegistry
 from ml.pipelines.threshold_optimizer import ThresholdOptimizer
-from ml.models.registry import ModelRegistry, ModelRecord
+from ml.pipelines.tuning import HyperparameterTuner
 
 
-def load_and_prepare_data(symbol: str, timeframe: str, limit: int = 1500, advanced: bool = False):
+def load_and_prepare_data(
+    symbol: str, timeframe: str, limit: int = 1500, advanced: bool = False
+):
     """Load data and compute features."""
     feed = DataFeed()
     df = feed.fetch(symbol, timeframe=timeframe, limit=limit, use_cache=True)
@@ -33,16 +34,16 @@ def load_and_prepare_data(symbol: str, timeframe: str, limit: int = 1500, advanc
 
 
 def prepare_xy(features_df: pd.DataFrame, selected_features: list):
-    """Prepare X, y from feature DataFrame."""
+    """Prepare x, y from feature DataFrame."""
     cols = selected_features + ["target_direction"]
     data = features_df[cols].copy()
     # Forward fill then backfill to handle NaN from rolling windows
     data = data.ffill().bfill()
     # Drop any remaining NaN (should be rare now)
     data = data.dropna()
-    X = data[selected_features].values
+    x = data[selected_features].values
     y = data["target_direction"].values
-    return X, y, data.index
+    return x, y, data.index
 
 
 def train_optimized(
@@ -59,7 +60,7 @@ def train_optimized(
     save: bool = True,
 ) -> dict:
     """Full optimized training pipeline.
-    
+
     Steps:
         1. Load data & feature engineering
         2. Feature selection (correlation + VIF)
@@ -71,42 +72,58 @@ def train_optimized(
         8. Evaluate on most recent 20% (out-of-time)
     """
     logger.info("=" * 60)
-    logger.info(f"Optimized Training | {symbol} {timeframe} | Model: {model_type} | Advanced: {advanced_features}")
+    logger.info(
+        f"Optimized Training | {symbol} {timeframe} | Model: {model_type} | Advanced: {advanced_features}"
+    )
     logger.info("=" * 60)
 
     # Step 1: Load data
     features_df = load_and_prepare_data(symbol, timeframe, advanced=advanced_features)
-    all_feature_cols = [c for c in features_df.columns if c not in [
-        "open", "high", "low", "close", "volume",
-        "target_return_5d", "target_direction"
-    ]]
+    all_feature_cols = [
+        c
+        for c in features_df.columns
+        if c
+        not in [
+            "open",
+            "high",
+            "low",
+            "close",
+            "volume",
+            "target_return_5d",
+            "target_direction",
+        ]
+    ]
     logger.info(f"Initial features: {len(all_feature_cols)}")
 
     # Step 2: Feature selection (correlation + VIF)
     selected_features = full_feature_selection(
-        features_df, all_feature_cols,
+        features_df,
+        all_feature_cols,
         vif_threshold=vif_threshold,
         corr_threshold=corr_threshold,
     )
 
     # Step 3: Quick baseline to get feature importance
-    X_full, y_full, idx_full = prepare_xy(features_df, selected_features)
+    x_full, y_full, idx_full = prepare_xy(features_df, selected_features)
     scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X_full)
+    x_scaled = scaler.fit_transform(x_full)
 
     if model_type == "gradient_boosting":
         baseline = GradientBoostingClassifier(n_estimators=100, random_state=42)
     elif model_type == "random_forest":
         baseline = RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=-1)
     elif model_type == "xgboost":
-        baseline = XGBClassifier(n_estimators=100, random_state=42, eval_metric="logloss")
+        baseline = XGBClassifier(
+            n_estimators=100, random_state=42, eval_metric="logloss"
+        )
     else:
         from ml.models.mlp_pipeline import MLPPipeline
+
         mlp = MLPPipeline(hidden_layers=(128, 64, 32))
         mlp.train(features_df, tune_threshold=False)
         return _package_mlp_result(mlp, symbol, timeframe, advanced_features, save)
 
-    baseline.fit(X_scaled, y_full)
+    baseline.fit(x_scaled, y_full)
     logger.info(f"Baseline trained on {len(selected_features)} features")
 
     # Step 4: Select top-k by importance
@@ -118,27 +135,29 @@ def train_optimized(
     )
 
     # Re-prepare with top features
-    X, y, idx = prepare_xy(features_df, top_features)
+    x, y, idx = prepare_xy(features_df, top_features)
     logger.info(f"Final feature set: {len(top_features)} features")
 
     # Step 5: Out-of-time split (last 20%)
-    split_idx = int(len(X) * 0.8)
-    X_train, X_test = X[:split_idx], X[split_idx:]
+    split_idx = int(len(x) * 0.8)
+    x_train, x_test = x[:split_idx], x[split_idx:]
     y_train, y_test = y[:split_idx], y[split_idx:]
 
     scaler_final = StandardScaler()
-    X_train_s = scaler_final.fit_transform(X_train)
-    X_test_s = scaler_final.transform(X_test)
+    x_train_s = scaler_final.fit_transform(x_train)
+    x_test_s = scaler_final.transform(x_test)
 
     # Step 6: Hyperparameter tuning
     best_params = {}
     if tune and model_type != "mlp":
         tuner = HyperparameterTuner(n_splits=3, n_iter=n_tuning_iter)
-        tuning_result = tuner.tune(X_train_s, y_train, model_type=model_type)
+        tuning_result = tuner.tune(x_train_s, y_train, model_type=model_type)
         best_params = tuning_result["best_params"]
-        logger.info(f"\nTop 3 configs:")
+        logger.info("\nTop 3 configs:")
         for _, row in tuner.get_top_configs(3).iterrows():
-            logger.info(f"  Score={row['mean_test_score']:.4f} ± {row['std_test_score']:.4f} | {row['params']}")
+            logger.info(
+                f"  Score={row['mean_test_score']:.4f} ± {row['std_test_score']:.4f} | {row['params']}"
+            )
     else:
         best_params = {"n_estimators": 200, "max_depth": 5, "random_state": 42}
 
@@ -151,10 +170,10 @@ def train_optimized(
     else:
         final_model = RandomForestClassifier(**bp, random_state=42, n_jobs=-1)
 
-    final_model.fit(X_train_s, y_train)
+    final_model.fit(x_train_s, y_train)
 
     # Step 8: Predict probabilities for threshold tuning
-    y_proba = final_model.predict_proba(X_test_s)[:, 1]
+    y_proba = final_model.predict_proba(x_test_s)[:, 1]
 
     # Step 9: Threshold tuning
     threshold = 0.5
@@ -162,12 +181,18 @@ def train_optimized(
         optimizer = ThresholdOptimizer()
         opt_result = optimizer.optimize(y_test, y_proba, metric="f1")
         threshold = opt_result["best_threshold"]
-        logger.info(f"\nThreshold optimization:")
-        logger.info(f"  Best F1: {opt_result['best_score']:.4f} @ threshold={threshold:.3f}")
+        logger.info("\nThreshold optimization:")
+        logger.info(
+            f"  Best F1: {opt_result['best_score']:.4f} @ threshold={threshold:.3f}"
+        )
         if opt_result["target_precision_60"]:
-            logger.info(f"  Precision>=60%: threshold>={opt_result['target_precision_60']:.3f}")
+            logger.info(
+                f"  Precision>=60%: threshold>={opt_result['target_precision_60']:.3f}"
+            )
         if opt_result["target_recall_70"]:
-            logger.info(f"  Recall>=70%: threshold<={opt_result['target_recall_70']:.3f}")
+            logger.info(
+                f"  Recall>=70%: threshold<={opt_result['target_recall_70']:.3f}"
+            )
 
     y_pred = (y_proba >= threshold).astype(int)
 
@@ -203,21 +228,25 @@ def train_optimized(
     model_path = None
     if save:
         import pickle
+
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         model_name = f"{model_type}_{symbol.replace('/', '_')}_{timeframe}_{timestamp}"
         model_path = f"./ml/models/{model_name}.pkl"
         Path(model_path).parent.mkdir(parents=True, exist_ok=True)
 
         with open(model_path, "wb") as f:
-            pickle.dump({
-                "model": final_model,
-                "scaler": scaler_final,
-                "feature_names": top_features,
-                "best_params": best_params,
-                "metrics": metrics,
-                "feature_importance": fi,
-                "threshold": threshold,
-            }, f)
+            pickle.dump(
+                {
+                    "model": final_model,
+                    "scaler": scaler_final,
+                    "feature_names": top_features,
+                    "best_params": best_params,
+                    "metrics": metrics,
+                    "feature_importance": fi,
+                    "threshold": threshold,
+                },
+                f,
+            )
         logger.info(f"\nModel saved to {model_path}")
 
     # Register
@@ -236,7 +265,10 @@ def train_optimized(
         feature_importance=dict(top_fi),
         created_at=datetime.now().isoformat(),
         path=model_path or "",
-        notes=f"VIF<{vif_threshold}, corr<{corr_threshold}, top_k={top_k_features}, tune={tune}, threshold={threshold:.3f}",
+        notes=(
+            f"VIF<{vif_threshold}, corr<{corr_threshold}, "
+            f"top_k={top_k_features}, tune={tune}, threshold={threshold:.3f}"
+        ),
     )
     registry.register(record)
 
@@ -303,14 +335,22 @@ def main():
     parser = argparse.ArgumentParser(description="Optimized ML training")
     parser.add_argument("--symbol", default="BTC/USDT")
     parser.add_argument("--timeframe", default="1d")
-    parser.add_argument("--model-type", default="xgboost", choices=["xgboost", "gradient_boosting", "random_forest", "mlp"])
-    parser.add_argument("--no-tune", action="store_true", help="Skip hyperparameter tuning")
+    parser.add_argument(
+        "--model-type",
+        default="xgboost",
+        choices=["xgboost", "gradient_boosting", "random_forest", "mlp"],
+    )
+    parser.add_argument(
+        "--no-tune", action="store_true", help="Skip hyperparameter tuning"
+    )
     parser.add_argument("--n-iter", type=int, default=15, help="Tuning iterations")
     parser.add_argument("--vif", type=float, default=10.0)
     parser.add_argument("--corr", type=float, default=0.95)
     parser.add_argument("--top-k", type=int, default=30)
     parser.add_argument("--advanced", action="store_true", help="Use advanced features")
-    parser.add_argument("--no-threshold-tune", action="store_true", help="Skip threshold tuning")
+    parser.add_argument(
+        "--no-threshold-tune", action="store_true", help="Skip threshold tuning"
+    )
     args = parser.parse_args()
 
     result = train_optimized(

@@ -51,7 +51,20 @@ TELEGRAM_CHAT_ID=your_chat_id
 # Exchange API (khi chạy live)
 BINANCE_API_KEY=your_key
 BINANCE_SECRET=your_secret
+
+# Frontend API URL (cho production build)
+NEXT_PUBLIC_API_URL=https://api.yourdomain.com
 ```
+
+| Variable | Required | Mô tả |
+|----------|----------|-------|
+| `TRADING_DB_URL` | ✅ | PostgreSQL connection string |
+| `NEXT_PUBLIC_API_URL` | ❌ | API base URL cho frontend build. Default: `http://localhost:8090` |
+| `BINANCE_API_KEY` | ❌ (paper) / ✅ (live) | Binance API key |
+| `BINANCE_SECRET` | ❌ (paper) / ✅ (live) | Binance API secret |
+| `TELEGRAM_BOT_TOKEN` | ❌ | Telegram bot token cho alerts |
+| `TELEGRAM_CHAT_ID` | ❌ | Telegram chat ID nhận alerts |
+| `OPENAI_API_KEY` | ❌ | OpenAI key cho LLM-enhanced wiki validation |
 
 ### Config files
 
@@ -110,10 +123,36 @@ uvicorn backend.api.main:app --host 0.0.0.0 --port 8090 --reload
 
 ### Frontend
 
+#### Development
+
 ```bash
 cd frontend
 npm run dev -- -p 3001
 ```
+
+#### Production Build (Static Export)
+
+```bash
+cd frontend
+# Build static files (output: frontend/dist/)
+npm run build
+
+# Serve with any static file server, e.g.:
+npx serve dist/ -p 3001
+# Or copy dist/ to nginx, Vercel, Cloudflare Pages, S3, etc.
+```
+
+**Build output**: `frontend/dist/` contains pure static HTML/CSS/JS (~4MB).
+- `index.html` — Dashboard
+- `live.html`, `risk.html`, `reports.html`, `wiki.html`, `market.html` — Pages
+- `wiki-index.json` — Static wiki data (required for /wiki)
+- `_next/static/` — JS/CSS chunks
+
+**Note**: `output: 'export'` is set in `next.config.ts`. This means:
+- No server-side rendering (fine for a dashboard that calls a separate API)
+- Socket.IO works client-side (connects to `API_BASE_URL`)
+- Images are unoptimized (set in config)
+- Not supported: Server Actions, cookies, dynamic routes without `generateStaticParams()`
 
 ### Monitoring (Prometheus + Grafana)
 
@@ -123,7 +162,61 @@ docker compose up -d prometheus grafana
 
 Truy cập Grafana: http://localhost:3000 (admin/admin)
 
-## 5. Kiểm tra hoạt động
+## 5. Deployment Options
+
+### Option A: Docker Compose (All-in-One)
+
+Phù hợp cho single VPS hoặc local development.
+
+```bash
+# Build frontend static files trước khi compose
+cd frontend && npm run build && cd ..
+
+# Khởi động toàn bộ stack
+docker compose up -d
+```
+
+Frontend được serve qua nginx container từ `frontend/dist/`.
+
+### Option B: Split Deploy (Backend VPS + Static Frontend)
+
+Phù hợp cho production: backend trên VPS, frontend trên CDN.
+
+**Backend** (VPS / EC2 / Droplet):
+```bash
+# Chỉ chạy backend services
+docker compose up -d postgres trading-bot backend-api prometheus grafana
+# Hoặc dùng systemd / PM2 cho backend-api
+```
+
+**Frontend** (Vercel / Cloudflare Pages / S3 + CloudFront):
+```bash
+cd frontend
+# Build với API URL production
+NEXT_PUBLIC_API_URL=https://api.yourdomain.com npm run build
+
+# Deploy dist/ lên static host
+# Vercel: npx vercel --prod dist/
+# Cloudflare Pages: npx wrangler pages deploy dist/
+```
+
+**Ưu điểm Split Deploy**:
+- Frontend được phục vụ từ CDN toàn cầu (nhanh hơn)
+- Backend API chỉ cần 1 instance (tiết kiệm)
+- SSL + HTTPS tự động từ CDN
+- Giảm tải cho VPS
+
+**Lưu ý CORS**:
+Nếu frontend và backend ở domain khác nhau, cập nhật `allow_origins` trong `backend/api/main.py`:
+```python
+allow_origins=[
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "https://your-frontend-domain.com",
+]
+```
+
+## 6. Kiểm tra hoạt động
 
 ```bash
 # Bot health
@@ -133,6 +226,7 @@ curl http://localhost:8080/health
 curl http://localhost:8090/health
 curl http://localhost:8090/api/v1/state
 curl http://localhost:8090/api/v1/trades?limit=5
+curl http://localhost:8090/api/v1/graduation
 
 # Frontend
 open http://localhost:3001
@@ -141,7 +235,31 @@ open http://localhost:3001
 open http://localhost:9090
 ```
 
-## 6. Data
+## 7. Paper Trading Graduation
+
+Truy cập `/graduation` trên frontend hoặc gọi API để xem tiến độ:
+
+```bash
+curl http://localhost:8090/api/v1/graduation | jq .
+```
+
+**Criteria** (cần đạt đủ 5 điều kiện):
+| Gate | Threshold | Mô tả |
+|------|-----------|-------|
+| Days Traded | ≥ 30 | Số ngày có giao dịch |
+| Return | > 0% | Lợi nhuận ròng |
+| Max Drawdown | < 10% | Mức giảm tối đa từ đỉnh |
+| Sharpe Ratio | > 0.5 | Risk-adjusted return |
+| Winrate | > 40% | Tỷ lệ giao dịch thắng |
+
+Khi đạt đủ điều kiện:
+- Frontend hiển thị banner "Ready for Live Trading"
+- Telegram alert tự động gửi tin nhắn thông báo
+- Có thể chuyển sang live trading
+
+**Persistence**: Trạng thái đã gửi alert được lưu vào file `.graduation_notified` (hoặc đường dẫn từ env `GRADUATION_NOTIFY_FILE`) để tránh gửi lại khi restart bot. Xóa file này nếu muốn reset và gửi lại.
+
+## 7. Data
 
 File OHLCV 1h đã có sẵn trong `data/raw/`:
 - `BTC_USDT_1h.csv`
@@ -150,7 +268,44 @@ File OHLCV 1h đã có sẵn trong `data/raw/`:
 
 Bot sẽ tự động tải data mới khi chạy.
 
-## 7. Chuyển sang Live Trading
+## 8. Bảo mật (Production)
+
+**⚠️ Không bỏ qua nếu deploy public.**
+
+### API Authentication
+
+Tất cả endpoints (trừ `/health`) yêu cầu API key qua header:
+
+```env
+API_KEY=your_random_read_key
+ADMIN_KEY=your_random_admin_key
+NEXT_PUBLIC_API_KEY=your_random_read_key
+NEXT_PUBLIC_ADMIN_KEY=your_random_admin_key
+CORS_ORIGINS=https://your-frontend.com,https://app.yourdomain.com
+```
+
+| Endpoint | Key Required | Mô tả |
+|----------|-------------|-------|
+| `GET /health` | None | Health check (public) |
+| `GET /api/v1/*` | `X-API-Key` | Read access |
+| `POST /api/v1/rebalance` | `X-API-Key` + `X-Admin-Key` | Admin only |
+
+**Tạo key ngẫu nhiên:**
+```bash
+openssl rand -hex 32
+```
+
+### CORS
+- Backend CORS chỉ cho phép origins trong `CORS_ORIGINS`
+- Socket.IO CORS tự động lấy từ cùng biến môi trường
+- Không dùng `*` trong production
+
+### Rebalance Confirmation
+- `POST /api/v1/rebalance` yêu cầu cả `API_KEY` và `ADMIN_KEY`
+- Frontend gửi `X-Admin-Key` header khi gọi rebalance
+- Đảm bảo `ADMIN_KEY` khác và bảo mật hơn `API_KEY`
+
+## 9. Chuyển sang Live Trading
 
 **⚠️ Cảnh báo**: Live trading yêu cầu graduation gate:
 - Paper trading 30 ngày có lãi
