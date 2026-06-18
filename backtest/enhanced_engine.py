@@ -89,6 +89,12 @@ class EnhancedBacktestEngine(BacktestEngine):
             bar = data.iloc[i]
             history = data.iloc[: i + 1]
 
+            # Exit open positions on stop-loss / trailing BEFORE new signals — mirror
+            # BacktestEngine.run. Without this the enhanced engine never closed longs
+            # (only explicit sell signals did), so trending strategies held forever:
+            # 0 recorded trades yet non-zero mark-to-market return, PF=inf, winrate=0.
+            self._check_stops(bar, risk_manager)
+
             context = StrategyContext(
                 symbol=data.name if hasattr(data, "name") else "UNKNOWN",
                 bar=bar,
@@ -202,6 +208,7 @@ class EnhancedBacktestEngine(BacktestEngine):
                     "size": size,
                     "stop": stop_price,
                     "entry_time": signal.timestamp,
+                    "peak_price": entry_price,  # for trailing-stop path in _check_stops
                 }
             )
             self.capital -= size * entry_price * (1 + self.commission)
