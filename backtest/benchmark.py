@@ -1,7 +1,7 @@
 """Multi-symbol, multi-timeframe benchmark for wiki + psych impact.
 
 Tests RegimeEnsemble strategy across:
-    - Symbols: FPT, HPG, VCB (VN30, DNSE)
+    - Symbols: full VN30 universe (DNSE)
     - Timeframes: 1d
     - Modes: base (no wiki/psych) vs enhanced (wiki + psych)
 
@@ -20,21 +20,21 @@ from loguru import logger
 logger.remove()
 logger.add(lambda msg: print(msg, end=""), level="INFO")
 
-import sys
-
-sys.path.insert(0, "/home/datnm/projects/trading")
-
 from backtest.engine import BacktestEngine
 from backtest.enhanced_engine import EnhancedBacktestEngine, EnhancedBacktestResult
 from data.feed import DataFeed
+from data.vn.universe import get_vn30
 from risk.manager import RiskManager
 from strategies.ensemble.regime_ensemble import RegimeEnsembleStrategy
+
+# Repo root (this file is at <root>/backtest/benchmark.py) — no hardcoded paths.
+_ROOT = Path(__file__).resolve().parent.parent
 
 
 def load_config():
     import yaml
 
-    with open("/home/datnm/projects/trading/config/system.yaml") as f:
+    with open(_ROOT / "config" / "system.yaml") as f:
         return yaml.safe_load(f)
 
 
@@ -108,8 +108,8 @@ def run_single_benchmark(
 def run_full_benchmark():
     config = load_config()
 
-    symbols = ["FPT", "HPG", "VCB"]  # liquid VN30 (DNSE tickers)
-    timeframes = ["1d"]              # DNSE intraday limited; daily for VN backtest
+    symbols = get_vn30()  # full VN30 universe (DNSE tickers)
+    timeframes = ["1d"]   # DNSE intraday limited; daily for VN backtest
 
     results = []
 
@@ -164,17 +164,22 @@ def run_full_benchmark():
                 )
                 results.append(both)
 
-    # Print summary tables
-    print_summary(results)
-
-    # Save results
-    output_path = Path("/home/datnm/projects/trading/data/benchmark_results.json")
+    # Save results FIRST (so a formatting glitch in print_summary can't lose a long run)
+    output_path = _ROOT / "data" / "benchmark_results.json"
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w") as f:
         json.dump(results, f, indent=2, default=str)
     print(f"\nResults saved to {output_path}")
 
+    # Print summary tables
+    print_summary(results)
+
     return results
+
+
+def _safe_int(x) -> int:
+    """int() that tolerates NaN/None (base-mode rows lack enhanced-only keys)."""
+    return 0 if x is None or (isinstance(x, float) and pd.isna(x)) else int(x)
 
 
 def print_summary(results):
@@ -205,7 +210,7 @@ def print_summary(results):
             f"{r['symbol']:<12} {r['timeframe']:<4} {mode_str:<10} "
             f"{r['total_return']:>7.2%} {r['sharpe']:>7.2f} {r['max_drawdown']:>7.2%} "
             f"{r['winrate']:>6.1%} {r['profit_factor']:>6.2f} {r['total_trades']:>6d} "
-            f"{int(r.get('wiki_downgraded', 0)):>6d} {int(r.get('psych_paused_bars', 0)):>6d}"
+            f"{_safe_int(r.get('wiki_downgraded', 0)):>6d} {_safe_int(r.get('psych_paused_bars', 0)):>6d}"
         )
 
     # Comparison by symbol/timeframe
@@ -244,8 +249,8 @@ def print_summary(results):
                 f"{e['sharpe'] - b['sharpe']:>+9.2f} "
                 f"{e['max_drawdown'] - b['max_drawdown']:>+9.2%} "
                 f"{e['total_trades'] - b['total_trades']:>+9d} "
-                f"{int(e.get('wiki_blocked', 0)):>12d} "
-                f"{int(e.get('wiki_downgraded', 0)):>14d}"
+                f"{_safe_int(e.get('wiki_blocked', 0)):>12d} "
+                f"{_safe_int(e.get('wiki_downgraded', 0)):>14d}"
             )
 
     # Aggregate stats
