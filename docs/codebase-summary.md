@@ -163,6 +163,7 @@ trading/
 | `models.py` | TypedDicts for FinancialStatement, FinancialRatios, CompanyInfo, StockPrice |
 | `data_fetcher.py` | Public API: `fetch_ohlcv()`, `fetch_financials()`, `fetch_company_info()` |
 | `cache_manager.py` | CachedDataSource: parquet OHLCV storage, SQLite/PostgreSQL KV cache, TTL, rate-limit throttle (3.5s, 20 req/min guest limit, exponential backoff) |
+| `financials_store.py` | FinancialsStore: PostgreSQL/SQLite dual-backend for financial statements; `set_shares()` stores authoritative issue_share, `get_shares()` retrieves for DCF calculations |
 | `universe.py` | VN30 ticker list, bank vs non-bank classifier (`is_bank()`) |
 
 **Key classes:**
@@ -205,10 +206,10 @@ trading/
 
 | File | Responsibility |
 |------|-----------------|
-| `dcf.py` | DCF (non-bank only): 3-year projection, terminal value, sensitivity analysis |
+| `dcf.py` | DCF (non-bank only): firm value minus net debt → equity value; per-share via authoritative shares; per-sector WACC/terminal-growth from config |
 | `relative.py` | Relative: P/E (sector/3y hist), P/B, dividend yield |
 | `quality.py` | Quality: Piotroski F, Altman Z′, safety margin |
-| `recommender.py` | Synthesize all → valuation score (0–100) + target + recommendation + reasons |
+| `recommender.py` | Synthesize all → valuation score (0–100) + target + recommendation + reasons; degenerate gate: |upside|<2% → reliable=False → INSUFFICIENT |
 
 **Output:**
 ```python
@@ -216,7 +217,9 @@ trading/
   "ticker": "VCB",
   "valuation_score": 72,
   "target_price": 95_000,
-  "recommendation": "BUY",
+  "recommendation": "BUY",  # or SELL, HOLD, INSUFFICIENT
+  "upside_pct": 0.15,
+  "reliable": True,  # False if upside ±2% (degenerate) or no DCF/relative value
   "dcf_value": 98_000,
   "pe_ratio": 12.5,
   "pe_median_sector": 14,
@@ -237,10 +240,10 @@ trading/
 | File | Responsibility |
 |------|-----------------|
 | `main.py` | FastAPI app, CORS (env: CORS_ORIGINS), middleware, health check |
-| `stock_service.py` | Dependency injection: aggregates Data, Screener, Valuation |
+| `stock_service.py` | Dependency injection: aggregates Data, Screener, Valuation; unified signal matrix (buy_upside ≥+8%, sell_upside ≤−15%); degenerate gate (±2% upside → INSUFFICIENT) |
 | `routers/screener.py` | `GET /api/v1/screener?limit=20` |
 | `routers/stock.py` | `GET /api/v1/stock/{ticker}` |
-| `routers/valuation.py` | `GET /api/v1/valuation/{ticker}` |
+| `routers/valuation.py` | `GET /api/v1/valuation/{ticker}` (returns `reliable` flag for signal filtering) |
 | `models.py` | Pydantic response schemas |
 
 **Env vars:**

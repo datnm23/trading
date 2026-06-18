@@ -52,7 +52,7 @@ import threading
 _SIGNAL_CFG = {
     "tech_good": 42.0,      # tech score ≥ → TỐT (~top tercile of VN30)
     "tech_bad": 27.0,       # tech score ≤ → XẤU (~bottom tercile)
-    "buy_upside": 0.0,      # upside ≥ 0 → RẺ (not overvalued vs fair value)
+    "buy_upside": 0.08,     # upside ≥ +8% → RẺ (cần biên an toàn THỰC, không lấy upside≈0)
     "sell_upside": -0.15,   # upside ≤ −15% → ĐẮT (clearly above fair value)
     "tech_weight": 0.5,     # display-score blend when valuation reliable
     "signals_ttl": 3600,    # cache full VN30 signals 1h (batch build is heavy)

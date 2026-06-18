@@ -107,10 +107,27 @@ class FinancialsStore:
                 PRIMARY KEY (ticker, statement_type, period_type, period_label)
             )
         """
+        # Real shares-outstanding (authoritative), nạp offline bởi collector.
+        # Tách bảng riêng: chỉ 1 dòng/mã, không gắn period — tránh nhồi vào vn_financials.
+        shares_ddl = """
+            CREATE TABLE IF NOT EXISTS vn_shares (
+                ticker       TEXT PRIMARY KEY,
+                issue_share  DOUBLE PRECISION NOT NULL,
+                source       TEXT,
+                updated_at   DOUBLE PRECISION NOT NULL
+            )
+        """
         if self.backend == "sqlite":
             ddl = ddl.replace("DOUBLE PRECISION", "REAL")
+            shares_ddl = shares_ddl.replace("DOUBLE PRECISION", "REAL")
         with self._connect() as conn:
-            conn.cursor().execute(ddl) if self.backend == "postgres" else conn.execute(ddl)
+            if self.backend == "postgres":
+                cur = conn.cursor()
+                cur.execute(ddl)
+                cur.execute(shares_ddl)
+            else:
+                conn.execute(ddl)
+                conn.execute(shares_ddl)
             conn.commit()
 
     def store_statement(self, fs: FinancialStatement, max_periods: int, source: str = "vnstock-VCI") -> int:
@@ -147,6 +164,33 @@ class FinancialsStore:
                 written += 1
             conn.commit()
         return written
+
+    def set_shares(self, ticker: str, issue_share: float, source: str = "vnstock") -> None:
+        """Upsert authoritative shares-outstanding for a ticker (offline collector)."""
+        if not issue_share or issue_share <= 0:
+            return
+        ph = self._ph()
+        upsert = (
+            f"INSERT INTO vn_shares (ticker,issue_share,source,updated_at) VALUES ({ph},{ph},{ph},{ph}) "
+            + ("ON CONFLICT (ticker) DO UPDATE SET issue_share=EXCLUDED.issue_share,"
+               "source=EXCLUDED.source,updated_at=EXCLUDED.updated_at"
+               if self.backend == "postgres" else "")
+        )
+        if self.backend == "sqlite":
+            upsert = upsert.replace("INSERT INTO", "INSERT OR REPLACE INTO")
+        with self._connect() as conn:
+            cur = conn.cursor()
+            cur.execute(upsert, (ticker.upper(), float(issue_share), source, time.time()))
+            conn.commit()
+
+    def get_shares(self, ticker: str) -> Optional[float]:
+        """Authoritative shares-outstanding for a ticker, or None if not collected."""
+        ph = self._ph()
+        with self._connect() as conn:
+            cur = conn.cursor()
+            cur.execute(f"SELECT issue_share FROM vn_shares WHERE ticker={ph}", (ticker.upper(),))
+            row = cur.fetchone()
+        return float(row[0]) if row and row[0] else None
 
     def count(self) -> int:
         with self._connect() as conn:

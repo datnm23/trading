@@ -4,6 +4,71 @@ All notable changes to this project are documented here. This changelog tracks t
 
 ---
 
+## [MVP-1.1] — 2026-06-18
+
+### Signal Metric Reliability & Valuation Improvements
+
+**Overview:** Tightened signal generation pipeline with authoritative shares-outstanding, equity-based DCF, and degenerate upside gate to eliminate false BUY/SELL signals on low-information valuations.
+
+**Status:** All changes deployed; VN30 signal distribution: 21 HOLD / 1 BUY / 5 INSUFFICIENT / 3 SELL (vs previous all-HOLD + false BUYs at 0% upside).
+
+---
+
+### Added
+
+#### Data Persistence
+- **`vn_shares` table** in `financials_store.py` — Authoritative shares-outstanding via vnstock issue_share
+- **`set_shares()` / `get_shares()` methods** — Collector script populates; DCF/valuation layer prefers DB value
+- **Collector enhancement** — `scripts/collect_vn30_financials.py` now fetches and stores issue_share offline
+
+#### Valuation Improvements
+- **Equity value computation** in DCF — Subtract net debt (short_term_borrowings + long_term_borrowings − cash_and_cash_equivalents) from firm value before per-share division
+- **Per-sector WACC/terminal-growth** — Config `dcf.sector_wacc` bucket overrides (sector-specific defaults; falls back to global 0.13/0.03)
+- **Early exit on equity≤0** — DCF returns None when equity value becomes negative post-debt-subtraction
+
+#### Signal Quality Gate
+- **Degenerate upside detection** — Target within ±2% of current price → `reliable=False` → **INSUFFICIENT** recommendation (no fabricated signals on no-information models)
+- **Unified signal matrix tightening** — `buy_upside` threshold raised 0.0→0.08 (BUY requires ≥+8% real upside); `sell_upside` ≤−0.15
+- **API response enhancement** — `ValuationResult` includes `reliable` and `upside_pct` for explicit signal filtering
+
+#### Documentation
+- Updated `system-architecture.md` Section 2.1 (Data Layer: `financials_store.py` + shares-outstanding)
+- Updated `system-architecture.md` Section 2.3 (Valuation: equity computation, per-sector WACC, degenerate gate)
+- Updated `system-architecture.md` Section 2.4 (API: signal matrix tightening, `reliable` flag)
+- Updated `codebase-summary.md` valuation pipeline descriptions
+
+---
+
+### Changed
+
+#### Backend
+- **`backend/api/stock_service.py`** — `_SIGNAL_CFG.buy_upside` changed from 0.0 to 0.08; consistent `sell_upside` ≤−0.15
+- **`valuation/dcf.py`** — Firm value → equity value bridge now mandatory; net debt computation includes all borrowing types
+- **`valuation/recommender.py`** — `recommend()` now computes `reliable` flag based on degenerate gate; returns INSUFFICIENT when unreliable
+
+#### Data Pipeline
+- **`data/vn/financials_store.py`** — New `vn_shares` table schema + dual-backend implementation
+- **`data/vn/db_fundamentals_source.py`** — `_shares_outstanding()` now prefers `financials_store.get_shares()`, fallback to profit/eps ratio
+
+---
+
+### Effect on Signal Distribution
+
+**Before:** VN30 ≈ 3 BUY / 4 SELL / 23 HOLD. VIC = BUY tại upside +0.0% (target = giá hiện tại — valuation thoái hóa nhưng vẫn ra MUA). Không phân biệt "đủ thông tin để quyết" vs "mô hình câm".
+
+**After (MVP-1.1):** VN30 = 21 HOLD / 1 BUY (ACB) / 5 INSUFFICIENT / 3 SELL. VIC = HOLD (degenerate, reliable=false). BUY chỉ khi upside ≥ +8% & valuation tin cậy; SELL chỉ khi downside ≤ −15%; INSUFFICIENT tách "chưa đủ dữ liệu" khỏi "quyết định không mua".
+
+---
+
+### Testing & Validation
+- ✅ DCF equity value computes correctly post-debt-subtraction
+- ✅ Per-sector WACC applied from config; global defaults as fallback
+- ✅ Degenerate upside gate triggers at ±2%, sets reliable=False
+- ✅ Signal matrix yields sensible BUY/HOLD/SELL distribution on VN30
+- ✅ API responses include reliable flag for frontend filtering
+
+---
+
 ## [MVP-1] — 2026-06-15
 
 ### Major Pivot: Crypto Trading Bot → VN Stock Advisory Platform

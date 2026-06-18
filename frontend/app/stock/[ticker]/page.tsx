@@ -34,6 +34,14 @@ function fmtVND(value: number | null): string {
   return value.toLocaleString('vi-VN') + ' ₫';
 }
 
+// Compact VND for large aggregates (Market Cap): nghìn tỷ / tỷ, no decimal noise.
+function fmtCompactVND(value: number | null): string {
+  if (value === null || value === undefined || value <= 0) return '—';
+  if (value >= 1e12) return `${(value / 1e12).toFixed(1)} nghìn tỷ ₫`;
+  if (value >= 1e9) return `${(value / 1e9).toFixed(1)} tỷ ₫`;
+  return Math.round(value).toLocaleString('vi-VN') + ' ₫';
+}
+
 function fmtPct(value: number | null): string {
   if (value === null || value === undefined) return '—';
   return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
@@ -181,7 +189,7 @@ export default function StockDetailPage() {
           <NeoCard>
             <NeoMetric
               label="Market Cap"
-              value={fmtVND(stock.price.market_cap)}
+              value={fmtCompactVND(stock.price.market_cap)}
               variant="neutral"
             />
           </NeoCard>

@@ -2,9 +2,25 @@
 # WACC, terminal growth, blend weights, recommendation thresholds
 
 dcf:
-  wacc: 0.13               # Weighted Average Cost of Capital (13% for VN market)
-  terminal_growth: 0.03    # Gordon growth model terminal rate (3%)
+  wacc: 0.13               # Default WACC (13% VN market) — fallback if sector not in sector_wacc
+  terminal_growth: 0.03    # Default Gordon terminal rate (3%)
   projection_years: 5      # Number of years to project FCF
+  # Per-sector WACC/terminal-growth (non-bank only; banks → dcf_applicable=False).
+  # Keys MUST match data/vn/universe.py::_VN30_META sector labels exactly.
+  sector_wacc:
+    "Bất động sản":            { wacc: 0.14,  terminal_growth: 0.03 }
+    "Bất động sản - Đa ngành":  { wacc: 0.14,  terminal_growth: 0.03 }
+    "Bất động sản bán lẻ":      { wacc: 0.14,  terminal_growth: 0.03 }
+    "Thép":                    { wacc: 0.14,  terminal_growth: 0.025 }
+    "Cao su":                  { wacc: 0.135, terminal_growth: 0.025 }
+    "Dầu khí":                 { wacc: 0.13,  terminal_growth: 0.02 }
+    "Công nghệ":               { wacc: 0.13,  terminal_growth: 0.04 }
+    "Hàng không":              { wacc: 0.15,  terminal_growth: 0.03 }
+    "Bán lẻ":                  { wacc: 0.125, terminal_growth: 0.03 }
+    "Tiêu dùng - Bán lẻ":       { wacc: 0.125, terminal_growth: 0.03 }
+    "Thực phẩm":               { wacc: 0.115, terminal_growth: 0.03 }
+    "Đồ uống":                 { wacc: 0.115, terminal_growth: 0.03 }
+    "Du lịch - Nghỉ dưỡng":     { wacc: 0.145, terminal_growth: 0.03 }
 
 relative:
   peer_min_count: 3        # Minimum peers for sector median; fallback = VN30

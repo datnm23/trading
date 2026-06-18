@@ -59,12 +59,30 @@ def main() -> int:
         total_rows += t_rows
         logger.info(f"[{i}/{len(tickers)}] {ticker}: {t_rows} rows")
 
+    # Authoritative shares-outstanding (issue_share) → vn_shares. Fixes the
+    # derived-shares error (profit/eps ~2× off) that poisons Market Cap, P/B, DCF.
+    logger.info("Collecting issue_share (shares outstanding) for VN30")
+    shares_ok = 0
+    for i, ticker in enumerate(tickers, 1):
+        try:
+            company = src.get_company(ticker)
+            n = company.issue_share if company else 0.0
+            if n and n > 0:
+                store.set_shares(ticker, n, source=f"vnstock-{src.source}")
+                shares_ok += 1
+                logger.info(f"[{i}/{len(tickers)}] {ticker}: issue_share={n/1e9:.2f} tỷ cp")
+            else:
+                logger.warning(f"[{i}/{len(tickers)}] {ticker}: no issue_share")
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(f"[{ticker}] issue_share failed: {exc}")
+
     print("\n" + "=" * 56)
     print(f"  VN30 FINANCIALS COLLECTED → DB ({store.backend})")
     print("=" * 56)
     print(f"  Tickers       : {len(tickers)} ({len(failed)} with no data: {failed})")
     print(f"  Rows written  : {total_rows}")
     print(f"  Rows in table : {store.count()}")
+    print(f"  Shares (vn_shares): {shares_ok}/{len(tickers)} tickers")
     print("=" * 56)
     return 0
 

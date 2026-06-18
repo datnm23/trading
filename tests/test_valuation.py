@@ -14,7 +14,10 @@ import pytest
 
 from data.vn.base import StockDataSource
 from data.vn.models import CompanyInfo, FinancialStatement, Ratios
-from valuation.dcf import DcfResult, _dcf_value, _compute_fcff, run_dcf
+from valuation.dcf import (
+    DcfResult, _dcf_value, _compute_fcff, run_dcf,
+    _compute_net_debt, _resolve_sector_wacc,
+)
 from valuation.relative import run_relative
 from valuation.quality import run_quality, _piotroski, _altman_z
 from valuation.recommender import recommend, ValuationResult, _blend_target, _upside_score
@@ -656,3 +659,110 @@ class TestLiveValuation:
         print(f"\nFPT live: {result.recommendation} score={result.score} "
               f"target={result.target_price and result.target_price/1000:.1f}k "
               f"upside={result.upside_pct and result.upside_pct*100:+.1f}%")
+
+
+# ---------------------------------------------------------------------------
+# P2 — Net debt bridge + sector WACC (pure functions)
+# ---------------------------------------------------------------------------
+
+class TestNetDebtAndSectorWacc:
+    def test_net_debt_full(self):
+        bs = {
+            "short_term_borrowings": {"2024": 1_000e9},
+            "long_term_borrowings": {"2024": 2_000e9},
+            "cash_and_cash_equivalents": {"2024": 500e9},
+        }
+        assert _compute_net_debt(bs) == pytest.approx(2_500e9)
+
+    def test_net_debt_missing_component_treated_zero(self):
+        # only long-term borrowings present → 0 + 2000 - 0
+        bs = {"long_term_borrowings": {"2024": 2_000e9}}
+        assert _compute_net_debt(bs) == pytest.approx(2_000e9)
+
+    def test_net_debt_none_when_all_absent(self):
+        assert _compute_net_debt({"owners_equity": {"2024": 5_000e9}}) is None
+
+    def test_sector_wacc_bucket_override(self):
+        cfg = {"wacc": 0.13, "terminal_growth": 0.03,
+               "sector_wacc": {"Thép": {"wacc": 0.14, "terminal_growth": 0.025}}}
+        assert _resolve_sector_wacc("Thép", cfg) == (0.14, 0.025)
+
+    def test_sector_wacc_fallback_default(self):
+        cfg = {"wacc": 0.13, "terminal_growth": 0.03, "sector_wacc": {}}
+        assert _resolve_sector_wacc("Không-có-ngành", cfg) == (0.13, 0.03)
+
+    def test_dcf_intrinsic_lower_with_net_debt(self, src, cfg):
+        """Equity value (firm − net debt) < firm/share when company carries debt."""
+        # FakeSource non-bank BS has long_term_borrowings 2000e9, no cash → net debt > 0.
+        res = run_dcf("FPT", src, cfg=cfg)
+        assert res.dcf_applicable
+        assert res.intrinsic_value is not None and res.intrinsic_value > 0
+        # note must mention net debt bridge
+        assert any("ợ ròng" in n for n in res.notes)
+
+
+# ---------------------------------------------------------------------------
+# P0 — Degenerate valuation gate (target ≈ price → not reliable)
+# ---------------------------------------------------------------------------
+
+class _DegenerateSource(FakeSource):
+    """Non-bank where relative target ≈ current price (own median P/E flat, DCF n/a)."""
+
+    def get_financials(self, ticker, statement_type, period="year"):
+        if statement_type == "cash_flow":
+            # no CFO key → FCFF None → DCF early-exit (intrinsic None)
+            return FinancialStatement(ticker=ticker, statement_type=statement_type, period=period, items={})
+        return super().get_financials(ticker, statement_type, period)
+
+    def get_ratios(self, ticker, period="year"):
+        # flat P/E history = 14.0 → own median 14.0; eps 5000 → implied 70000 = price
+        items = {
+            "pe_ratio": {"2024q4": 14.0, "2023q4": 14.0, "2022q4": 14.0,
+                         "2021q4": 14.0, "2020q4": 14.0},
+            "pb_ratio": {"2024q4": 2.2}, "roe": {"2024q4": 0.18},
+            "dividend_yield": {"2024q4": 0.0},
+            "outstanding_shares": {"2024q4": 616_000_000.0},
+        }
+        return Ratios(ticker=ticker, period=period, items=items, period_labels=sorted(items["pe_ratio"]))
+
+    def get_company(self, ticker):
+        c = super().get_company(ticker)
+        c.current_price = 70_000.0  # = 14.0 × eps 5000 → upside ≈ 0
+        return c
+
+
+class TestDegenerateReliability:
+    def test_target_near_price_marks_unreliable(self, cfg):
+        res = recommend("FPT", _DegenerateSource(), cfg=cfg)
+        assert res.target_price is not None
+        assert abs(res.upside_pct) < 0.02
+        assert res.reliable is False
+        assert res.recommendation == "INSUFFICIENT"
+        assert any("không đủ biên" in r for r in res.reasons)
+
+
+# ---------------------------------------------------------------------------
+# Config guard — sector_wacc keys must match real VN30 sector labels (no drift)
+# ---------------------------------------------------------------------------
+
+class TestSectorWaccConfigIntegrity:
+    def test_sector_wacc_keys_are_real_vn30_labels(self):
+        """Mọi key trong config sector_wacc phải khớp nhãn _VN30_META — bắt typo/diacritic drift
+        (key sai sẽ âm thầm fallback default, vô hiệu hóa override)."""
+        import yaml
+        from data.vn.universe import get_vn30, get_company_meta
+        with open("config/valuation.yaml") as f:
+            cfg = yaml.safe_load(f)
+        buckets = (cfg.get("dcf", {}) or {}).get("sector_wacc", {}) or {}
+        real_labels = {get_company_meta(t)[1] for t in get_vn30()}
+        unknown = [k for k in buckets if k not in real_labels]
+        assert not unknown, f"sector_wacc keys không khớp nhãn VN30 (drift): {unknown}"
+
+    def test_each_bucket_has_valid_wacc_gt_tg(self):
+        """WACC phải > terminal_growth ở mọi bucket (nếu không _dcf_value sẽ raise)."""
+        import yaml
+        with open("config/valuation.yaml") as f:
+            cfg = yaml.safe_load(f)
+        buckets = (cfg.get("dcf", {}) or {}).get("sector_wacc", {}) or {}
+        for sector, b in buckets.items():
+            assert b["wacc"] > b["terminal_growth"], f"{sector}: wacc !> terminal_growth"

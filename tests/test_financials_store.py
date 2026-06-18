@@ -51,3 +51,20 @@ def test_store_empty_statement_writes_nothing(tmp_path: Path):
     empty = FinancialStatement(ticker="X", statement_type="balance_sheet", period="year")
     assert store.store_statement(empty, max_periods=2) == 0
     assert store.count() == 0
+
+
+def test_set_and_get_shares(tmp_path: Path):
+    store = FinancialsStore(db_url=None, sqlite_path=str(tmp_path / "sh.db"))
+    assert store.get_shares("VIC") is None          # not collected yet
+    store.set_shares("vic", 7_706_000_000.0, source="test")
+    assert store.get_shares("VIC") == 7_706_000_000.0  # case-insensitive
+    # upsert overwrites
+    store.set_shares("VIC", 3_800_000_000.0)
+    assert store.get_shares("VIC") == 3_800_000_000.0
+
+
+def test_set_shares_ignores_nonpositive(tmp_path: Path):
+    store = FinancialsStore(db_url=None, sqlite_path=str(tmp_path / "sh2.db"))
+    store.set_shares("FPT", 0.0)
+    store.set_shares("FPT", -5.0)
+    assert store.get_shares("FPT") is None

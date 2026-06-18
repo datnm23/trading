@@ -104,8 +104,17 @@ class DbFundamentalsSource(StockDataSource):
     # ------------------------------------------------------------------
     # Derived shares (from EPS) — shared by ratios + company
     # ------------------------------------------------------------------
-    def _shares_outstanding(self, inc_items: dict) -> Optional[float]:
-        """Estimate shares = net profit attributable to parent / basic EPS."""
+    def _shares_outstanding(self, ticker: str, inc_items: dict) -> Optional[float]:
+        """Shares outstanding — authoritative DB value first, else estimate.
+
+        Preferred: real issue_share collected offline into vn_shares (collector).
+        Fallback: net profit attributable to parent / basic EPS — unreliable
+        (EPS share base ≠ profit base; off ~2× for some tickers), kept only so
+        tickers not yet collected degrade gracefully instead of returning None.
+        """
+        real = self.store.get_shares(ticker)
+        if real and real > 0:
+            return real
         eps = _latest(inc_items, "eps_basic_vnd")
         profit = _latest(inc_items, "attributable_to_parent_company") \
             or _latest(inc_items, "net_profit_loss_after_tax")
@@ -129,7 +138,7 @@ class DbFundamentalsSource(StockDataSource):
         net_sales = _latest(inc, "net_sales")
         equity = _latest(bs, "owners_equity")
         liabilities = _latest(bs, "liabilities")
-        shares = self._shares_outstanding(inc)
+        shares = self._shares_outstanding(ticker, inc)
         price = self._latest_price_vnd(ticker)
 
         computed: dict = {
@@ -157,7 +166,7 @@ class DbFundamentalsSource(StockDataSource):
         price = self._latest_price_vnd(ticker)
         data = self.store.get_ticker_financials(ticker, "year")
         inc = (data.get("income_statement") or {}).get("values", {})
-        shares = self._shares_outstanding(inc) or 0.0
+        shares = self._shares_outstanding(ticker, inc) or 0.0
         return CompanyInfo(
             ticker=ticker,
             organ_name=name,

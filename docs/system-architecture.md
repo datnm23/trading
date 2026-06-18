@@ -59,12 +59,19 @@
 - **`models.py`** — TypedDicts: FinancialStatement, FinancialRatios, CompanyInfo, StockPrice
 - **`data_fetcher.py`** — Public API: `fetch_ohlcv()`, `fetch_financials()`, `fetch_ratios()`, `fetch_company_info()`
 - **`cache_manager.py`** — `CachedDataSource`: parquet OHLCV, SQLite/PostgreSQL KV store, TTL, rate-limit throttle (3.5s + exponential backoff)
+- **`financials_store.py`** — `FinancialsStore`: PostgreSQL/SQLite persistence for financial statements; `set_shares()`/`get_shares()` for authoritative shares-outstanding
 - **`universe.py`** — VN30 ticker list; bank vs non-bank classification
 
 #### Rate Limiting & Resilience
 - Guest limit: 20 req/min per IP
 - Backoff: exponential, max 60s
 - Cache TTL: configurable per data type
+
+#### Shares Outstanding (Authoritative)
+- **`vn_shares` table** in `financials_store` stores issue_share (shares outstanding) from vnstock
+- Collector script (`scripts/collect_vn30_financials.py`) populates via `set_shares(ticker, issue_share)`
+- DCF/valuation prefers `get_shares()` from DB, falls back to company.issue_share
+- Fixes Market Cap, P/B, and per-share DCF valuations with authoritative values
 
 #### Bank vs Non-Bank Handling
 - **Bank financial schemas differ** from non-bank (less detailed balance sheet items)
@@ -100,13 +107,13 @@
 **Purpose:** Multi-method valuation and BUY/SELL/HOLD recommendation with target price.
 
 #### Files
-- **`dcf.py`** — Discounted Cash Flow (non-bank only); 3-year projection + terminal value; sensitivity analysis
+- **`dcf.py`** — Discounted Cash Flow (non-bank only); firm value minus net debt equals equity value; per-share via authoritative shares-outstanding; terminal growth per sector (config override)
 - **`relative.py`** — Relative valuation: P/E (vs sector median + 3y historical), P/B, dividend yield
 - **`quality.py`** — Quality metrics: Piotroski F-score (banks: 8 items; non-banks: 9), Altman Z′ (bankruptcy warning)
-- **`recommender.py`** — Synthesize methods → valuation score (0–100) + target price + BUY/SELL/HOLD + reasons
+- **`recommender.py`** — Synthesize methods → valuation score (0–100) + target price + BUY/SELL/HOLD + reasons; degenerate gate: upside within ±2% of current price → `reliable=False` → INSUFFICIENT recommendation
 
 #### Config
-- `config/valuation.yaml` — Discount rates, growth assumptions, quality thresholds
+- `config/valuation.yaml` — Discount rates (default WACC 0.13), growth assumptions (default terminal 0.03), quality thresholds, per-sector WACC/terminal-growth overrides under `dcf.sector_wacc`
 
 #### Output
 ```python
@@ -114,7 +121,9 @@
   "ticker": "VCB",
   "valuation_score": 72,
   "target_price": 95_000,
-  "recommendation": "BUY",
+  "recommendation": "BUY",  # or SELL, HOLD, INSUFFICIENT
+  "upside_pct": 0.15,  # (target - current) / current; None if no reliable target
+  "reliable": True,  # False if upside ±2% (degenerate) or no DCF/relative value
   "dcf_value": 98_000,
   "pe_ratio": 12.5,
   "pe_median_sector": 14,
@@ -131,12 +140,13 @@
 
 #### Files
 - **`main.py`** — FastAPI app initialization, CORS (env: CORS_ORIGINS)
-- **`stock_service.py`** — Dependency injection; aggregates Data, Screener, Valuation
+- **`stock_service.py`** — Dependency injection; aggregates Data, Screener, Valuation; unified signal matrix with tightened thresholds (`buy_upside` 0.0→0.08, `sell_upside` ≤−0.15)
 - **Endpoints:**
   - `GET /api/v1/screener?limit=20` → top-N watchlist
   - `GET /api/v1/stock/{ticker}` → OHLCV + company info + latest metrics
-  - `GET /api/v1/valuation/{ticker}` → full valuation report
+  - `GET /api/v1/valuation/{ticker}` → full valuation report (includes `reliable` flag for signal filtering)
 - **Responses:** Include advisory disclaimer: "Chỉ mang tính tham khảo, không phải lời khuyên đầu tư"
+- **Signal matrix:** BUY only when upside ≥+8% AND reliable=True; degenerate valuations (±2% upside) → INSUFFICIENT instead of false signals
 - **Error handling:** 404 if ticker not in universe, 500 on data fetch failure
 
 ---

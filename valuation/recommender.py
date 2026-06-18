@@ -49,6 +49,10 @@ class ValuationResult:
     sensitivity: dict = field(default_factory=dict)
 
 
+# Target trong ±2% giá hiện tại ⇒ mô hình không thêm thông tin (thoái hóa) → không tin cậy.
+_DEGENERATE_UPSIDE_EPS = 0.02
+
+
 def _blend_target(dcf: DcfResult, rel: RelativeResult, dcf_w: float, rel_w: float) -> Optional[float]:
     """Weighted average of available value estimates; normalises weights."""
     pool: list[tuple[float, float]] = []
@@ -172,16 +176,25 @@ def recommend(
     # structurally missing criteria (F5, F8) that are inapplicable to the sector.
     score = _blend_score(up_comp, _f_component(quality.f_score_pct), z_comp, cfg.get("score", {}))
 
-    # Reliability: with no DCF intrinsic AND no relative implied value, there is no
-    # trustworthy fair value — don't fabricate a SELL/BUY. Surface INSUFFICIENT.
-    reliable = target is not None
+    # Reliability: với no DCF intrinsic AND no relative implied value → không có fair
+    # value đáng tin → INSUFFICIENT. Ngoài ra target ≈ giá hiện tại (|upside|<2%) là
+    # THOÁI HÓA (mô hình không thêm thông tin) → cũng coi không tin cậy, tránh "MUA/BÁN"
+    # dựa trên upside≈0 (defense-in-depth cùng buy_upside ở matrix).
+    # Degenerate = có target NHƯNG upside tính được ≈ 0 (mô hình không thêm thông tin).
+    # Trường hợp upside None (giá ≤ 0 / hỏng feed) KHÔNG phải degenerate — rơi vào
+    # nhánh "thiếu định giá tin cậy" với lý do đúng ngữ cảnh.
+    degenerate = target is not None and upside is not None and abs(upside) < _DEGENERATE_UPSIDE_EPS
+    reliable = target is not None and upside is not None and not degenerate
     if reliable:
         reco = _recommendation(upside, buy_t, sell_t)
     else:
         reco = "INSUFFICIENT"
     reasons = _build_reasons(dcf, rel, quality, target, upside, current_price)
     if not reliable:
-        reasons.insert(0, "Thiếu định giá tin cậy (không đủ peer cùng ngành & DCF không áp dụng) — chưa khuyến nghị")
+        if degenerate:
+            reasons.insert(0, "Định giá ≈ giá hiện tại (|upside|<2%) — không đủ biên để khuyến nghị")
+        else:
+            reasons.insert(0, "Thiếu định giá tin cậy (không đủ peer cùng ngành & DCF không áp dụng) — chưa khuyến nghị")
 
     logger.info(
         f"{ticker}: {reco} score={score} target={target and target/1000:.1f}k "
