@@ -226,16 +226,16 @@ export default function ScreenerPage() {
                           </span>
                         ) : <span className="text-neo-muted">—</span>}
                       </td>
-                      {/* Technical screener score */}
+                      {/* Technical screener score (already 0-100) */}
                       <td className="font-mono font-bold">
                         <span className={
-                          item.score >= 0.7
+                          item.score >= 60
                             ? 'text-neo-bullish'
-                            : item.score <= 0.3
+                            : item.score <= 30
                               ? 'text-neo-bearish'
                               : 'text-neo-warning'
                         }>
-                          {(item.score * 100).toFixed(1)}%
+                          {item.score.toFixed(1)}
                         </span>
                       </td>
                       <td className="font-mono">{item.passed_count}</td>

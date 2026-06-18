@@ -42,13 +42,18 @@ from backend.api.models import (
 import time as _time
 import threading
 
-# Unified-signal thresholds (tunable). Technical = screener score (0-100, min-max
-# normalized across VN30); Value = valuation upside fraction.
+# Unified-signal thresholds. Technical = screener score (0-100, min-max normalized
+# across VN30, so heavily right-skewed: median ~30, only outliers reach 60+);
+# Value = valuation upside fraction (DCF-biased low: median ~−7%, few reach +10%).
+# Thresholds are calibrated to that VN30 distribution (tercile-style cutoffs) so
+# the matrix yields a sensible BUY/HOLD/SELL spread instead of all-HOLD. They are
+# absolute (not percentile) for simplicity — recalibrate periodically as the
+# distribution drifts, or move to percentile axes if it proves brittle.
 _SIGNAL_CFG = {
-    "tech_good": 60.0,      # tech score ≥ → TỐT
-    "tech_bad": 35.0,       # tech score ≤ → XẤU
-    "buy_upside": 0.10,     # upside ≥ +10% → RẺ
-    "sell_upside": -0.10,   # upside ≤ −10% → ĐẮT
+    "tech_good": 42.0,      # tech score ≥ → TỐT (~top tercile of VN30)
+    "tech_bad": 27.0,       # tech score ≤ → XẤU (~bottom tercile)
+    "buy_upside": 0.0,      # upside ≥ 0 → RẺ (not overvalued vs fair value)
+    "sell_upside": -0.15,   # upside ≤ −15% → ĐẮT (clearly above fair value)
     "tech_weight": 0.5,     # display-score blend when valuation reliable
     "signals_ttl": 3600,    # cache full VN30 signals 1h (batch build is heavy)
 }
