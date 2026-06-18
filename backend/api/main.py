@@ -107,9 +107,10 @@ def create_app(stock_service: Optional[StockService] = None) -> FastAPI:
     async def health_check():
         return {"status": "healthy", "service": "vn-stock-advisory"}
 
+    # plain `def` (threadpool) — cold screener run is ~8s; must not block the loop.
     @app.get("/api/v1/screener", response_model=ScreenerResponse)
-    async def get_screener(request: Request):
-        """Ranked watchlist from P2 screener engine."""
+    def get_screener(request: Request):
+        """Ranked watchlist from P2 screener engine (TTL-cached)."""
         svc = _get_service(request)
         items = svc.get_screener()
         return ScreenerResponse(items=items, count=len(items), disclaimer=DISCLAIMER)

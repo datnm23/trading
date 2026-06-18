@@ -74,6 +74,8 @@ class StockService:
         self._wiki = None  # WikiRAG, lazy (index load is heavy)
         self._signals_cache: Optional[tuple] = None  # (built_at, List[SignalItem])
         self._signals_lock = threading.Lock()  # serialize batch build (no stampede)
+        self._screener_cache: Optional[tuple] = None  # (built_at, List[ScreenerItem]) — default VN30 only
+        self._screener_lock = threading.Lock()
 
     def _get_fin_store(self) -> FinancialsStore:
         if self._fin_store is None:
@@ -112,15 +114,35 @@ class StockService:
     # Public methods
     # ------------------------------------------------------------------
 
-    def get_screener(self, universe: Optional[List[str]] = None) -> List[ScreenerItem]:
-        """Run screener and return ranked list."""
+    def _run_screener(self, universe: Optional[List[str]]) -> List[ScreenerItem]:
         try:
-            engine = self._get_screener()
-            items: List[WatchlistItem] = engine.screen(universe)
+            items: List[WatchlistItem] = self._get_screener().screen(universe)
             return [self._watchlist_to_item(w) for w in items]
         except Exception as exc:
             logger.error(f"Screener failed: {exc}")
             return []
+
+    def get_screener(self, universe: Optional[List[str]] = None) -> List[ScreenerItem]:
+        """Ranked screener list. The default (VN30) run is cached with a TTL — the
+        engine run is heavy (~8s); a custom universe bypasses the cache.
+
+        Lock-guarded (no stampede) and threadpool-offloaded via the plain `def`
+        route, so the slow run never blocks the event loop. Returns a copy.
+        """
+        if universe is not None:
+            return self._run_screener(universe)
+        ttl = _SIGNAL_CFG["signals_ttl"]
+        cache = self._screener_cache
+        if cache and (_time.time() - cache[0]) < ttl:
+            return list(cache[1])
+        with self._screener_lock:
+            cache = self._screener_cache
+            if cache and (_time.time() - cache[0]) < ttl:
+                return list(cache[1])
+            items = self._run_screener(None)
+            if items:  # don't cache an empty/failed run
+                self._screener_cache = (_time.time(), items)
+            return list(items)
 
     def get_stock_detail(self, ticker: str) -> Optional[StockDetail]:
         """Return price + company + financial summary for ticker."""
