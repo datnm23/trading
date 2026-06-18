@@ -87,7 +87,7 @@ def run_with_threshold(symbol: str, timeframe: str, threshold: float, config: di
 def run_threshold_sweep():
     config = load_config()
 
-    symbols = ["BTC/USDT", "ETH/USDT", "SOL/USDT"]
+    symbols = ["FPT", "HPG", "VCB"]  # liquid VN30 (DNSE tickers)
     timeframes = ["1d", "4h"]
     thresholds = [0.30, 0.25, 0.20, 0.15, 0.10]
 

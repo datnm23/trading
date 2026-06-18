@@ -1,8 +1,8 @@
 """Multi-symbol, multi-timeframe benchmark for wiki + psych impact.
 
 Tests RegimeEnsemble strategy across:
-    - Symbols: BTC/USDT, ETH/USDT, SOL/USDT
-    - Timeframes: 1d, 4h, 1h
+    - Symbols: FPT, HPG, VCB (VN30, DNSE)
+    - Timeframes: 1d
     - Modes: base (no wiki/psych) vs enhanced (wiki + psych)
 
 Outputs:
@@ -108,8 +108,8 @@ def run_single_benchmark(
 def run_full_benchmark():
     config = load_config()
 
-    symbols = ["BTC/USDT", "ETH/USDT", "SOL/USDT"]
-    timeframes = ["1d", "4h"]
+    symbols = ["FPT", "HPG", "VCB"]  # liquid VN30 (DNSE tickers)
+    timeframes = ["1d"]              # DNSE intraday limited; daily for VN backtest
 
     results = []
 

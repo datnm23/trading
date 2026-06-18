@@ -113,7 +113,7 @@ def run_backtest(
 def main():
     parser = argparse.ArgumentParser(description="Run backtest")
     parser.add_argument("--strategy", default="RegimeEnsemble")
-    parser.add_argument("--symbol", default="BTC/USDT")
+    parser.add_argument("--symbol", default="FPT")  # VN30 ticker (DNSE)
     parser.add_argument("--timeframe", default="1d")
     parser.add_argument("--config", default="config/system.yaml")
     parser.add_argument(

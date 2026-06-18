@@ -18,7 +18,7 @@ def load_config():
         return yaml.safe_load(f)
 
 
-def run_comparison(symbol="BTC/USDT", timeframe="1d"):
+def run_comparison(symbol="FPT", timeframe="1d"):  # VN30 ticker (DNSE)
     config = load_config()
 
     feed = DataFeed()
