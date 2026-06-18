@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { NeoCard } from '@/components/ui/NeoCard';
-import { getFinancials, type FinancialStatementView } from '@/lib/api';
+import { getFinancials, type FinancialStatementView, type PeriodType } from '@/lib/api';
 
 const STMT_TITLE: Record<string, string> = {
   balance_sheet: 'Cân đối kế toán (BCĐKT)',
@@ -47,7 +47,41 @@ function StatementTable({ stmt }: { stmt: FinancialStatementView }) {
   );
 }
 
-export function FinancialStatements({ ticker }: { ticker: string }) {
+function PeriodToggle({ value, onChange }: { value: PeriodType; onChange: (p: PeriodType) => void }) {
+  const opts: { key: PeriodType; label: string }[] = [
+    { key: 'year', label: 'Năm' },
+    { key: 'quarter', label: 'Quý' },
+  ];
+  return (
+    <div className="flex gap-2 mb-4">
+      {opts.map((o) => (
+        <button
+          key={o.key}
+          onClick={() => onChange(o.key)}
+          className={`px-4 py-1.5 font-black uppercase text-sm border-[3px] border-neo-stroke transition-colors ${
+            value === o.key ? 'bg-neo-stroke text-neo-bg' : 'bg-neo-bg text-neo-text hover:bg-neo-surface'
+          }`}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * `period` is controlled by the parent (StockDetailPage) so the selection
+ * survives the page's loading→loaded branch swap, which remounts this component.
+ */
+export function FinancialStatements({
+  ticker,
+  period,
+  onPeriodChange,
+}: {
+  ticker: string;
+  period: PeriodType;
+  onPeriodChange: (p: PeriodType) => void;
+}) {
   const [statements, setStatements] = useState<FinancialStatementView[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -55,25 +89,26 @@ export function FinancialStatements({ ticker }: { ticker: string }) {
   useEffect(() => {
     let active = true;
     setLoading(true);
-    getFinancials(ticker)
+    getFinancials(ticker, period)
       .then((r) => { if (active) { setStatements(r.statements); setError(null); } })
       .catch((e) => { if (active) setError(e?.message ?? 'Lỗi tải BCTC'); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [ticker]);
-
-  if (loading) return <NeoCard title="Báo cáo tài chính (BCTC)"><p className="text-neo-muted py-4">Đang tải…</p></NeoCard>;
-  if (error) return <NeoCard title="Báo cáo tài chính (BCTC)"><p className="text-neo-bearish py-4">{error}</p></NeoCard>;
-  if (statements.length === 0)
-    return (
-      <NeoCard title="Báo cáo tài chính (BCTC)">
-        <p className="text-neo-muted py-4">Chưa có dữ liệu BCTC cho mã này (chạy scripts/collect_vn30_financials.py).</p>
-      </NeoCard>
-    );
+  }, [ticker, period]);
 
   return (
     <div className="space-y-6">
-      {statements.map((s) => (
+      <PeriodToggle value={period} onChange={onPeriodChange} />
+      {loading && <NeoCard title="Báo cáo tài chính (BCTC)"><p className="text-neo-muted py-4">Đang tải…</p></NeoCard>}
+      {!loading && error && (
+        <NeoCard title="Báo cáo tài chính (BCTC)"><p className="text-neo-bearish py-4">{error}</p></NeoCard>
+      )}
+      {!loading && !error && statements.length === 0 && (
+        <NeoCard title="Báo cáo tài chính (BCTC)">
+          <p className="text-neo-muted py-4">Chưa có dữ liệu BCTC cho mã này (chạy scripts/collect_vn30_financials.py).</p>
+        </NeoCard>
+      )}
+      {!loading && !error && statements.map((s) => (
         <StatementTable key={s.statement_type} stmt={s} />
       ))}
     </div>

@@ -1,17 +1,26 @@
 """Collect VN30 financial statements (BS/IS/CF) → database.
 
-Scope: VN30, last N fiscal years (default 2), annual. Source: vnstock free
-(VCI) — serves the most-recent ~4 periods, which covers 2 years for VN30.
+Scope: VN30, last N periods. Source: vnstock free (VCI) — hard-capped at the
+4 most-recent periods (covers 2 years annual OR 4 quarters).
 Storage: PostgreSQL if TRADING_DB_URL reachable, else SQLite fallback.
 
-Run: python3 scripts/collect_vn30_financials.py [years]
+Run: python3 scripts/collect_vn30_financials.py [periods] [year|quarter]
+  e.g.  ... 2 year      -> last 2 fiscal years (default)
+        ... 4 quarter   -> last 4 quarters
 """
 from __future__ import annotations
 
 import sys
 import warnings
+from pathlib import Path
 
 warnings.filterwarnings("ignore")
+
+# Allow running as a script file (python3 scripts/...) — ensure project root is
+# importable so `data.vn.*` resolves regardless of cwd / sys.path[0].
+_ROOT = Path(__file__).resolve().parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
 
 from loguru import logger
 
@@ -23,22 +32,26 @@ STATEMENTS = ["balance_sheet", "income_statement", "cash_flow"]
 
 
 def main() -> int:
-    years = int(sys.argv[1]) if len(sys.argv) > 1 else 2
+    periods = int(sys.argv[1]) if len(sys.argv) > 1 else 2
+    period_type = sys.argv[2] if len(sys.argv) > 2 else "year"
+    if period_type not in ("year", "quarter"):
+        print(f"Invalid period_type {period_type!r}; use 'year' or 'quarter'")
+        return 2
     tickers = get_vn30()
     # Throttle 5s to stay under vnstock guest limit (20 req/min); 30 tickers x 3
     # statements = 90 calls.
     src = VnstockSource(source="VCI", throttle_seconds=5.0)
     store = FinancialsStore()
 
-    logger.info(f"Collecting {len(tickers)} VN30 tickers x {len(STATEMENTS)} statements, last {years}y")
+    logger.info(f"Collecting {len(tickers)} VN30 tickers x {len(STATEMENTS)} statements, last {periods} {period_type}")
     total_rows = 0
     failed = []
     for i, ticker in enumerate(tickers, 1):
         t_rows = 0
         for stmt in STATEMENTS:
             try:
-                fs = src.get_financials(ticker, stmt, period="year")
-                t_rows += store.store_statement(fs, max_periods=years, source=f"vnstock-{src.source}")
+                fs = src.get_financials(ticker, stmt, period=period_type)
+                t_rows += store.store_statement(fs, max_periods=periods, source=f"vnstock-{src.source}")
             except Exception as exc:  # noqa: BLE001
                 logger.warning(f"[{ticker}] {stmt} failed: {exc}")
         if t_rows == 0:

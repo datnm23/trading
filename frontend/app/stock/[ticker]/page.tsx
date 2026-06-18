@@ -14,6 +14,7 @@ import {
   getValuation,
   type StockDetail,
   type ValuationResponse,
+  type PeriodType,
 } from '@/lib/api';
 import {
   TrendingUp,
@@ -76,6 +77,9 @@ export default function StockDetailPage() {
   const [valuation, setValuation] = useState<ValuationResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // BCTC period lives here so the year/quarter choice survives the loading→loaded
+  // branch swap below (which remounts FinancialStatements).
+  const [finPeriod, setFinPeriod] = useState<PeriodType>('year');
 
   const fetchData = useCallback(async () => {
     if (!ticker) return;
@@ -106,7 +110,7 @@ export default function StockDetailPage() {
         <div className="flex items-center justify-center py-12 text-neo-muted font-bold animate-pulse text-xl uppercase">
           {t('loading', lang)} — {ticker}
         </div>
-        <FinancialStatements ticker={ticker} />
+        <FinancialStatements ticker={ticker} period={finPeriod} onPeriodChange={setFinPeriod} />
       </div>
     );
   }
@@ -122,7 +126,7 @@ export default function StockDetailPage() {
             {t('error', lang)}: {error}
           </div>
         </NeoCard>
-        <FinancialStatements ticker={ticker} />
+        <FinancialStatements ticker={ticker} period={finPeriod} onPeriodChange={setFinPeriod} />
       </div>
     );
   }
@@ -364,7 +368,7 @@ export default function StockDetailPage() {
       )}
 
       {/* Full financial statements (BS/IS/CF) from collected DB */}
-      <FinancialStatements ticker={ticker} />
+      <FinancialStatements ticker={ticker} period={finPeriod} onPeriodChange={setFinPeriod} />
     </div>
   );
 }

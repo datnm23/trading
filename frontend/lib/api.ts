@@ -141,6 +141,13 @@ export interface FinancialsResponse {
   disclaimer: string;
 }
 
-export async function getFinancials(ticker: string): Promise<FinancialsResponse> {
-  return apiFetch<FinancialsResponse>(`/api/v1/stock/${encodeURIComponent(ticker)}/financials`);
+export type PeriodType = 'year' | 'quarter';
+
+export async function getFinancials(
+  ticker: string,
+  periodType: PeriodType = 'year',
+): Promise<FinancialsResponse> {
+  return apiFetch<FinancialsResponse>(
+    `/api/v1/stock/${encodeURIComponent(ticker)}/financials?period_type=${periodType}`,
+  );
 }
