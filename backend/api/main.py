@@ -34,6 +34,7 @@ from backend.api.models import (
     ScreenerResponse,
     StockDetail,
     ValuationResponse,
+    WikiSearchResponse,
 )
 from backend.api.stock_service import StockService
 
@@ -131,6 +132,11 @@ def create_app(stock_service: Optional[StockService] = None) -> FastAPI:
     async def get_market_overview(request: Request):
         """VN-Index summary + VN30 price/%change table."""
         return _get_service(request).get_market_overview()
+
+    @app.get("/api/v1/wiki/search", response_model=WikiSearchResponse)
+    async def search_wiki(request: Request, q: str = ""):
+        """Semantic search over the trading knowledge base (RAG)."""
+        return _get_service(request).search_wiki(q)
 
     @app.get("/api/v1/recommendations", response_model=RecommendationsResponse)
     async def get_recommendations(request: Request, ticker: Optional[str] = None, limit: int = 100):

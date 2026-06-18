@@ -33,6 +33,8 @@ from backend.api.models import (
     ScreenerItem,
     StockDetail,
     ValuationResponse,
+    WikiResult,
+    WikiSearchResponse,
 )
 
 _SCREENER_CONFIG = str(Path(__file__).parent.parent.parent / "config" / "screener.yaml")
@@ -46,6 +48,7 @@ class StockService:
         self._screener: Optional[ScreenerEngine] = None
         self._fin_store: Optional[FinancialsStore] = None
         self._journal: Optional[RecommendationLogger] = None
+        self._wiki = None  # WikiRAG, lazy (index load is heavy)
 
     def _get_fin_store(self) -> FinancialsStore:
         if self._fin_store is None:
@@ -194,6 +197,31 @@ class StockService:
         except Exception as exc:
             logger.error(f"get_recommendations failed: {exc}")
             return []
+
+    def search_wiki(self, query: str) -> WikiSearchResponse:
+        """Semantic search over the Vietnamese trading knowledge base (WikiRAG)."""
+        query = (query or "").strip()
+        if not query:
+            return WikiSearchResponse(query=query, results=[], count=0)
+        try:
+            if self._wiki is None:
+                from knowledge_engine.rag import WikiRAG
+                self._wiki = WikiRAG()  # loads persisted index lazily
+            hits = self._wiki.search(query)
+            results = [
+                WikiResult(
+                    id=str(h["document"].get("id", "")),
+                    title=h["document"].get("title", ""),
+                    content=h["document"].get("content", ""),
+                    score=float(h.get("score", 0.0)),
+                    source_url=h["document"].get("source_url", ""),
+                )
+                for h in hits
+            ]
+            return WikiSearchResponse(query=query, results=results, count=len(results))
+        except Exception as exc:
+            logger.error(f"wiki search failed for {query!r}: {exc}")
+            return WikiSearchResponse(query=query, results=[], count=0)
 
     def get_market_overview(self) -> MarketOverviewResponse:
         """VN-Index summary + VN30 price/%change table (DNSE closes, cached)."""

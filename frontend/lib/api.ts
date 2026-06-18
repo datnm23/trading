@@ -172,6 +172,26 @@ export async function getRecommendations(limit = 100): Promise<RecommendationsRe
   return apiFetch<RecommendationsResponse>(`/api/v1/recommendations?limit=${limit}`);
 }
 
+// ── Knowledge base (RAG) ────────────────────────────────────────────────────────
+
+export interface WikiResult {
+  id: string;
+  title: string;
+  content: string;
+  score: number;
+  source_url: string;
+}
+
+export interface WikiSearchResponse {
+  query: string;
+  results: WikiResult[];
+  count: number;
+}
+
+export async function searchWiki(query: string): Promise<WikiSearchResponse> {
+  return apiFetch<WikiSearchResponse>(`/api/v1/wiki/search?q=${encodeURIComponent(query)}`);
+}
+
 // ── Financial statements (BCTC) ─────────────────────────────────────────────
 
 export interface FinancialLineItem {

@@ -91,7 +91,9 @@ export const translations = {
     tradingWiki: 'Wiki Giao dịch',
     search: 'Tìm kiếm',
     searchPlaceholder: 'Tìm kiếm khái niệm giao dịch...',
-    
+    source: 'Nguồn',
+    noResults: 'Không tìm thấy kết quả',
+
     // Screener + Stock
     screener: 'Bộ lọc cổ phiếu',
     stockDetail: 'Chi tiết mã',
@@ -223,7 +225,9 @@ export const translations = {
     tradingWiki: 'Trading Wiki',
     search: 'Search',
     searchPlaceholder: 'Search trading concepts...',
-    
+    source: 'Source',
+    noResults: 'No results found',
+
     // Screener + Stock
     screener: 'Screener',
     stockDetail: 'Stock Detail',

@@ -119,6 +119,20 @@ class MarketOverviewResponse(BaseModel):
     disclaimer: str = DISCLAIMER
 
 
+class WikiResult(BaseModel):
+    id: str
+    title: str
+    content: str
+    score: float
+    source_url: str = ""
+
+
+class WikiSearchResponse(BaseModel):
+    query: str
+    results: List[WikiResult] = []
+    count: int = 0
+
+
 class RecommendationRead(BaseModel):
     id: int
     ticker: str
