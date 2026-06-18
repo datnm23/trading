@@ -259,12 +259,24 @@ class CachedDataSource(StockDataSource):
         cached_min = df["time"].min()
         cached_max = df["time"].max()
 
-        if cached_min > req_start or cached_max < req_end:
+        # Trailing-gap waiver: a "give me data up to today" request (req_end = today)
+        # never matches cached_max when today/weekend/holiday has no bar yet — the
+        # cache already holds every bar up to the last trading day, so refetching
+        # produces nothing newer. We've already passed the TTL gate (file is fresh),
+        # so treat a small trailing gap (<= 5 days) as covered to avoid perpetual
+        # MISS → wide-window refetch on every recent-price lookup.
+        # (Backtest as-of requests use a historical req_end <= cached_max, unaffected.)
+        trailing_gap_days = (req_end - cached_max).days
+        if cached_min > req_start or (cached_max < req_end and trailing_gap_days > 5):
             logger.debug(
                 f"OHLCV cache PARTIAL [{ticker}] cached=[{cached_min.date()},{cached_max.date()}]"
                 f" requested=[{req_start.date()},{req_end.date()}] — MISS"
             )
             return None
+
+        # Clamp the slice upper bound to what we actually have (cached_max) so a
+        # waived trailing gap still returns the latest available bars.
+        req_end = min(req_end, cached_max)
 
         mask = (df["time"] >= req_start) & (df["time"] <= req_end)
         result = df[mask].reset_index(drop=True)

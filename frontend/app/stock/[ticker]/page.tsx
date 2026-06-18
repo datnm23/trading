@@ -55,8 +55,8 @@ function RecoIcon({ reco }: { reco: string }) {
   return <Minus size={16} className="inline mr-1 text-neo-muted" />;
 }
 
-// Simple bar: score 0-10 rendered as a progress bar
-function ScoreBar({ score, max = 10 }: { score: number; max?: number }) {
+// Simple bar: score rendered as a progress bar (valuation score is 0-100)
+function ScoreBar({ score, max = 100 }: { score: number; max?: number }) {
   const pct = Math.min((score / max) * 100, 100);
   const color = pct >= 60 ? 'bg-neo-bullish' : pct >= 40 ? 'bg-neo-warning' : 'bg-neo-bearish';
   return (
@@ -224,7 +224,7 @@ export default function StockDetailPage() {
             />
             <NeoMetric
               label="Score"
-              value={`${valuation.score}/10`}
+              value={`${valuation.score}/100`}
               variant={variant}
             />
           </div>
@@ -233,9 +233,9 @@ export default function StockDetailPage() {
           <div className="mb-4 space-y-1">
             <div className="flex justify-between text-xs font-mono text-neo-muted">
               <span>Composite Score</span>
-              <span>{valuation.score}/10</span>
+              <span>{valuation.score}/100</span>
             </div>
-            <ScoreBar score={valuation.score} />
+            <ScoreBar score={valuation.score} max={100} />
           </div>
 
           {/* Recommendation badge */}
