@@ -97,6 +97,28 @@ class ValuationResponse(BaseModel):
     disclaimer: str = DISCLAIMER
 
 
+class MarketIndexView(BaseModel):
+    """Index summary (e.g. VN-Index) — value is index points, not VND."""
+    symbol: str
+    value: float                         # latest close (index points)
+    change_pct: Optional[float] = None   # vs previous session
+    series: List[float] = []             # recent closes for a sparkline (oldest→newest)
+
+
+class MarketStock(BaseModel):
+    ticker: str
+    name: str
+    sector: str
+    price: float                         # VND absolute (latest close)
+    change_pct: Optional[float] = None   # vs previous session
+
+
+class MarketOverviewResponse(BaseModel):
+    index: Optional[MarketIndexView] = None
+    stocks: List[MarketStock] = []
+    disclaimer: str = DISCLAIMER
+
+
 class RecommendationRead(BaseModel):
     id: int
     ticker: str
@@ -108,6 +130,12 @@ class RecommendationRead(BaseModel):
     upside_pct: Optional[float] = None
     reasons: List[str] = []
     created_at: str
+
+
+class RecommendationsResponse(BaseModel):
+    items: List[RecommendationRead] = []
+    count: int = 0
+    disclaimer: str = DISCLAIMER
 
 
 class PaperPositionRead(BaseModel):

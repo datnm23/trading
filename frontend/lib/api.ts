@@ -120,6 +120,58 @@ export async function getValuation(ticker: string): Promise<ValuationResponse> {
   return apiFetch<ValuationResponse>(`/api/v1/valuation/${encodeURIComponent(ticker)}`);
 }
 
+// ── Market overview ───────────────────────────────────────────────────────────
+
+export interface MarketIndex {
+  symbol: string;
+  value: number;
+  change_pct: number | null;
+  series: number[];
+}
+
+export interface MarketStock {
+  ticker: string;
+  name: string;
+  sector: string;
+  price: number;
+  change_pct: number | null;
+}
+
+export interface MarketOverviewResponse {
+  index: MarketIndex | null;
+  stocks: MarketStock[];
+  disclaimer: string;
+}
+
+export async function getMarketOverview(): Promise<MarketOverviewResponse> {
+  return apiFetch<MarketOverviewResponse>('/api/v1/market/overview');
+}
+
+// ── Recommendations ────────────────────────────────────────────────────────────
+
+export interface RecommendationItem {
+  id: number;
+  ticker: string;
+  date: string;
+  recommendation: 'BUY' | 'SELL' | 'HOLD';
+  target_price: number | null;
+  current_price: number | null;
+  score: number | null;
+  upside_pct: number | null;
+  reasons: string[];
+  created_at: string;
+}
+
+export interface RecommendationsResponse {
+  items: RecommendationItem[];
+  count: number;
+  disclaimer: string;
+}
+
+export async function getRecommendations(limit = 100): Promise<RecommendationsResponse> {
+  return apiFetch<RecommendationsResponse>(`/api/v1/recommendations?limit=${limit}`);
+}
+
 // ── Financial statements (BCTC) ─────────────────────────────────────────────
 
 export interface FinancialLineItem {

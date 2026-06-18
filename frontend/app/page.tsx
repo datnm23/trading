@@ -1,156 +1,237 @@
 'use client';
 
-import { useSocketIO } from '@/hooks/useSocketIO';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useLang } from '@/components/layout/LangProvider';
 import { NeoCard } from '@/components/ui/NeoCard';
 import { NeoMetric } from '@/components/ui/NeoMetric';
-import { NeoBadge } from '@/components/ui/NeoBadge';
-import { NeoButton } from '@/components/ui/NeoButton';
-import { PortfolioRebalancer } from '@/components/charts/PortfolioRebalancer';
-import { EquityCurveChart } from '@/components/charts/EquityCurveChart';
 import { t } from '@/lib/i18n';
-import { RefreshCw } from 'lucide-react';
+import {
+  getMarketOverview,
+  getScreener,
+  type MarketOverviewResponse,
+  type ScreenerResponse,
+} from '@/lib/api';
+import { TrendingUp, TrendingDown } from 'lucide-react';
+
+// ── helpers ───────────────────────────────────────────────────────────────────
+
+function fmtPct(val: number | null): string {
+  if (val === null || val === undefined) return '—';
+  return `${val >= 0 ? '+' : ''}${val.toFixed(2)}%`;
+}
+
+function fmtVND(val: number): string {
+  return val.toLocaleString('vi-VN') + ' ₫';
+}
+
+function fmtPoints(val: number): string {
+  return val.toLocaleString('vi-VN', { maximumFractionDigits: 2 });
+}
+
+// ── component ─────────────────────────────────────────────────────────────────
 
 export default function OverviewPage() {
-  const { state, connected, reconnect } = useSocketIO();
   const { lang } = useLang();
+  const [overview, setOverview] = useState<MarketOverviewResponse | null>(null);
+  const [screener, setScreener] = useState<ScreenerResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const strategies = state?.strategies || [];
-  const subStrategies = strategies.filter((s: any) => s.meta);
-  const displayStrategies = subStrategies.length > 0 ? subStrategies : strategies;
-  const totalEquity = displayStrategies.reduce((sum: number, s: any) => sum + s.equity, 0);
-  const avgReturn = displayStrategies.length > 0
-    ? displayStrategies.reduce((sum: number, s: any) => sum + s.return_pct, 0) / displayStrategies.length
-    : 0;
-  const totalPositions = displayStrategies.reduce((sum: number, s: any) => sum + s.open_positions, 0);
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchAll() {
+      setLoading(true);
+      setError(null);
+      try {
+        const [ov, sc] = await Promise.all([getMarketOverview(), getScreener()]);
+        if (!cancelled) {
+          setOverview(ov);
+          setScreener(sc);
+        }
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : t('error', lang));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    fetchAll();
+    return () => { cancelled = true; };
+  }, [lang]);
 
-  const regimeColors: Record<string, string> = {
-    trending: 'text-neo-bullish',
-    ranging: 'text-neo-warning',
-    neutral: 'text-neo-muted',
-  };
+  const stocks = overview?.stocks ?? [];
+  const idx = overview?.index ?? null;
+
+  // Top 5 gainers / losers by change_pct
+  const withChange = stocks.filter((s) => s.change_pct !== null);
+  const gainers = [...withChange]
+    .sort((a, b) => (b.change_pct ?? 0) - (a.change_pct ?? 0))
+    .slice(0, 5);
+  const losers = [...withChange]
+    .sort((a, b) => (a.change_pct ?? 0) - (b.change_pct ?? 0))
+    .slice(0, 5);
+
+  // Top 5 screener picks
+  const topPicks = (screener?.items ?? []).slice(0, 5);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16 text-neo-muted font-bold animate-pulse text-xl uppercase">
+        {t('loading', lang)}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="neo-card p-6 text-neo-bearish font-bold text-center">
+        {t('error', lang)}: {error}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-black uppercase tracking-wider">{t('overview', lang)}</h2>
-        <div className="flex items-center gap-2">
-          <NeoBadge status={connected ? 'running' : 'halted'}>
-            {connected ? t('live', lang) : t('offline', lang)}
-          </NeoBadge>
-          <NeoButton size="sm" onClick={reconnect}>
-            <RefreshCw size={14} className="mr-1" /> {t('refresh', lang)}
-          </NeoButton>
+      <h2 className="text-2xl font-black uppercase tracking-wider">{t('overview', lang)}</h2>
+
+      {/* VN-Index card */}
+      {idx && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <NeoCard>
+            <NeoMetric
+              label={t('vnindex', lang)}
+              value={fmtPoints(idx.value)}
+              variant={
+                idx.change_pct === null ? 'neutral' : idx.change_pct >= 0 ? 'bullish' : 'bearish'
+              }
+            />
+            {idx.change_pct !== null && (
+              <div
+                className={`mt-2 font-bold font-mono text-sm ${
+                  idx.change_pct >= 0 ? 'text-neo-bullish' : 'text-neo-bearish'
+                }`}
+              >
+                {idx.change_pct >= 0 ? (
+                  <TrendingUp size={14} className="inline mr-1" />
+                ) : (
+                  <TrendingDown size={14} className="inline mr-1" />
+                )}
+                {fmtPct(idx.change_pct)}
+              </div>
+            )}
+          </NeoCard>
         </div>
+      )}
+
+      {/* Top gainers / losers */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <NeoCard title={t('topGainers', lang)}>
+          {gainers.length === 0 ? (
+            <p className="text-neo-muted text-center py-4">{t('noData', lang)}</p>
+          ) : (
+            <table className="neo-table w-full">
+              <thead>
+                <tr>
+                  <th>{t('ticker', lang)}</th>
+                  <th>{t('price', lang)}</th>
+                  <th>{t('changePct', lang)}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {gainers.map((s) => (
+                  <tr key={s.ticker}>
+                    <td className="font-black">
+                      <Link href={`/stock/${s.ticker}`} className="hover:underline text-neo-primary">
+                        {s.ticker}
+                      </Link>
+                    </td>
+                    <td className="font-mono text-sm">{fmtVND(s.price)}</td>
+                    <td className="font-bold font-mono text-neo-bullish">
+                      {fmtPct(s.change_pct)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </NeoCard>
+
+        <NeoCard title={t('topLosers', lang)}>
+          {losers.length === 0 ? (
+            <p className="text-neo-muted text-center py-4">{t('noData', lang)}</p>
+          ) : (
+            <table className="neo-table w-full">
+              <thead>
+                <tr>
+                  <th>{t('ticker', lang)}</th>
+                  <th>{t('price', lang)}</th>
+                  <th>{t('changePct', lang)}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {losers.map((s) => (
+                  <tr key={s.ticker}>
+                    <td className="font-black">
+                      <Link href={`/stock/${s.ticker}`} className="hover:underline text-neo-primary">
+                        {s.ticker}
+                      </Link>
+                    </td>
+                    <td className="font-mono text-sm">{fmtVND(s.price)}</td>
+                    <td className="font-bold font-mono text-neo-bearish">
+                      {fmtPct(s.change_pct)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </NeoCard>
       </div>
 
-      {/* Metrics Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <NeoCard>
-          <NeoMetric
-            label={t('totalEquity', lang)}
-            value={totalEquity.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-            prefix="$"
-            variant="neutral"
-          />
-        </NeoCard>
-        <NeoCard>
-          <NeoMetric
-            label={t('avgReturn', lang)}
-            value={`${(avgReturn * 100).toFixed(2)}%`}
-            variant={avgReturn >= 0 ? 'bullish' : 'bearish'}
-          />
-        </NeoCard>
-        <NeoCard>
-          <NeoMetric
-            label={t('openPositions', lang)}
-            value={totalPositions}
-            variant="neutral"
-          />
-        </NeoCard>
-      </div>
-
-      {/* Equity Curve */}
-      <NeoCard title={t('equityCurves', lang)}>
-        <EquityCurveChart data={state?.equity_history || []} />
-      </NeoCard>
-
-      {/* Portfolio Rebalancer */}
-      <PortfolioRebalancer />
-
-      {/* Strategies Table */}
-      <NeoCard title={t('strategyPerformance', lang)}>
-        <div className="overflow-x-auto">
-          <table className="neo-table">
+      {/* Top screener picks */}
+      <NeoCard title={t('topScreener', lang)}>
+        {topPicks.length === 0 ? (
+          <p className="text-neo-muted text-center py-4">{t('noData', lang)}</p>
+        ) : (
+          <table className="neo-table w-full">
             <thead>
               <tr>
-                <th>{t('strategy', lang)}</th>
-                <th>Type</th>
-                <th>{t('equity', lang)}</th>
-                <th>{t('return', lang)}</th>
-                <th>{t('positions', lang)}</th>
-                <th>Regime</th>
-                <th>Signal</th>
-                <th>{t('status', lang)}</th>
+                <th>#</th>
+                <th>{t('ticker', lang)}</th>
+                <th>{t('score', lang)}</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
-              {displayStrategies.map((strategy: any) => {
-                const meta = strategy.meta || {};
-                const isActive = meta.is_active_regime;
-                const signal = meta.active_signal;
-                return (
-                  <tr key={strategy.name}>
-                    <td className="font-bold">{strategy.name}</td>
-                    <td className="text-xs font-mono text-neo-muted uppercase">{strategy.strategy_type}</td>
-                    <td className="font-mono">${strategy.equity.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-                    <td className={strategy.return_pct >= 0 ? 'text-neo-bullish font-bold' : 'text-neo-bearish font-bold'}>
-                      {strategy.return_pct >= 0 ? '+' : ''}{(strategy.return_pct * 100).toFixed(2)}%
-                    </td>
-                    <td className="font-mono">{strategy.open_positions}</td>
-                    <td>
-                      <span className={`font-bold uppercase text-xs ${regimeColors[meta.current_regime] || 'text-neo-muted'}`}>
-                        {meta.current_regime || '-'}
-                      </span>
-                    </td>
-                    <td>
-                      {signal ? (
-                        <span className={`font-bold text-xs ${signal === 'buy' ? 'text-neo-bullish' : 'text-neo-bearish'}`}>
-                          {signal.toUpperCase()}
-                        </span>
-                      ) : (
-                        <span className="text-xs text-neo-muted">—</span>
-                      )}
-                    </td>
-                    <td>
-                      <NeoBadge status={strategy.running ? 'running' : 'halted'}>
-                        {strategy.running ? t('running', lang) : t('stopped', lang)}
-                      </NeoBadge>
-                      {isActive && (
-                        <span className="ml-1 text-xs text-neo-bullish font-bold">●</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-              {displayStrategies.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="text-center text-neo-muted py-8">
-                    {t('noStrategies', lang)}
+              {topPicks.map((item) => (
+                <tr key={item.ticker}>
+                  <td className="font-mono text-neo-muted">{item.rank}</td>
+                  <td className="font-black">{item.ticker}</td>
+                  <td
+                    className={`font-mono font-bold ${
+                      item.score >= 0.7
+                        ? 'text-neo-bullish'
+                        : item.score <= 0.3
+                          ? 'text-neo-bearish'
+                          : 'text-neo-warning'
+                    }`}
+                  >
+                    {(item.score * 100).toFixed(1)}%
+                  </td>
+                  <td>
+                    <Link
+                      href={`/stock/${item.ticker}`}
+                      className="neo-button px-3 py-1 text-xs font-bold uppercase tracking-wider bg-neo-surface border-[2px] border-neo-stroke hover:bg-neo-primary hover:shadow-neo"
+                    >
+                      Chi tiết →
+                    </Link>
                   </td>
                 </tr>
-              )}
+              ))}
             </tbody>
           </table>
-        </div>
+        )}
       </NeoCard>
-
-      {/* Last Update */}
-      {state?.timestamp && (
-        <div className="text-sm text-neo-muted font-mono">
-          {t('lastUpdate', lang)}: {new Date(state.timestamp).toLocaleString()}
-        </div>
-      )}
     </div>
   );
 }

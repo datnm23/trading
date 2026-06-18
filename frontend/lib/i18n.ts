@@ -5,7 +5,7 @@ export const translations = {
     liveStatus: 'Trạng thái Live',
     compare: 'So sánh',
     risk: 'Rủi ro',
-    reports: 'Báo cáo',
+    reports: 'Nhật ký khuyến nghị',
     arbitrage: 'Chênh lệch giá',
     wiki: 'Kiến thức',
     
@@ -96,6 +96,35 @@ export const translations = {
     screener: 'Bộ lọc cổ phiếu',
     stockDetail: 'Chi tiết mã',
 
+    // Dashboard
+    vnindex: 'VN-Index',
+    topGainers: 'Top tăng',
+    topLosers: 'Top giảm',
+    topScreener: 'Top khuyến nghị (Screener)',
+    noData: 'Chưa có dữ liệu',
+
+    // Market table
+    ticker: 'Mã',
+    companyName: 'Tên công ty',
+    sector: 'Ngành',
+    price: 'Giá',
+    changePct: '% Thay đổi',
+
+    // Compare
+    compareStocks: 'So sánh cổ phiếu',
+    addTicker: 'Thêm mã',
+    marketCap: 'Vốn hóa',
+    upside: 'Upside',
+    targetPrice: 'Target',
+    recommendation: 'Khuyến nghị',
+    score: 'Điểm',
+    netMargin: 'Net Margin',
+
+    // Reports / Recommendations journal
+    recommendationJournal: 'Nhật ký khuyến nghị',
+    noRecommendations: 'Chưa có khuyến nghị nào — xem chi tiết một mã để tạo khuyến nghị.',
+    upcomingDate: 'Ngày',
+
     // General
     loading: 'Đang tải...',
     error: 'Lỗi',
@@ -108,7 +137,7 @@ export const translations = {
     liveStatus: 'Live Status',
     compare: 'Compare',
     risk: 'Risk',
-    reports: 'Reports',
+    reports: 'Recommendation Journal',
     arbitrage: 'Arbitrage',
     wiki: 'Wiki',
     
@@ -198,6 +227,35 @@ export const translations = {
     // Screener + Stock
     screener: 'Screener',
     stockDetail: 'Stock Detail',
+
+    // Dashboard
+    vnindex: 'VN-Index',
+    topGainers: 'Top Gainers',
+    topLosers: 'Top Losers',
+    topScreener: 'Top Screener Picks',
+    noData: 'No data available',
+
+    // Market table
+    ticker: 'Ticker',
+    companyName: 'Company',
+    sector: 'Sector',
+    price: 'Price',
+    changePct: '% Change',
+
+    // Compare
+    compareStocks: 'Compare Stocks',
+    addTicker: 'Add ticker',
+    marketCap: 'Market Cap',
+    upside: 'Upside',
+    targetPrice: 'Target',
+    recommendation: 'Recommendation',
+    score: 'Score',
+    netMargin: 'Net Margin',
+
+    // Reports / Recommendations journal
+    recommendationJournal: 'Recommendation Journal',
+    noRecommendations: 'No recommendations yet — view a stock detail to generate one.',
+    upcomingDate: 'Date',
 
     // General
     loading: 'Loading...',

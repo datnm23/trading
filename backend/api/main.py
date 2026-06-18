@@ -29,6 +29,8 @@ except (ImportError, Exception):
 from backend.api.models import (
     DISCLAIMER,
     FinancialsResponse,
+    MarketOverviewResponse,
+    RecommendationsResponse,
     ScreenerResponse,
     StockDetail,
     ValuationResponse,
@@ -124,6 +126,17 @@ def create_app(stock_service: Optional[StockService] = None) -> FastAPI:
         """Stored BS/IS/CF statements for a ticker (collected from vnstock → DB)."""
         svc = _get_service(request)
         return svc.get_financials(ticker.upper(), period_type)
+
+    @app.get("/api/v1/market/overview", response_model=MarketOverviewResponse)
+    async def get_market_overview(request: Request):
+        """VN-Index summary + VN30 price/%change table."""
+        return _get_service(request).get_market_overview()
+
+    @app.get("/api/v1/recommendations", response_model=RecommendationsResponse)
+    async def get_recommendations(request: Request, ticker: Optional[str] = None, limit: int = 100):
+        """Recommendation journal (advisory BUY/SELL/HOLD log), newest first."""
+        items = _get_service(request).get_recommendations(ticker=ticker, limit=limit)
+        return RecommendationsResponse(items=items, count=len(items), disclaimer=DISCLAIMER)
 
     @app.get("/api/v1/valuation/{ticker}", response_model=ValuationResponse)
     async def get_valuation(ticker: str, request: Request):

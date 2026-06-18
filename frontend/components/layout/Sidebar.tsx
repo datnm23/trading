@@ -8,7 +8,6 @@ import { t, TranslationKey } from '@/lib/i18n';
 import {
   LayoutDashboard,
   BarChart3,
-  Shield,
   FileText,
   BookOpen,
   CandlestickChart,
@@ -22,7 +21,6 @@ const navItems: { href: string; key: TranslationKey; icon: typeof LayoutDashboar
   { href: '/screener', key: 'screener', icon: Filter },
   { href: '/stock', key: 'stockDetail', icon: Search },
   { href: '/compare', key: 'compare', icon: BarChart3 },
-  { href: '/risk', key: 'risk', icon: Shield },
   { href: '/reports', key: 'reports', icon: FileText },
   { href: '/wiki', key: 'wiki', icon: BookOpen },
 ];
