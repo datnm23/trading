@@ -1,6 +1,6 @@
 'use client';
 
-import { useSocketIO } from '@/hooks/useSocketIO';
+import { useApiHealth } from '@/hooks/useApiHealth';
 import { useLang } from './LangProvider';
 import { ThemeToggle } from './ThemeToggle';
 import { LanguageToggle } from './LanguageToggle';
@@ -8,7 +8,8 @@ import { t } from '@/lib/i18n';
 import { Activity } from 'lucide-react';
 
 export function Header() {
-  const { connected } = useSocketIO();
+  // Real backend liveness (GET /health) — the advisory API has no socket server.
+  const { healthy: connected } = useApiHealth();
   const { lang } = useLang();
 
   return (
